@@ -80,7 +80,6 @@ function areContactsDups(
       Math.min(contactAFields.length, contactBFields.length));
 
   let unmatchingFieldMalus = 0;
-  let unmatchingFields: string[] = [];
   let similarityScore = 0;
   ContactFieldsList.forEach((field) => {
     let similarity = similaritiesOfContacts.find(
@@ -93,7 +92,6 @@ function areContactsDups(
         contactBFields.find((cf) => cf === field)
       ) {
         unmatchingFieldMalus += 20;
-        unmatchingFields.push(field);
       }
 
       return;
@@ -101,29 +99,6 @@ function areContactsDups(
 
     similarityScore += scoring[field][similarity.similarity_score];
   });
-
-  let test = ["101", "1205", "5302", "5762"];
-  if (test.some((v) => contactA.hs_id === v || contactB.hs_id === v)) {
-    console.log("A: ", contactA);
-    console.log("B: ", contactB);
-    console.log("A: ", contactAFields);
-    console.log("B: ", contactBFields);
-    console.log(
-      "A: ",
-      (contactA.first_name || "") + (contactA.last_name || "").length
-    );
-    console.log(
-      "B: ",
-      (contactB.first_name || "") + (contactB.last_name || "").length
-    );
-    console.log(
-      similarityScore,
-      missingFieldsBonus,
-      unmatchingFieldMalus,
-      unmatchingFields
-    );
-    console.log(" ");
-  }
 
   if (similarityScore + missingFieldsBonus - unmatchingFieldMalus >= 50) {
     return true;

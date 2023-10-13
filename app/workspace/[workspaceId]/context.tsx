@@ -55,8 +55,6 @@ export function WorkspaceIdContextProvider({
         throw error;
       }
 
-      console.log("workspaces set", workspaces);
-
       setWorkspaces(workspaces);
     }
     fn();
@@ -72,8 +70,6 @@ export function WorkspaceIdContextProvider({
     if (!workspace) {
       redirect(URLS.workspaceIndex);
     }
-
-    console.log("current workspace", workspace);
 
     setCurrentWorkspace(workspace);
   }, [workspaces, currentWorkspaceId]);
