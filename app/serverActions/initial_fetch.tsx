@@ -52,7 +52,10 @@ async function fetchContacts(
 }
 
 export async function initialFetch(workspaceId: string) {
-  let supabase = createServerActionClient<Database>({ cookies });
+  const cookieStore = cookies();
+  const supabase = createServerActionClient<Database>({
+    cookies: () => cookieStore,
+  });
 
   let { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")
