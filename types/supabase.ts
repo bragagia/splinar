@@ -66,6 +66,7 @@ export interface Database {
           created_at: string
           display_name: string
           domain: string
+          hub_id: string
           id: string
           refresh_token: string
           user_id: string
@@ -75,6 +76,7 @@ export interface Database {
           created_at?: string
           display_name: string
           domain: string
+          hub_id: string
           id: string
           refresh_token: string
           user_id?: string
@@ -84,6 +86,7 @@ export interface Database {
           created_at?: string
           display_name?: string
           domain?: string
+          hub_id?: string
           id?: string
           refresh_token?: string
           user_id?: string

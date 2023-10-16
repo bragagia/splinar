@@ -1,12 +1,46 @@
-import { WorkspaceIdContextProvider } from "@/app/workspace/[workspaceId]/context";
+import { WorkspaceContextProvider } from "@/app/workspace/[workspaceId]/context";
 import { MainNav } from "@/app/workspace/[workspaceId]/main-nav";
 import { UserNav } from "@/app/workspace/[workspaceId]/user-nav";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
+import { URLS } from "@/lib/urls";
+import { Database } from "@/types/supabase";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
-export default function WorkspaceLayout({ children }: { children: ReactNode }) {
+export default async function WorkspaceLayout({
+  params,
+  children,
+}: {
+  params: { workspaceId: string };
+  children: ReactNode;
+}) {
+  const { workspaceId } = params;
+
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient<Database>({
+    cookies: () => cookieStore,
+  });
+
+  const { data: workspaces, error } = await supabase
+    .from("workspaces")
+    .select();
+  if (error) {
+    throw error;
+  }
+  if (!workspaces) {
+    throw new Error("Missing workspace");
+  }
+
+  let workspace = workspaces.find((w) => w.id == workspaceId);
+
+  if (!workspace) {
+    redirect(URLS.workspaceIndex);
+  }
+
   return (
-    <WorkspaceIdContextProvider>
+    <WorkspaceContextProvider value={workspace}>
       <div className="flex-col flex">
         <div className="border-b">
           <div className="page-container">
@@ -24,6 +58,6 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           <div className="page-container px-4 py-6">{children}</div>
         </div>
       </div>
-    </WorkspaceIdContextProvider>
+    </WorkspaceContextProvider>
   );
 }

@@ -1,17 +1,7 @@
 "use client";
 
-import { Icons } from "@/components/icons";
-import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { redirect, useParams } from "next/navigation";
-import {
-  ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { ReactNode, createContext, useContext } from "react";
 
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
 
@@ -27,63 +17,15 @@ export function useWorkspace() {
   return workspace;
 }
 
-export function WorkspaceIdContextProvider({
+export function WorkspaceContextProvider({
   children,
+  value,
 }: {
   children: ReactNode;
+  value: Workspace;
 }) {
-  const params = useParams();
-
-  let currentWorkspaceId = params.workspaceId as string | undefined;
-  if (!currentWorkspaceId) {
-    redirect(URLS.workspaceIndex);
-  }
-
-  const supabase = createClientComponentClient<Database>();
-
-  const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(
-    null
-  );
-
-  useEffect(() => {
-    async function fn() {
-      const { data: workspaces, error } = await supabase
-        .from("workspaces")
-        .select();
-      if (error) {
-        throw error;
-      }
-
-      setWorkspaces(workspaces);
-    }
-    fn();
-  }, [supabase]);
-
-  useEffect(() => {
-    if (!workspaces) {
-      return;
-    }
-
-    let workspace = workspaces.find((w) => w.id == currentWorkspaceId);
-
-    if (!workspace) {
-      redirect(URLS.workspaceIndex);
-    }
-
-    setCurrentWorkspace(workspace);
-  }, [workspaces, currentWorkspaceId]);
-
-  if (!currentWorkspace) {
-    return (
-      <div className="w-screen h-screen flex items-center justify-center">
-        <Icons.spinner className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <WorkspaceContext.Provider value={currentWorkspace}>
+    <WorkspaceContext.Provider value={value}>
       {children}
     </WorkspaceContext.Provider>
   );

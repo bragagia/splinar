@@ -59,7 +59,8 @@ export default async function OAuthCallback({
       URLS.hubspot.AddTeamValidation(
         getTokensResponse.refreshToken,
         getRefreshTokenResponse.user,
-        getRefreshTokenResponse.hubDomain
+        getRefreshTokenResponse.hubDomain,
+        getRefreshTokenResponse.hubId.toString()
       )
     )
   );

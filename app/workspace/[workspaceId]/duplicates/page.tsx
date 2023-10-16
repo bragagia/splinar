@@ -1,28 +1,26 @@
 "use client";
 
 import { ContactType } from "@/app/serverActions/contacts_similarity_check";
+import { ContactDuplicatesType } from "@/app/serverActions/resolve_duplicates_stacks";
 import { workspaceDupDetect } from "@/app/serverActions/workspace_dup_detect";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
+import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/contact-duplicate";
 import { Icons } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default function DuplicatesPage() {
+  const workspace = useWorkspace();
+
   const [contactsById, setContactsById] = useState<{
     [key: string]: ContactType;
   } | null>(null);
-  const [dupStacks, setDupStacks] = useState<string[][] | null>(null);
+
+  const [dupStacks, setDupStacks] = useState<ContactDuplicatesType[] | null>(
+    null
+  );
 
   useEffect(() => {
     async function fn() {
@@ -75,82 +73,13 @@ export default function DuplicatesPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex flex-col gap-4">
-                    {dupStacks?.map((dups, i) => {
-                      let fullName = dups.reduce((acc, contactId) => {
-                        let fullname =
-                          contactsById[contactId].first_name +
-                          " " +
-                          contactsById[contactId].last_name;
-
-                        return fullname.length > acc.length ? fullname : acc;
-                      }, "");
-
-                      return (
-                        <Card key={i} className="grow">
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-lg">
-                              {fullName}
-                            </CardTitle>
-                          </CardHeader>
-
-                          <CardContent>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>ID</TableHead>
-                                  <TableHead>First name</TableHead>
-                                  <TableHead>Last name</TableHead>
-                                  <TableHead>Emails</TableHead>
-                                  <TableHead>Phones</TableHead>
-                                </TableRow>
-                              </TableHeader>
-
-                              {dups.map((dup, i) => {
-                                let contact = contactsById[dup];
-
-                                /* <span></span>
-                          <span></span>
-                          <span></span>
-                          <span>{contact.emails}</span>
-                          <span>{contact.phones}</span> */
-
-                                return (
-                                  <TableBody key={i}>
-                                    <TableRow>
-                                      <TableCell className="font-medium">
-                                        {contact.hs_id}
-                                      </TableCell>
-
-                                      <TableCell>
-                                        {contact.first_name}
-                                      </TableCell>
-
-                                      <TableCell>{contact.last_name}</TableCell>
-
-                                      <TableCell>
-                                        {contact.emails?.map((email, i) => (
-                                          <p key={i}>{email}</p>
-                                        ))}
-                                      </TableCell>
-
-                                      <TableCell>
-                                        {contact.phones?.map((phone, i) => (
-                                          <p key={i}>{phone}</p>
-                                        ))}
-                                      </TableCell>
-                                    </TableRow>
-                                  </TableBody>
-                                );
-                              })}
-                            </Table>
-
-                            <Button className="mt-3" size="sm">
-                              Merge {dups.length} contacts
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                    {dupStacks?.map((dups, i) => (
+                      <ContactDuplicate
+                        key={i}
+                        dupStack={dups}
+                        contactsById={contactsById}
+                      />
+                    ))}
                   </div>
                 </div>
               )}

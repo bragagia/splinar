@@ -38,6 +38,7 @@ export default function OAuthCallback({
   let refresh_token = searchParams["refresh_token"];
   let user_mail = searchParams["user_mail"];
   let hub_domain = searchParams["hub_domain"];
+  let hub_id = searchParams["hub_id"];
 
   function onCancel() {
     router.push("/workspace");
@@ -53,7 +54,7 @@ export default function OAuthCallback({
       return;
     }
 
-    if (!refresh_token || !user_mail || !hub_domain) {
+    if (!refresh_token || !user_mail || !hub_domain || !hub_id) {
       setErrorMessage(
         "Missing url parameters, please retry the whole process."
       );
@@ -65,6 +66,7 @@ export default function OAuthCallback({
       id: id,
       refresh_token: refresh_token,
       domain: hub_domain,
+      hub_id: hub_id,
       user_mail: user_mail,
       display_name: nameRef.current.value,
     });

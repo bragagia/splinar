@@ -32,9 +32,9 @@ const scoring = {
     unlikely: 0,
   },
   email: {
-    exact: 70,
-    similar: 40,
-    potential: 10,
+    exact: 80,
+    similar: 70,
+    potential: 30,
     unlikely: 5,
   },
 };
@@ -66,7 +66,7 @@ function areContactsDups(
   contactA: ContactType,
   contactB: ContactType,
   similaritiesOfContacts: Similarity[]
-) {
+): "CONFIDENT" | "POTENTIAL" | false {
   if (!contactA || !contactB) {
     return false;
   }
@@ -100,12 +100,22 @@ function areContactsDups(
     similarityScore += scoring[field][similarity.similarity_score];
   });
 
-  if (similarityScore + missingFieldsBonus - unmatchingFieldMalus >= 50) {
-    return true;
+  if (similarityScore + missingFieldsBonus - unmatchingFieldMalus >= 70) {
+    return "CONFIDENT";
+  } else if (
+    similarityScore + missingFieldsBonus - unmatchingFieldMalus >=
+    50
+  ) {
+    return "POTENTIAL";
   } else {
     return false;
   }
 }
+
+export type ContactDuplicatesType = {
+  confidents: string[];
+  potentials: string[];
+};
 
 export function resolveDuplicatesStacks(
   contacts: ContactType[],
@@ -116,13 +126,22 @@ export function resolveDuplicatesStacks(
   } = {};
   contacts.forEach((contact) => (contactsById[contact.id] = contact));
 
-  let dupStacks: string[][] = [];
+  // TODO: sort contacts by how well they are filled, so that the first contact will always be the best filled
+
+  let dupStacks: ContactDuplicatesType[] = [];
   contacts.forEach((contact) => {
     // We recursively check if this contacts or its supposed duplicates have other duplicates to create
     // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
     // be added to another stack
-    let dupStack: string[] = [contact.id];
-    function addChildsToStack(parentContactId: string) {
+    let dupStack: ContactDuplicatesType = {
+      confidents: [contact.id],
+      potentials: [],
+    };
+
+    function addChildsToStack(
+      parentContactId: string,
+      isChildOfPotentialDup: boolean
+    ) {
       let parentContact = contactsById[parentContactId];
       if (!parentContact) {
         return;
@@ -151,35 +170,51 @@ export function resolveDuplicatesStacks(
         );
       });
 
-      let parentContactNewDuplicates: string[] = [];
+      let parentContactNewDuplicates: ContactDuplicatesType = {
+        confidents: [],
+        potentials: [],
+      };
       Object.keys(parentContactSimilaritiesByContact).forEach(
         (childContactId) => {
-          // Not already in dupstack and a suspected dup
+          // Not already in dupstack
           if (
-            !dupStack.find((id) => childContactId === id) &&
-            areContactsDups(
+            !dupStack.confidents.find((id) => childContactId === id) &&
+            !dupStack.potentials.find((id) => childContactId === id)
+          ) {
+            let dupStatus = areContactsDups(
               parentContact,
               contactsById[childContactId],
               parentContactSimilaritiesByContact[childContactId]
-            )
-          ) {
-            parentContactNewDuplicates.push(childContactId);
+            );
+
+            if (dupStatus === "CONFIDENT" && !isChildOfPotentialDup) {
+              parentContactNewDuplicates.confidents.push(childContactId);
+            } else if (dupStatus) {
+              // Even if the dup is confident, if we decent from a potential dup, we only add it as a potential too
+              parentContactNewDuplicates.potentials.push(childContactId);
+            }
           }
         }
       );
 
       // We push all childs before calling recursive to prevent going into a deep and expensive call stack
-      parentContactNewDuplicates.forEach((id) => {
-        dupStack.push(id);
+      parentContactNewDuplicates.confidents.forEach((id) => {
+        dupStack.confidents.push(id);
       });
-      parentContactNewDuplicates.forEach((id) => {
-        addChildsToStack(id);
+      parentContactNewDuplicates.potentials.forEach((id) => {
+        dupStack.potentials.push(id);
+      });
+      parentContactNewDuplicates.confidents.forEach((id) => {
+        addChildsToStack(id, false);
+      });
+      parentContactNewDuplicates.potentials.forEach((id) => {
+        addChildsToStack(id, true);
       });
     }
 
-    addChildsToStack(contact.id);
+    addChildsToStack(contact.id, false);
 
-    if (dupStack.length > 1) {
+    if (dupStack.confidents.length > 1 || dupStack.potentials.length > 0) {
       dupStacks.push(dupStack);
     }
   });
