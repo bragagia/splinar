@@ -1,5 +1,3 @@
-"use server";
-
 import {
   Similarity,
   contactSimilarityCheck,
@@ -9,7 +7,7 @@ import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
-export async function workspaceDupDetect() {
+export async function POST(request: Request) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
     cookies: () => cookieStore,
@@ -19,7 +17,7 @@ export async function workspaceDupDetect() {
     .from("hs_contacts")
     .select();
   if (error) {
-    return null;
+    return Response.error();
   }
 
   let similarities: Similarity[] = [];
@@ -33,5 +31,5 @@ export async function workspaceDupDetect() {
 
   let dupStacks = resolveDuplicatesStacks(hsContacts, similarities);
 
-  return { contacts: hsContacts, dupStacks: dupStacks };
+  return Response.json({ contacts: hsContacts, dupStacks: dupStacks });
 }

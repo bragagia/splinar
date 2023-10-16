@@ -2,7 +2,6 @@
 
 import { ContactType } from "@/app/serverActions/contacts_similarity_check";
 import { ContactDuplicatesType } from "@/app/serverActions/resolve_duplicates_stacks";
-import { workspaceDupDetect } from "@/app/serverActions/workspace_dup_detect";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/contact-duplicate";
 import { Icons } from "@/components/icons";
@@ -24,12 +23,21 @@ export default function DuplicatesPage() {
 
   useEffect(() => {
     async function fn() {
-      const ret = await workspaceDupDetect();
-      if (!ret) {
-        return;
+      const ret = await fetch("/api/duplicates/gen_contacts", {
+        method: "POST",
+      });
+      const body = await ret.json();
+      if (!body) {
+        throw new Error("Something went wrong!");
       }
 
-      const { contacts, dupStacks } = ret;
+      const { contacts, dupStacks } = body as {
+        contacts: ContactType[];
+        dupStacks: ContactDuplicatesType[];
+      };
+      if (!contacts || !dupStacks) {
+        throw new Error("Something went wrong!");
+      }
 
       let contactsById: { [key: string]: ContactType } = {};
       contacts.forEach((contact) => {
