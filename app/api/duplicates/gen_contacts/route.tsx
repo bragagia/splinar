@@ -7,6 +7,8 @@ import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
