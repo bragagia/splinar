@@ -11,6 +11,7 @@ import {
 import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/utils/database-types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -49,8 +50,6 @@ type PopoverTriggerProps = React.ComponentPropsWithoutRef<
 
 interface WorkspaceSwitcherProps extends PopoverTriggerProps {}
 
-type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
-
 export default function WorkspaceSwitcher({
   className,
 }: WorkspaceSwitcherProps) {
@@ -58,7 +57,9 @@ export default function WorkspaceSwitcher({
   let router = useRouter();
   const supabase = createClientComponentClient<Database>();
 
-  const [allWorkspaces, setAllWorkspaces] = useState<Workspace[] | null>(null);
+  const [allWorkspaces, setAllWorkspaces] = useState<WorkspaceType[] | null>(
+    null
+  );
   const [open, setOpen] = React.useState(false);
   const [showNewWorkspaceDialog, setShowNewWorkspaceDialog] =
     React.useState(false);

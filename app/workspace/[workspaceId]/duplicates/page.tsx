@@ -1,11 +1,10 @@
 "use client";
 
-import { ContactType } from "@/app/serverActions/contacts_similarity_check";
-import { ContactDuplicatesType } from "@/app/serverActions/resolve_duplicates_stacks";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/contact-duplicate";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ContactDuplicatesType, HsContactType } from "@/utils/database-types";
 import { useEffect, useState } from "react";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +13,7 @@ export default function DuplicatesPage() {
   const workspace = useWorkspace();
 
   const [contactsById, setContactsById] = useState<{
-    [key: string]: ContactType;
+    [key: string]: HsContactType;
   } | null>(null);
 
   const [dupStacks, setDupStacks] = useState<ContactDuplicatesType[] | null>(
@@ -32,14 +31,14 @@ export default function DuplicatesPage() {
       }
 
       const { contacts, dupStacks } = body as {
-        contacts: ContactType[];
+        contacts: HsContactType[];
         dupStacks: ContactDuplicatesType[];
       };
       if (!contacts || !dupStacks) {
         throw new Error("Something went wrong!");
       }
 
-      let contactsById: { [key: string]: ContactType } = {};
+      let contactsById: { [key: string]: HsContactType } = {};
       contacts.forEach((contact) => {
         contactsById[contact.id] = contact;
       });

@@ -9,6 +9,70 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      hs_contact_similarities: {
+        Row: {
+          contact_a_id: string
+          contact_a_value: string
+          contact_b_id: string
+          contact_b_value: string
+          created_at: string
+          field_type: string
+          id: string
+          similarity_score: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_a_id: string
+          contact_a_value: string
+          contact_b_id: string
+          contact_b_value: string
+          created_at?: string
+          field_type: string
+          id: string
+          similarity_score: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          contact_a_id?: string
+          contact_a_value?: string
+          contact_b_id?: string
+          contact_b_value?: string
+          created_at?: string
+          field_type?: string
+          id?: string
+          similarity_score?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hs_contact_similarities_contact_a_id_fkey"
+            columns: ["contact_a_id"]
+            referencedRelation: "hs_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hs_contact_similarities_contact_b_id_fkey"
+            columns: ["contact_b_id"]
+            referencedRelation: "hs_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hs_contact_similarities_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hs_contact_similarities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       hs_contacts: {
         Row: {
           company_name: string | null

@@ -37,7 +37,8 @@
     "recharts": "^2.8.0",
     "string-similarity": "^4.0.4",
     "tailwind-merge": "^1.14.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "type-fest": "^4.4.0"
   },
   "devDependencies": {
     "@types/node": "^20",

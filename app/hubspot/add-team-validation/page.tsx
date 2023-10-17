@@ -1,6 +1,7 @@
 "use client";
 
 import { initialFetch } from "@/app/serverActions/initial_fetch";
+import { initialSimilarityCheck } from "@/app/serverActions/initial_similarity_check";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,9 +62,9 @@ export default function OAuthCallback({
       return;
     }
 
-    const id = nanoid();
+    const workspaceId = nanoid();
     const { error } = await supabase.from("workspaces").insert({
-      id: id,
+      id: workspaceId,
       refresh_token: refresh_token,
       domain: hub_domain,
       hub_id: hub_id,
@@ -81,13 +82,16 @@ export default function OAuthCallback({
     setStatus("FETCHING");
 
     try {
-      initialFetch(id);
+      initialFetch(workspaceId);
     } catch (e: any) {
       setErrorMessage(
         "There was an error while fetching your workspace data, please retry."
       );
 
-      const { error } = await supabase.from("workspaces").delete().eq("id", id);
+      const { error } = await supabase
+        .from("workspaces")
+        .delete()
+        .eq("id", workspaceId);
       if (error) {
         setErrorMessage("Something has gone really badly, please contact us.");
       }
@@ -95,7 +99,25 @@ export default function OAuthCallback({
       return;
     }
 
-    router.push(URLS.workspace(id).dashboard);
+    try {
+      initialSimilarityCheck(workspaceId);
+    } catch (e: any) {
+      setErrorMessage(
+        "There was an error while checking your data for similarities, please retry."
+      );
+
+      const { error } = await supabase
+        .from("workspaces")
+        .delete()
+        .eq("id", workspaceId);
+      if (error) {
+        setErrorMessage("Something has gone really badly, please contact us.");
+      }
+
+      return;
+    }
+
+    router.push(URLS.workspace(workspaceId).dashboard);
   }
 
   return (

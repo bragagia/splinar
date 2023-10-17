@@ -1,6 +1,4 @@
 import { contactMerge } from "@/app/serverActions/contacts_merge";
-import { ContactType } from "@/app/serverActions/contacts_similarity_check";
-import { ContactDuplicatesType } from "@/app/serverActions/resolve_duplicates_stacks";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { Icons } from "@/components/icons";
 import {
@@ -11,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { URLS } from "@/lib/urls";
+import { ContactDuplicatesType, HsContactType } from "@/utils/database-types";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({
@@ -18,7 +17,7 @@ export function ContactDuplicateRow({
   isPotential = false,
   onUpgrade,
 }: {
-  contact: ContactType;
+  contact: HsContactType;
   isPotential?: boolean;
   onUpgrade?: () => void;
 }) {
@@ -37,7 +36,7 @@ export function ContactDuplicateRow({
           <a
             href={URLS.external.hubspotContact(workspace.hub_id, contact.hs_id)}
             target="_blank"
-            className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#ffeadd] px-2 py-1 gap-1"
+            className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
           >
             <span className="flex w-3 h-3 items-center justify-center">
               <Icons.hubspot />
@@ -69,7 +68,7 @@ export function ContactDuplicateRow({
       {isPotential && (
         <button
           onClick={onUpgrade}
-          className="border border-black rounded-md text-sm px-1 py-1 hover:border-gray-500 hover:text-gray-600"
+          className="border border-black rounded-md text-sm px-1 py-1 bg-white hover:border-gray-500 hover:text-gray-600"
         >
           <Icons.add className="w-4 h-4" />
         </button>
@@ -84,7 +83,7 @@ export function ContactDuplicate({
 }: {
   dupStack: ContactDuplicatesType;
   contactsById: {
-    [key: string]: ContactType;
+    [key: string]: HsContactType;
   };
 }) {
   const workspace = useWorkspace();
@@ -147,7 +146,7 @@ export function ContactDuplicate({
                     contactsById[dupStack.confidents[0]].hs_id
                   )}
                   target="_blank"
-                  className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#ffeadd] px-1 py-1 gap-1"
+                  className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
                 >
                   <span className="flex w-3 h-3 items-center justify-center">
                     <Icons.hubspot />

@@ -1,6 +1,7 @@
 "use client";
 
 import { initialFetch } from "@/app/serverActions/initial_fetch";
+import { initialSimilarityCheck } from "@/app/serverActions/initial_similarity_check";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,19 @@ export default function WorkspaceSettingsPage() {
   async function onRefetch() {
     setRefetchLoading(true);
 
-    await supabase.from("hs_contacts").delete().neq("id", "");
+    await supabase
+      .from("hs_contacts")
+      .delete()
+      .eq("workspace_id", workspace.id);
+
+    await supabase
+      .from("hs_contact_similarities")
+      .delete()
+      .eq("workspace_id", workspace.id);
 
     await initialFetch(workspace.id);
+
+    await initialSimilarityCheck(workspace.id);
 
     setRefetchLoading(false);
   }

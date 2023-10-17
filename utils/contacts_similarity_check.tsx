@@ -1,21 +1,13 @@
-import { Database } from "@/types/supabase";
+import { HsContactSimilarityType, HsContactType } from "@/utils/database-types";
+import { nanoid } from "nanoid";
 
 var stringSimilarity = require("string-similarity");
 
-export type ContactType = Database["public"]["Tables"]["hs_contacts"]["Row"];
-
-export type Similarity = {
-  contact_a_id: string;
-  contact_b_id: string;
-  field_type: "fullname" | "phone" | "email" | "company";
-  contact_a_value: string;
-  contact_b_value: string;
-  similarity_score: "exact" | "similar" | "potential" | "unlikely";
-};
-
 export function contactSimilarityCheck(
-  contact: ContactType,
-  contactsBase: ContactType[]
+  userId: string,
+  workspaceId: string,
+  contact: HsContactType,
+  contactsBase: HsContactType[]
 ) {
   let contactA = contact;
 
@@ -25,6 +17,8 @@ export function contactSimilarityCheck(
     }
 
     const similarityBase = {
+      user_id: userId,
+      workspace_id: workspaceId,
       contact_a_id: contactA.id,
       contact_b_id: contactB.id,
     };
@@ -44,8 +38,12 @@ export function contactSimilarityCheck(
       .replaceAll("  ", " ");
 
     if (aFullName !== "" && bFullName !== "") {
-      const fullNameSimilarityBase: Omit<Similarity, "similarity_score"> = {
+      const fullNameSimilarityBase: Omit<
+        HsContactSimilarityType,
+        "similarity_score"
+      > = {
         ...similarityBase,
+        id: nanoid(),
         field_type: "fullname",
         contact_a_value: aFullName,
         contact_b_value: bFullName,
@@ -78,8 +76,12 @@ export function contactSimilarityCheck(
     // Emails
     contactA.emails?.forEach((emailA) => {
       contactB.emails?.forEach((emailB) => {
-        const emailSimilarityBase: Omit<Similarity, "similarity_score"> = {
+        const emailSimilarityBase: Omit<
+          HsContactSimilarityType,
+          "similarity_score"
+        > = {
           ...similarityBase,
+          id: nanoid(),
           field_type: "email",
           contact_a_value: emailA,
           contact_b_value: emailB,
@@ -132,6 +134,7 @@ export function contactSimilarityCheck(
         if (phoneA === phoneB) {
           acc.push({
             ...similarityBase,
+            id: nanoid(),
             field_type: "phone",
             contact_a_value: phoneA,
             contact_b_value: phoneB,
@@ -142,5 +145,5 @@ export function contactSimilarityCheck(
     });
 
     return acc;
-  }, [] as Similarity[]);
+  }, [] as HsContactSimilarityType[]);
 }
