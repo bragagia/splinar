@@ -1,9 +1,14 @@
-import { WorkspaceContextProvider } from "@/app/workspace/[workspaceId]/context";
 import { MainNav } from "@/app/workspace/[workspaceId]/main-nav";
 import { UserNav } from "@/app/workspace/[workspaceId]/user-nav";
+import { WorkspaceProvider } from "@/app/workspace/[workspaceId]/workspace-context";
+import {
+  WorkspaceInstallationCard,
+  WorkspaceInstallationWall,
+} from "@/app/workspace/[workspaceId]/workspace-installtion-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/utils/database-types";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -40,24 +45,30 @@ export default async function WorkspaceLayout({
   }
 
   return (
-    <WorkspaceContextProvider value={workspace}>
-      <div className="flex-col flex">
-        <div className="border-b">
-          <div className="page-container">
-            <div className="flex h-16 items-center px-4">
-              <WorkspaceSwitcher />
-              <MainNav className="mx-6" />
-              <div className="ml-auto flex items-center space-x-4">
-                <UserNav />
+    <WorkspaceProvider value={workspace as WorkspaceType}>
+      <WorkspaceInstallationWall>
+        <div className="flex-col flex">
+          <div className="border-b">
+            <div className="page-container">
+              <div className="flex h-16 items-center px-4">
+                <WorkspaceSwitcher />
+                <MainNav className="mx-6" />
+                <div className="ml-auto flex items-center space-x-4">
+                  <UserNav />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div>
-          <div className="page-container px-4 py-6">{children}</div>
+          <div className="flex flex-col">
+            <WorkspaceInstallationCard className="m-4 self-stretch bg-red-100" />
+          </div>
+
+          <div>
+            <div className="page-container px-4 py-6">{children}</div>
+          </div>
         </div>
-      </div>
-    </WorkspaceContextProvider>
+      </WorkspaceInstallationWall>
+    </WorkspaceProvider>
   );
 }

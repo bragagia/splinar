@@ -1,8 +1,7 @@
 "use client";
 
-import { initialFetch } from "@/app/serverActions/initial_fetch";
-import { initialSimilarityCheck } from "@/app/serverActions/initial_similarity_check";
-import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
+import { TestAction } from "@/app/serverActions/test_action";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,19 +28,9 @@ export default function WorkspaceSettingsPage() {
   async function onRefetch() {
     setRefetchLoading(true);
 
-    await supabase
-      .from("hs_contacts")
-      .delete()
-      .eq("workspace_id", workspace.id);
-
-    await supabase
-      .from("hs_contact_similarities")
-      .delete()
-      .eq("workspace_id", workspace.id);
-
-    await initialFetch(workspace.id);
-
-    await initialSimilarityCheck(workspace.id);
+    await fetch(URLS.workspace(workspace.id).api.reset, {
+      method: "POST",
+    });
 
     setRefetchLoading(false);
   }
@@ -64,6 +53,18 @@ export default function WorkspaceSettingsPage() {
         </CardHeader>
 
         <CardContent className="grid gap-6">
+          <div className="flex items-center justify-between space-x-2">
+            <Label htmlFor="performance" className="flex flex-col space-y-1">
+              <span>Test action</span>
+              <span className="font-normal leading-snug text-muted-foreground">
+                DO NOT USE
+              </span>
+            </Label>
+            <Button onClick={async () => TestAction()} className="shrink-0">
+              Start
+            </Button>
+          </div>
+
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="performance" className="flex flex-col space-y-1">
               <span>Recheck all duplicates</span>

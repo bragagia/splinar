@@ -6,10 +6,13 @@ export const URLS = {
   login: "/",
 
   // Retuns a link to last workspace if teamId is null
-  workspace: (teamId: string) => ({
-    dashboard: `/workspace/${teamId}/dashboard`,
-    duplicates: `/workspace/${teamId}/duplicates`,
-    settings: `/workspace/${teamId}/settings`,
+  workspace: (workspaceId: string) => ({
+    dashboard: `/workspace/${workspaceId}/dashboard`,
+    duplicates: `/workspace/${workspaceId}/duplicates`,
+    settings: `/workspace/${workspaceId}/settings`,
+    api: {
+      reset: `/workspace/${workspaceId}/api/reset`,
+    },
   }),
 
   workspaceIndex: `/workspace/`,

@@ -1,7 +1,5 @@
 "use client";
 
-import { initialFetch } from "@/app/serverActions/initial_fetch";
-import { initialSimilarityCheck } from "@/app/serverActions/initial_similarity_check";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import workspaceInstall from "@/defer/workspace-install";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -70,6 +69,11 @@ export default function OAuthCallback({
       hub_id: hub_id,
       user_mail: user_mail,
       display_name: nameRef.current.value,
+      installation_dup_done: 0,
+      installation_dup_total: 0,
+      installation_fetched: false,
+      installation_similarity_done_batches: 0,
+      installation_similarity_total_batches: 0,
     });
 
     if (error) {
@@ -82,28 +86,24 @@ export default function OAuthCallback({
     setStatus("FETCHING");
 
     try {
-      initialFetch(workspaceId);
-    } catch (e: any) {
-      setErrorMessage(
-        "There was an error while fetching your workspace data, please retry."
-      );
-
-      const { error } = await supabase
-        .from("workspaces")
-        .delete()
-        .eq("id", workspaceId);
-      if (error) {
-        setErrorMessage("Something has gone really badly, please contact us.");
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+      if (error || !session) {
+        throw error || new Error("missing session");
       }
 
-      return;
-    }
-
-    try {
-      initialSimilarityCheck(workspaceId);
+      await workspaceInstall(
+        {
+          refresh_token: session.refresh_token,
+          access_token: session.access_token,
+        },
+        workspaceId
+      );
     } catch (e: any) {
       setErrorMessage(
-        "There was an error while checking your data for similarities, please retry."
+        "There was an error while installing your workspace, please retry."
       );
 
       const { error } = await supabase

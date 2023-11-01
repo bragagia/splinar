@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     serverActions: true,
+    serverMinification: false, // Needed for defer
   },
 };
 

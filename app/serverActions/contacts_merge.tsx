@@ -2,13 +2,13 @@
 
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
+import { HsDupStackType } from "@/utils/database-types";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function contactMerge(
   workspaceId: string,
-  mainContactId: string,
-  contactsId: string[]
+  dupStack: HsDupStackType
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -39,19 +39,71 @@ export async function contactMerge(
 
   let hsClient = await newHubspotClient(workspace.refresh_token);
 
-  contactsId.map((idToMerge) => {
-    console.log("MERGING: ", mainContactId, idToMerge);
-  });
+  let { data: hsContacts, error: errorContact } = await supabase
+    .from("hs_contacts")
+    .select()
+    .in("id", dupStack.confident_contact_ids);
+  if (errorContact) {
+    throw errorContact;
+  }
+  if (!hsContacts || hsContacts.length < 2) {
+    throw new Error("Error fetching contacts");
+  }
+
+  const referenceContact = hsContacts.find(
+    (contact) => contact.id === dupStack.confident_contact_ids[0]
+  );
+  const contactsToMerge = hsContacts.filter(
+    (contact) => contact.id !== dupStack.confident_contact_ids[0]
+  );
+  const contactIdsToMarkFalsePositive = dupStack.potential_contact_ids; // TODO:
+
+  if (!referenceContact || !contactsToMerge || contactsToMerge.length === 0) {
+    throw Error("Contact fetched from db are incoherent with dup stack");
+  }
 
   Promise.all(
-    contactsId.map((idToMerge) => {
-      console.log("MERGING: ", mainContactId, idToMerge);
+    contactsToMerge.map((contactToMerge) => {
       return hsClient.crm.contacts.publicObjectApi.merge({
-        primaryObjectId: mainContactId,
-        objectIdToMerge: idToMerge,
+        primaryObjectId: referenceContact.hs_id,
+        objectIdToMerge: contactToMerge.hs_id,
       });
     })
   );
 
-  return null;
+  const { error: errorDeleteContacts } = await supabase
+    .from("hs_contacts")
+    .delete()
+    .in(
+      "id",
+      contactsToMerge.map((contact) => contact.id)
+    );
+  if (errorDeleteContacts) {
+    console.log(errorDeleteContacts);
+  }
+
+  if (
+    contactIdsToMarkFalsePositive &&
+    contactIdsToMarkFalsePositive.length > 0
+  ) {
+    const { error: errorUpdateDupStack } = await supabase
+      .from("hs_dup_stacks")
+      .update({
+        confident_contact_ids: [referenceContact.id],
+      })
+      .eq("id", dupStack.id);
+
+    if (errorUpdateDupStack) {
+      console.log(errorUpdateDupStack);
+    }
+  } else {
+    const { error: errorDeleteDupstack } = await supabase
+      .from("hs_dup_stacks")
+      .delete()
+      .eq("id", dupStack.id);
+
+    if (errorDeleteDupstack) {
+      console.log(errorDeleteDupstack);
+    }
+  }
 }

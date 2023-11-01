@@ -1,44 +1,53 @@
 "use client";
 
-import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
 import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/contact-duplicate";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContactDuplicatesType, HsContactType } from "@/utils/database-types";
+import { Database } from "@/types/supabase";
+import {
+  HsContactWithCompaniesType,
+  HsDupStackType,
+} from "@/utils/database-types";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
+  const supabase = createClientComponentClient<Database>();
 
   const [contactsById, setContactsById] = useState<{
-    [key: string]: HsContactType;
+    [key: string]: HsContactWithCompaniesType;
   } | null>(null);
 
-  const [dupStacks, setDupStacks] = useState<ContactDuplicatesType[] | null>(
-    null
-  );
+  const [dupStacks, setDupStacks] = useState<HsDupStackType[] | null>(null);
 
   useEffect(() => {
     async function fn() {
-      const ret = await fetch("/api/duplicates/gen_contacts", {
-        method: "POST",
-      });
-      const body = await ret.json();
-      if (!body) {
-        throw new Error("Something went wrong!");
+      // TODO: scale
+      const { data: contacts, error: errorContacts } = await supabase
+        .from("hs_contacts")
+        .select("*, hs_companies(*)")
+        .eq("workspace_id", workspace.id);
+      if (errorContacts) {
+        return Response.error();
       }
 
-      const { contacts, dupStacks } = body as {
-        contacts: HsContactType[];
-        dupStacks: ContactDuplicatesType[];
-      };
+      const { data: dupStacks, error: errorDupStacks } = await supabase
+        .from("hs_dup_stacks")
+        .select()
+        .eq("workspace_id", workspace.id);
+      if (errorDupStacks) {
+        return Response.error();
+      }
+
       if (!contacts || !dupStacks) {
         throw new Error("Something went wrong!");
       }
 
-      let contactsById: { [key: string]: HsContactType } = {};
+      let contactsById: { [key: string]: HsContactWithCompaniesType } = {};
       contacts.forEach((contact) => {
         contactsById[contact.id] = contact;
       });
@@ -47,7 +56,7 @@ export default function DuplicatesPage() {
       setDupStacks(dupStacks);
     }
     fn();
-  }, []);
+  }, [supabase, workspace.id]);
 
   return (
     <div className="flex-1 space-y-4 w-full">

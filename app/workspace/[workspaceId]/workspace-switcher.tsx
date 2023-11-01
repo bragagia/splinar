@@ -8,7 +8,7 @@ import {
   PlusCircledIcon,
 } from "@radix-ui/react-icons";
 
-import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/utils/database-types";
@@ -76,7 +76,7 @@ export default function WorkspaceSwitcher({
         return;
       }
 
-      setAllWorkspaces(data);
+      setAllWorkspaces(data as WorkspaceType[]);
     };
     fn();
   }, [supabase]);

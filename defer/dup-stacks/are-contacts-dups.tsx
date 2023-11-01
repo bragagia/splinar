@@ -1,13 +1,16 @@
-import { HsContactSimilarityType, HsContactType } from "@/utils/database-types";
 import {
   ContactFieldsCount,
   ContactFieldsList,
   listContactField,
-} from "@/utils/list_contact_fields";
+} from "@/defer/utils/list-contact-fields";
+import {
+  HsContactSimilarityType,
+  HsContactWithCompaniesType,
+} from "@/utils/database-types";
 
 const scoring = {
   fullname: {
-    exact: 40,
+    exact: 30,
     similar: 10,
     potential: 0,
     unlikely: 5,
@@ -24,6 +27,12 @@ const scoring = {
     potential: 30,
     unlikely: 5,
   },
+  company: {
+    exact: 30,
+    similar: 20,
+    potential: 5,
+    unlikely: 0,
+  },
 };
 
 /*
@@ -37,8 +46,8 @@ const scoring = {
 */
 
 export function areContactsDups(
-  contactA: HsContactType,
-  contactB: HsContactType,
+  contactA: HsContactWithCompaniesType,
+  contactB: HsContactWithCompaniesType,
   similaritiesOfContacts: HsContactSimilarityType[]
 ): "CONFIDENT" | "POTENTIAL" | false {
   if (!contactA || !contactB) {
@@ -49,12 +58,14 @@ export function areContactsDups(
   let contactBFields = listContactField(contactB);
 
   let missingFieldsBonus =
-    10 *
+    5 *
     (ContactFieldsCount -
-      Math.min(contactAFields.length, contactBFields.length));
+      Math.min(contactA.filled_score, contactB.filled_score));
 
   let unmatchingFieldMalus = 0;
   let similarityScore = 0;
+
+  // TODO: average the sum of score so that is is easier to reason about
   ContactFieldsList.forEach((field) => {
     let similarity = similaritiesOfContacts.find(
       (similarity) => similarity.field_type === field
@@ -78,7 +89,7 @@ export function areContactsDups(
     return "CONFIDENT";
   } else if (
     similarityScore + missingFieldsBonus - unmatchingFieldMalus >=
-    50
+    40
   ) {
     return "POTENTIAL";
   } else {

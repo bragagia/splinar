@@ -1,6 +1,6 @@
 "use client";
 
-import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { NavLink } from "../../../components/nav-link";

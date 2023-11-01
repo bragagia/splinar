@@ -1,5 +1,5 @@
 import { contactMerge } from "@/app/serverActions/contacts_merge";
-import { useWorkspace } from "@/app/workspace/[workspaceId]/context";
+import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import {
   Card,
@@ -9,7 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { URLS } from "@/lib/urls";
-import { ContactDuplicatesType, HsContactType } from "@/utils/database-types";
+import {
+  HsContactWithCompaniesType,
+  HsDupStackType,
+} from "@/utils/database-types";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({
@@ -17,7 +20,7 @@ export function ContactDuplicateRow({
   isPotential = false,
   onUpgrade,
 }: {
-  contact: HsContactType;
+  contact: HsContactWithCompaniesType;
   isPotential?: boolean;
   onUpgrade?: () => void;
 }) {
@@ -31,7 +34,7 @@ export function ContactDuplicateRow({
 
   return (
     <div className="flex flex-row rounded-md p-2 gap-3 text-sm">
-      <div className="font-medium flex items-center gap-2 basis-48">
+      <div className="font-medium flex items-center gap-2 basis-64">
         <div className="flex">
           <a
             href={URLS.external.hubspotContact(workspace.hub_id, contact.hs_id)}
@@ -49,7 +52,7 @@ export function ContactDuplicateRow({
         </span>
       </div>
 
-      <div className="text-gray-700 flex flex-col items-start justify-center basis-48">
+      <div className="text-gray-700 flex flex-col items-start justify-center basis-80">
         {contact.emails && contact.emails.length > 0 ? (
           contact.emails?.map((email, i) => <p key={i}>{email}</p>)
         ) : (
@@ -60,6 +63,16 @@ export function ContactDuplicateRow({
       <div className="text-gray-700 flex flex-col items-start justify-center basis-48">
         {contact.phones && contact.phones.length > 0 ? (
           contact.phones?.map((phone, i) => <p key={i}>{phone}</p>)
+        ) : (
+          <span className="text-gray-500 font-light">-</span>
+        )}
+      </div>
+
+      <div className="text-gray-700 flex flex-col items-start justify-center basis-48">
+        {contact.hs_companies && contact.hs_companies.length > 0 ? (
+          contact.hs_companies?.map((company, i) => (
+            <p key={i}>{company.name}</p>
+          ))
         ) : (
           <span className="text-gray-500 font-light">-</span>
         )}
@@ -81,9 +94,9 @@ export function ContactDuplicate({
   dupStack,
   contactsById,
 }: {
-  dupStack: ContactDuplicatesType;
+  dupStack: HsDupStackType;
   contactsById: {
-    [key: string]: HsContactType;
+    [key: string]: HsContactWithCompaniesType;
   };
 }) {
   const workspace = useWorkspace();
@@ -95,31 +108,33 @@ export function ContactDuplicate({
 
   const onUpgradePotential = (id: string) => () => {
     setCachedDupStack({
-      confidents: [...cachedDupStack.confidents, id],
-      potentials: cachedDupStack.potentials.filter((v) => v !== id),
+      ...cachedDupStack,
+      confident_contact_ids: [...cachedDupStack.confident_contact_ids, id],
+      potential_contact_ids: cachedDupStack.potential_contact_ids?.filter(
+        (v) => v !== id
+      ),
     });
   };
 
   const onMerge = async () => {
     setLoading(true);
-    await contactMerge(
-      workspace.id,
-      contactsById[cachedDupStack.confidents[0]].hs_id,
-      cachedDupStack.confidents.slice(1).map((id) => contactsById[id].hs_id)
-    );
+    await contactMerge(workspace.id, cachedDupStack);
     setLoading(false);
     setMerged(true);
   };
 
-  let commonFullName = cachedDupStack.confidents.reduce((acc, contactId) => {
-    let fullname = (
-      (contactsById[contactId].first_name || "") +
-      " " +
-      (contactsById[contactId].last_name || "")
-    ).trim();
+  let commonFullName = cachedDupStack.confident_contact_ids.reduce(
+    (acc, contactId) => {
+      let fullname = (
+        (contactsById[contactId].first_name || "") +
+        " " +
+        (contactsById[contactId].last_name || "")
+      ).trim();
 
-    return fullname.length > acc.length ? fullname : acc;
-  }, "");
+      return fullname.length > acc.length ? fullname : acc;
+    },
+    ""
+  );
 
   return (
     <Card className="grow">
@@ -143,7 +158,7 @@ export function ContactDuplicate({
                 <a
                   href={URLS.external.hubspotContact(
                     workspace.hub_id,
-                    contactsById[dupStack.confidents[0]].hs_id
+                    contactsById[dupStack.confident_contact_ids[0]].hs_id
                   )}
                   target="_blank"
                   className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
@@ -162,7 +177,7 @@ export function ContactDuplicate({
         <>
           <CardContent>
             <div className="flex flex-col gap-y-1">
-              {cachedDupStack.confidents.map((dup, i) => (
+              {cachedDupStack.confident_contact_ids.map((dup, i) => (
                 <ContactDuplicateRow key={i} contact={contactsById[dup]} />
               ))}
 
@@ -170,34 +185,35 @@ export function ContactDuplicate({
                 onClick={onMerge}
                 className="flex flex-row justify-center gap-1 items-center border border-black rounded-md text-sm px-2 py-1 hover:border-gray-500 hover:text-gray-600 disabled:text-gray-400 disabled:border-gray-300"
                 disabled={
-                  !cachedDupStack.confidents ||
-                  cachedDupStack.confidents.length <= 1
+                  !cachedDupStack.confident_contact_ids ||
+                  cachedDupStack.confident_contact_ids.length <= 1
                 }
               >
                 <Icons.merge className="w-4 h-4" />
-                Merge {cachedDupStack.confidents.length} contacts
+                Merge {cachedDupStack.confident_contact_ids.length} contacts
               </button>
             </div>
           </CardContent>
 
-          {cachedDupStack.potentials.length > 0 && (
-            <CardGrayedContent>
-              <div className="flex flex-col gap-y-1 pt-2">
-                <p className="text-xs text-gray-600 py-1">
-                  Potentials matches:
-                </p>
+          {cachedDupStack.potential_contact_ids &&
+            cachedDupStack.potential_contact_ids.length > 0 && (
+              <CardGrayedContent>
+                <div className="flex flex-col gap-y-1 pt-2">
+                  <p className="text-xs text-gray-600 py-1">
+                    Potentials matches:
+                  </p>
 
-                {cachedDupStack.potentials.map((dup, i) => (
-                  <ContactDuplicateRow
-                    key={i}
-                    contact={contactsById[dup]}
-                    isPotential
-                    onUpgrade={onUpgradePotential(dup)}
-                  />
-                ))}
-              </div>
-            </CardGrayedContent>
-          )}
+                  {cachedDupStack.potential_contact_ids.map((dup, i) => (
+                    <ContactDuplicateRow
+                      key={i}
+                      contact={contactsById[dup]}
+                      isPotential
+                      onUpgrade={onUpgradePotential(dup)}
+                    />
+                  ))}
+                </div>
+              </CardGrayedContent>
+            )}
         </>
       )}
     </Card>

@@ -1,13 +1,15 @@
-import { HsContactSimilarityType, HsContactType } from "@/utils/database-types";
+import {
+  HsContactSimilarityType,
+  HsContactWithCompaniesType,
+} from "@/utils/database-types";
 import { nanoid } from "nanoid";
 
 var stringSimilarity = require("string-similarity");
 
 export function contactSimilarityCheck(
-  userId: string,
   workspaceId: string,
-  contact: HsContactType,
-  contactsBase: HsContactType[]
+  contact: HsContactWithCompaniesType,
+  contactsBase: HsContactWithCompaniesType[]
 ) {
   let contactA = contact;
 
@@ -16,8 +18,9 @@ export function contactSimilarityCheck(
       return acc;
     }
 
+    let similarities: HsContactSimilarityType[] = [];
+
     const similarityBase = {
-      user_id: userId,
       workspace_id: workspaceId,
       contact_a_id: contactA.id,
       contact_b_id: contactB.id,
@@ -50,7 +53,7 @@ export function contactSimilarityCheck(
       };
 
       if (aFullName == bFullName) {
-        acc.push({
+        similarities.push({
           ...fullNameSimilarityBase,
           similarity_score: "exact",
         });
@@ -58,7 +61,7 @@ export function contactSimilarityCheck(
         stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.8
       ) {
         // TODO: This constant must be tested on real database
-        acc.push({
+        similarities.push({
           ...fullNameSimilarityBase,
           similarity_score: "similar",
         });
@@ -66,7 +69,7 @@ export function contactSimilarityCheck(
         stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.7
       ) {
         // TODO: This constant must be tested on real database
-        acc.push({
+        similarities.push({
           ...fullNameSimilarityBase,
           similarity_score: "unlikely",
         });
@@ -94,33 +97,40 @@ export function contactSimilarityCheck(
         let normalizeMail = (str: string) =>
           removeUselessDots(removeInfiniteAddr(removeExt(str)));
 
+        let removeDomain = (str: string) => str.split("@")[0];
+
         if (emailA === emailB) {
-          acc.push({
+          similarities.push({
             ...emailSimilarityBase,
             similarity_score: "exact",
           });
-        } else if (normalizeMail(emailA) === normalizeMail(emailB)) {
-          acc.push({
+        } else if (
+          stringSimilarity.compareTwoStrings(
+            normalizeMail(emailA),
+            normalizeMail(emailB)
+          ) > 0.9
+        ) {
+          similarities.push({
             ...emailSimilarityBase,
             similarity_score: "similar",
           });
         } else if (
           stringSimilarity.compareTwoStrings(
-            normalizeMail(emailA),
-            normalizeMail(emailB)
-          ) > 0.8
+            removeDomain(normalizeMail(emailA)),
+            removeDomain(normalizeMail(emailB))
+          ) > 0.9
         ) {
-          acc.push({
+          similarities.push({
             ...emailSimilarityBase,
             similarity_score: "potential",
           });
         } else if (
           stringSimilarity.compareTwoStrings(
-            normalizeMail(emailA),
-            normalizeMail(emailB)
-          ) > 0.7
+            removeDomain(normalizeMail(emailA)),
+            removeDomain(normalizeMail(emailB))
+          ) > 0.9
         ) {
-          acc.push({
+          similarities.push({
             ...emailSimilarityBase,
             similarity_score: "unlikely",
           });
@@ -132,7 +142,7 @@ export function contactSimilarityCheck(
     contactA.phones?.forEach((phoneA) => {
       contactB.phones?.forEach((phoneB) => {
         if (phoneA === phoneB) {
-          acc.push({
+          similarities.push({
             ...similarityBase,
             id: nanoid(),
             field_type: "phone",
@@ -143,6 +153,70 @@ export function contactSimilarityCheck(
         }
       });
     });
+
+    // Companies
+    contactA.hs_companies?.forEach((companyA) => {
+      contactB.hs_companies?.forEach((companyB) => {
+        const emailSimilarityBase: Omit<
+          HsContactSimilarityType,
+          "similarity_score"
+        > = {
+          ...similarityBase,
+          id: nanoid(),
+          field_type: "company",
+          contact_a_value: companyA.name || companyA.id,
+          contact_b_value: companyB.name || companyB.id,
+        };
+
+        if (companyA.id === companyB.id) {
+          similarities.push({
+            ...emailSimilarityBase,
+            similarity_score: "exact",
+          });
+        } else if (companyA.name && companyB.name) {
+          if (
+            companyA.name.toLowerCase().trim() ===
+            companyB.name.toLowerCase().trim()
+          ) {
+            similarities.push({
+              ...emailSimilarityBase,
+              similarity_score: "similar",
+            });
+          } else if (
+            stringSimilarity.compareTwoStrings(companyA.name, companyB.name) >
+            0.9
+          ) {
+            similarities.push({
+              ...emailSimilarityBase,
+              similarity_score: "potential",
+            });
+          }
+        }
+      });
+    });
+
+    const scoreRanking: { [key: string]: number } = {
+      exact: 4,
+      similar: 3,
+      potential: 2,
+      unlikely: 1,
+    };
+
+    let filtered: { [key: string]: HsContactSimilarityType } = {};
+
+    for (let entry of similarities) {
+      if (
+        !filtered[entry.field_type] ||
+        scoreRanking[entry.similarity_score] >
+          scoreRanking[filtered[entry.field_type].similarity_score]
+      ) {
+        filtered[entry.field_type] = entry;
+      }
+    }
+
+    const filteredValues: HsContactSimilarityType[] = Object.values(filtered);
+
+    acc.push(...filteredValues);
 
     return acc;
   }, [] as HsContactSimilarityType[]);
