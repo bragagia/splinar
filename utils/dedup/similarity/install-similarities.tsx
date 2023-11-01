@@ -1,9 +1,9 @@
-import { contactSimilarityCheck } from "@/defer/similarity/contacts-similarity-check";
 import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
 } from "@/utils/database-types";
+import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 const BATCH_SIZE = 250;

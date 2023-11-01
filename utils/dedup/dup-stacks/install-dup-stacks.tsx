@@ -1,5 +1,5 @@
-import { resolveNextDuplicatesStack } from "@/defer/dup-stacks/resolve-duplicates-stack-new";
 import { Database } from "@/types/supabase";
+import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function updateDupStacks(

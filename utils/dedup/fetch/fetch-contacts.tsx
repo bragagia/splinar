@@ -1,10 +1,10 @@
-import { calcContactFilledScore } from "@/defer/utils/list-contact-fields";
 import { Database } from "@/types/supabase";
 import {
   HsCompanyType,
   HsContactToHsCompany,
   HsContactType,
 } from "@/utils/database-types";
+import { calcContactFilledScore } from "@/utils/dedup/utils/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";

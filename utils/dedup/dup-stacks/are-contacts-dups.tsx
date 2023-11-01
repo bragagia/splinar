@@ -1,12 +1,12 @@
 import {
-  ContactFieldsCount,
-  ContactFieldsList,
-  listContactField,
-} from "@/defer/utils/list-contact-fields";
-import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
 } from "@/utils/database-types";
+import {
+  ContactFieldsCount,
+  ContactFieldsList,
+  listContactField,
+} from "@/utils/dedup/utils/list-contact-fields";
 
 const scoring = {
   fullname: {

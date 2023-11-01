@@ -1,4 +1,3 @@
-import { areContactsDups } from "@/defer/dup-stacks/are-contacts-dups";
 import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
@@ -7,6 +6,7 @@ import {
   HsDupStackType,
   isAnHsContactWithCompaniesType,
 } from "@/utils/database-types";
+import { areContactsDups } from "@/utils/dedup/dup-stacks/are-contacts-dups";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 

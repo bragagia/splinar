@@ -1,10 +1,10 @@
-import { areContactsDups } from "@/defer/dup-stacks/are-contacts-dups";
-import { listContactField } from "@/defer/utils/list-contact-fields";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
   HsDupStackType,
 } from "@/utils/database-types";
+import { areContactsDups } from "@/utils/dedup/dup-stacks/are-contacts-dups";
+import { listContactField } from "@/utils/dedup/utils/list-contact-fields";
 import { nanoid } from "nanoid";
 
 export function resolveDuplicatesStacks(

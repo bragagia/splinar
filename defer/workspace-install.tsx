@@ -1,14 +1,14 @@
 "use server";
 // "use server" is needed for local dev to work as intended
 
+import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/utils/database-types";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
-} from "@/defer/dup-stacks/install-dup-stacks";
-import { fullFetch } from "@/defer/fetch/full-fetch";
-import { installSimilarities } from "@/defer/similarity/install-similarities";
-import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/utils/database-types";
+} from "@/utils/dedup/dup-stacks/install-dup-stacks";
+import { fullFetch } from "@/utils/dedup/fetch/full-fetch";
+import { installSimilarities } from "@/utils/dedup/similarity/install-similarities";
 import { defer } from "@defer/client";
 import { createClient } from "@supabase/supabase-js";
 
