@@ -3,8 +3,7 @@ import {
   HsContactWithCompaniesType,
 } from "@/utils/database-types";
 import { nanoid } from "nanoid";
-
-var stringSimilarity = require("string-similarity");
+import stringSimilarity from "string-similarity";
 
 export function contactSimilarityCheck(
   workspaceId: string,
