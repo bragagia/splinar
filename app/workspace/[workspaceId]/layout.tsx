@@ -59,9 +59,10 @@ export default async function WorkspaceLayout({
               </div>
             </div>
           </div>
-
-          <div className="flex flex-col">
-            <WorkspaceInstallationCard className="m-4 self-stretch bg-red-100" />
+          <div className="page-container w-full">
+            <div className="flex flex-col">
+              <WorkspaceInstallationCard className="m-4 self-stretch bg-gray-50" />
+            </div>
           </div>
 
           <div>
