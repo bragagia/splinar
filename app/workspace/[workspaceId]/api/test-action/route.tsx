@@ -11,7 +11,7 @@ import {
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export const maxDuration = 1000;
+export const maxDuration = 300;
 
 type DbCache = {
   hsContactsById: { [key: string]: HsContactWithCompaniesAndSimilaritiesType };
