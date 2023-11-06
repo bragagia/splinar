@@ -19,6 +19,8 @@ async function workspaceInstall(
   },
   workspaceId: string
 ) {
+  console.log("Workspace Install", workspaceId);
+
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -28,6 +30,7 @@ async function workspaceInstall(
     throw error;
   }
 
+  console.log("Updating workspace status");
   let workspaceUpdatePending: Partial<WorkspaceType> = {
     installation_status: "PENDING",
   };
@@ -36,12 +39,14 @@ async function workspaceInstall(
     .update(workspaceUpdatePending)
     .eq("id", workspaceId);
 
+  console.log("Fetching hubspot data");
   await fullFetch(supabase, workspaceId);
-
   await updateDupStackInstallationTotal(supabase, workspaceId);
 
+  console.log("Install similarities");
   await installSimilarities(supabase, workspaceId);
 
+  console.log("Install dup stacks");
   await installDupStacks(supabase, workspaceId);
 
   let workspaceUpdateEnd: Partial<WorkspaceType> = {

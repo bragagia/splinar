@@ -4,7 +4,7 @@ import {
   HsDupStackType,
 } from "@/utils/database-types";
 import { areContactsDups } from "@/utils/dedup/dup-stacks/are-contacts-dups";
-import { listContactField } from "@/utils/dedup/utils/list-contact-fields";
+import { listContactField } from "@/utils/dedup/list-contact-fields";
 import { nanoid } from "nanoid";
 
 export function resolveDuplicatesStacks(

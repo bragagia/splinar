@@ -37,6 +37,7 @@
     "pretty-print-error": "^1.1.1",
     "react": "^18",
     "react-dom": "^18",
+    "react-infinite-scroll-component": "^6.1.0",
     "recharts": "^2.8.0",
     "string-similarity": "^4.0.4",
     "tailwind-merge": "^1.14.0",

@@ -6,7 +6,7 @@ import {
   ContactFieldsCount,
   ContactFieldsList,
   listContactField,
-} from "@/utils/dedup/utils/list-contact-fields";
+} from "@/utils/dedup/list-contact-fields";
 
 const scoring = {
   fullname: {

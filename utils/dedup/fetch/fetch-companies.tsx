@@ -9,29 +9,38 @@ export async function fetchCompanies(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  const companies = await hsClient.crm.companies.getAll(
-    undefined,
-    undefined,
-    ["name"],
-    undefined,
-    undefined
-  );
+  let after: string | undefined = undefined;
+  let pageId = 0;
 
-  let dbCompanies = companies.map((company) => {
-    let dbCompany: HsCompanyType = {
-      id: nanoid(),
-      workspace_id: workspaceId,
-      hs_id: company.id,
-      name: company.properties.name,
-    };
+  do {
+    pageId++;
+    console.log("Fetching companies page ", pageId);
+    const res = await hsClient.crm.companies.basicApi.getPage(100, after, [
+      "name",
+    ]);
 
-    return dbCompany;
-  });
+    after = res.paging?.next?.after;
 
-  let { error } = await supabase.from("hs_companies").insert(dbCompanies);
-  if (error) {
-    throw error;
-  }
+    const companies = res.results;
 
-  return dbCompanies;
+    if (!companies || companies.length === 0) {
+      return;
+    }
+
+    let dbCompanies = companies.map((company) => {
+      let dbCompany: HsCompanyType = {
+        id: nanoid(),
+        workspace_id: workspaceId,
+        hs_id: company.id,
+        name: company.properties.name,
+      };
+
+      return dbCompany;
+    });
+
+    let { error } = await supabase.from("hs_companies").insert(dbCompanies);
+    if (error) {
+      throw error;
+    }
+  } while (after);
 }

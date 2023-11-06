@@ -6,7 +6,7 @@ import {
 import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-const BATCH_SIZE = 250;
+const BATCH_SIZE = 1000;
 
 async function compareContactBatches(
   supabase: SupabaseClient<Database>,
@@ -157,6 +157,8 @@ async function updateSimilarities(
     await markBatchInstalled(supabase, batch);
   } while (batchLength === BATCH_SIZE);
 
+  console.log("Marking contact without similarities as checked");
+
   const { error } = await supabase.rpc(
     "mark_contacts_without_similarities_as_dup_checked",
     { workspace_id_arg: workspaceId }
@@ -195,6 +197,8 @@ export async function installSimilarities(
   let batchDones = 0;
   async function incrementBatchDones() {
     batchDones += 1;
+
+    console.log("Similarities batch done: ", batchDones);
 
     await supabase
       .from("workspaces")

@@ -10,9 +10,12 @@ import {
   HsDupStackType,
 } from "@/utils/database-types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 50;
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
@@ -23,40 +26,89 @@ export default function DuplicatesPage() {
   } | null>(null);
 
   const [dupStacks, setDupStacks] = useState<HsDupStackType[] | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [hasMore, setHasMore] = useState<boolean>(true);
+
+  const contactCount = useMemo(async () => {
+    const { count, error } = await supabase
+      .from("hs_dup_stacks")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspace.id);
+    if (error) {
+      throw error;
+    }
+
+    return count;
+  }, [supabase, workspace.id]);
+
+  const fetchNextPage = useCallback(async () => {
+    if (!hasMore) {
+      return;
+    }
+
+    let query = supabase
+      .from("hs_dup_stacks")
+      .select()
+      .limit(PAGE_SIZE)
+      .eq("workspace_id", workspace.id)
+      .order("id", { ascending: true });
+
+    if (nextCursor) {
+      query = query.gt("id", nextCursor);
+    }
+
+    const { data: newDupStacks, error: errorDupStacks } = await query;
+    if (errorDupStacks) {
+      throw errorDupStacks;
+    }
+
+    if (!newDupStacks || newDupStacks.length === 0) {
+      setHasMore(false);
+      return;
+    }
+
+    const contactIds = newDupStacks.reduce((acc, dupStack) => {
+      acc.push(...dupStack.confident_contact_ids);
+      if (dupStack.potential_contact_ids) {
+        acc.push(...dupStack.potential_contact_ids);
+      }
+
+      return acc;
+    }, [] as string[]);
+
+    const { data: contacts, error: errorContacts } = await supabase
+      .from("hs_contacts")
+      .select("*, hs_companies(*)")
+      .eq("workspace_id", workspace.id)
+      .in("id", contactIds);
+    if (errorContacts) {
+      throw errorContacts;
+    }
+
+    if (!contacts || !newDupStacks) {
+      throw new Error("Something went wrong!");
+    }
+
+    let newContactsById: { [key: string]: HsContactWithCompaniesType } =
+      contactsById || {};
+
+    contacts.forEach((contact) => {
+      newContactsById[contact.id] = contact;
+    });
+
+    setContactsById(newContactsById);
+    setDupStacks((dupStacks ?? []).concat(...newDupStacks));
+    setNextCursor(newDupStacks[newDupStacks.length - 1].id);
+
+    if (newDupStacks.length !== PAGE_SIZE) {
+      setHasMore(false);
+    }
+  }, [supabase, workspace.id, contactsById, dupStacks, nextCursor, hasMore]);
 
   useEffect(() => {
-    async function fn() {
-      // TODO: scale
-      const { data: contacts, error: errorContacts } = await supabase
-        .from("hs_contacts")
-        .select("*, hs_companies(*)")
-        .eq("workspace_id", workspace.id);
-      if (errorContacts) {
-        return Response.error();
-      }
-
-      const { data: dupStacks, error: errorDupStacks } = await supabase
-        .from("hs_dup_stacks")
-        .select()
-        .eq("workspace_id", workspace.id);
-      if (errorDupStacks) {
-        return Response.error();
-      }
-
-      if (!contacts || !dupStacks) {
-        throw new Error("Something went wrong!");
-      }
-
-      let contactsById: { [key: string]: HsContactWithCompaniesType } = {};
-      contacts.forEach((contact) => {
-        contactsById[contact.id] = contact;
-      });
-
-      setContactsById(contactsById);
-      setDupStacks(dupStacks);
-    }
-    fn();
-  }, [supabase, workspace.id]);
+    fetchNextPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex-1 space-y-4 w-full">
@@ -70,40 +122,43 @@ export default function DuplicatesPage() {
             <span>
               Contacts
               {dupStacks && (
-                <span className="font-light"> ({dupStacks.length})</span>
+                <span className="font-light"> ({contactCount})</span>
               )}
             </span>
           </TabsTrigger>
           <TabsTrigger value="companies">Companies</TabsTrigger>
         </TabsList>
 
-        {!contactsById || !dupStacks ? (
-          <div className="w-full flex items-center justify-center h-72">
-            <Icons.spinner className="h-6 w-6 animate-spin" />
-          </div>
-        ) : (
-          <>
-            <TabsContent value="contacts">
-              {dupStacks?.length == 0 ? (
-                <p>{"You've got no duplicates :)"}</p>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-4">
-                    {dupStacks?.map((dups, i) => (
-                      <ContactDuplicate
-                        key={i}
-                        dupStack={dups}
-                        contactsById={contactsById}
-                      />
-                    ))}
-                  </div>
+        <TabsContent value="contacts">
+          <InfiniteScroll
+            dataLength={dupStacks?.length || 0}
+            next={fetchNextPage}
+            hasMore={hasMore}
+            loader={
+              <div className="w-full flex items-center justify-center h-52">
+                <Icons.spinner className="h-6 w-6 animate-spin" />
+              </div>
+            }
+          >
+            {dupStacks?.length == 0 ? (
+              <p>{"You've got no duplicates :)"}</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  {dupStacks?.map((dups, i) => (
+                    <ContactDuplicate
+                      key={i}
+                      dupStack={dups}
+                      contactsById={contactsById || {}}
+                    />
+                  ))}
                 </div>
-              )}
-            </TabsContent>
+              </div>
+            )}
+          </InfiniteScroll>
+        </TabsContent>
 
-            <TabsContent value="companies">Not implemented yet</TabsContent>
-          </>
-        )}
+        <TabsContent value="companies">Not implemented yet</TabsContent>
       </Tabs>
     </div>
   );

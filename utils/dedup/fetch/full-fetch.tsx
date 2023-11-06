@@ -23,9 +23,9 @@ export async function fullFetch(
 
   let hsClient = await newHubspotClient(workspace.refresh_token);
 
-  let allCompanies = await fetchCompanies(hsClient, supabase, workspaceId);
+  await fetchCompanies(hsClient, supabase, workspaceId);
 
-  await fetchContacts(hsClient, supabase, workspaceId, allCompanies);
+  await fetchContacts(hsClient, supabase, workspaceId);
 
   await supabase
     .from("workspaces")

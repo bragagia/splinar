@@ -43,10 +43,16 @@ export function WorkspaceProvider({
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "workspaces" },
         (payload) => {
-          setWorkspace((workspace) => ({
-            ...workspace,
-            ...payload.new,
-          }));
+          setWorkspace((workspace) => {
+            if (payload.new.id !== workspace.id) {
+              return workspace;
+            }
+
+            return {
+              ...workspace,
+              ...payload.new,
+            };
+          });
         }
       )
       .subscribe();

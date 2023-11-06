@@ -1,6 +1,5 @@
 "use client";
 
-import { TestAction } from "@/app/serverActions/test_action";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,12 @@ export default function WorkspaceSettingsPage() {
   const router = useRouter();
 
   const [refetchLoading, setRefetchLoading] = useState(false);
+
+  function testAction() {
+    fetch(URLS.workspace(workspace.id).api.testAction, {
+      method: "POST",
+    });
+  }
 
   async function onRefetch() {
     setRefetchLoading(true);
@@ -60,7 +65,7 @@ export default function WorkspaceSettingsPage() {
                 DO NOT USE
               </span>
             </Label>
-            <Button onClick={async () => TestAction()} className="shrink-0">
+            <Button onClick={testAction} className="shrink-0">
               Start
             </Button>
           </div>

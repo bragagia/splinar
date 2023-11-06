@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import workspaceInstall from "@/defer/workspace-install";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -33,7 +32,7 @@ export default function OAuthCallback({
 
   const nameRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [status, setStatus] = useState<"INITIAL" | "FETCHING">("INITIAL");
+  const [status, setStatus] = useState<"INITIAL" | "LAUNCHING">("INITIAL");
 
   let refresh_token = searchParams["refresh_token"];
   let user_mail = searchParams["user_mail"];
@@ -83,39 +82,11 @@ export default function OAuthCallback({
       throw error;
     }
 
-    setStatus("FETCHING");
+    setStatus("LAUNCHING");
 
-    try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-      if (error || !session) {
-        throw error || new Error("missing session");
-      }
-
-      await workspaceInstall(
-        {
-          refresh_token: session.refresh_token,
-          access_token: session.access_token,
-        },
-        workspaceId
-      );
-    } catch (e: any) {
-      setErrorMessage(
-        "There was an error while installing your workspace, please retry."
-      );
-
-      const { error } = await supabase
-        .from("workspaces")
-        .delete()
-        .eq("id", workspaceId);
-      if (error) {
-        setErrorMessage("Something has gone really badly, please contact us.");
-      }
-
-      return;
-    }
+    await fetch(URLS.workspace(workspaceId).api.install, {
+      method: "POST",
+    });
 
     router.push(URLS.workspace(workspaceId).dashboard);
   }
@@ -162,7 +133,9 @@ export default function OAuthCallback({
             <CardHeader>
               <CardTitle>Add workspace</CardTitle>
 
-              <CardDescription>Fetching your account data</CardDescription>
+              <CardDescription>
+                Launching the installation process
+              </CardDescription>
             </CardHeader>
 
             <CardContent className="flex justify-center items-center">

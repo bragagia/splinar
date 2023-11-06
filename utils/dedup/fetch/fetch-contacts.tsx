@@ -1,86 +1,132 @@
 import { Database } from "@/types/supabase";
-import {
-  HsCompanyType,
-  HsContactToHsCompany,
-  HsContactType,
-} from "@/utils/database-types";
-import { calcContactFilledScore } from "@/utils/dedup/utils/list-contact-fields";
+import { HsContactType } from "@/utils/database-types";
+import { calcContactFilledScore } from "@/utils/dedup/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
+import { HsCompanyType } from "../../database-types";
+
+async function convertHubIdToInternalId(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  contactsToCompanies: {
+    company_hub_id: string;
+    hs_contact_id: string;
+    workspace_id: string;
+  }[]
+) {
+  const { data: companies, error } = await supabase
+    .from("hs_companies")
+    .select()
+    .eq("workspace_id", workspaceId)
+    .in(
+      "hs_id",
+      contactsToCompanies.map((c) => c.company_hub_id)
+    );
+  if (error) {
+    throw error;
+  }
+
+  let companiesByHsId: { [key: string]: HsCompanyType } = {};
+  companies.forEach((c) => {
+    companiesByHsId[c.hs_id] = c;
+  });
+
+  return contactsToCompanies.map((cTc) => ({
+    workspace_id: workspaceId,
+    hs_contact_id: cTc.hs_contact_id,
+    hs_company_id: companiesByHsId[cTc.company_hub_id].id,
+  }));
+}
 
 export async function fetchContacts(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
-  workspaceId: string,
-  allCompanies: HsCompanyType[]
+  workspaceId: string
 ) {
-  const contacts = await hsClient.crm.contacts.getAll(
-    undefined,
-    undefined,
-    ["email", "firstname", "lastname", "phone", "mobilephone"],
-    undefined,
-    ["companies"]
-  );
+  let after: string | undefined = undefined;
+  let pageId = 0;
 
-  let companyByHsId: { [key: string]: HsCompanyType } = {};
-  allCompanies.forEach((company) => {
-    companyByHsId[company.hs_id] = company;
-  });
+  do {
+    pageId++;
+    console.log("Fetching contact page ", pageId);
 
-  let contactsToCompanies: HsContactToHsCompany[] = [];
-  let dbContacts = contacts.map((contact) => {
-    let dbContact: HsContactType = {
-      id: nanoid(),
-      workspace_id: workspaceId,
-      hs_id: contact.id,
+    const res = await hsClient.crm.contacts.basicApi.getPage(
+      100,
+      after,
+      ["email", "firstname", "lastname", "phone", "mobilephone"],
+      undefined,
+      ["companies"]
+    );
 
-      first_name: contact.properties.firstname,
-      last_name: contact.properties.lastname,
-      phones: [contact.properties.mobilephone, contact.properties.phone].filter(
-        (v) => v !== null && v !== undefined
-      ) as string[],
-      emails: [contact.properties.email].filter(
-        (v) => v !== null && v !== undefined
-      ) as string[],
-      similarity_checked: false,
-      dup_checked: false,
-      filled_score: 0, // Calculated below
-      // TODO: company_name: contact.properties.???,
-    };
+    after = res.paging?.next?.after;
 
-    let dbContactCompanies: HsContactToHsCompany[] | undefined =
-      contact.associations?.companies?.results
+    const contacts = res.results;
+
+    let contactsToCompanies: {
+      company_hub_id: string;
+      hs_contact_id: string;
+      workspace_id: string;
+    }[] = [];
+    let dbContacts = contacts.map((contact) => {
+      let dbContact: HsContactType = {
+        id: nanoid(),
+        workspace_id: workspaceId,
+        hs_id: contact.id,
+
+        first_name: contact.properties.firstname,
+        last_name: contact.properties.lastname,
+        phones: [
+          contact.properties.mobilephone,
+          contact.properties.phone,
+        ].filter((v) => v !== null && v !== undefined) as string[],
+        emails: [contact.properties.email].filter(
+          (v) => v !== null && v !== undefined
+        ) as string[],
+        similarity_checked: false,
+        dup_checked: false,
+        filled_score: 0, // Calculated below
+        // TODO: company_name: contact.properties.???,
+      };
+
+      let contactCompanies = contact.associations?.companies?.results
         ?.filter((company) => company.type == "contact_to_company_unlabeled")
         .map((company) => ({
           workspace_id: workspaceId,
           hs_contact_id: dbContact.id,
-          hs_company_id: companyByHsId[company.id].id,
+          company_hub_id: company.id,
         }));
 
-    if (dbContactCompanies) {
-      contactsToCompanies.push(...dbContactCompanies);
+      if (contactCompanies) {
+        contactsToCompanies.push(...contactCompanies);
+      }
+
+      dbContact.filled_score = calcContactFilledScore(
+        dbContact,
+        contactCompanies && contactCompanies?.length > 0 ? true : false
+      );
+
+      return dbContact;
+    });
+
+    let { error: errorContact } = await supabase
+      .from("hs_contacts")
+      .insert(dbContacts);
+    if (errorContact) {
+      throw errorContact;
     }
 
-    dbContact.filled_score = calcContactFilledScore(
-      dbContact,
-      dbContactCompanies && dbContactCompanies?.length > 0 ? true : false
+    const dbContactToCompanies = await convertHubIdToInternalId(
+      supabase,
+      workspaceId,
+      contactsToCompanies
     );
 
-    return dbContact;
-  });
-
-  let { error: errorContact } = await supabase
-    .from("hs_contacts")
-    .insert(dbContacts);
-  if (errorContact) {
-    throw errorContact;
-  }
-
-  let { error: errorContactCompanies } = await supabase
-    .from("hs_contact_companies")
-    .insert(contactsToCompanies);
-  if (errorContactCompanies) {
-    throw errorContactCompanies;
-  }
+    let { error: errorContactCompanies } = await supabase
+      .from("hs_contact_companies")
+      .insert(dbContactToCompanies);
+    if (errorContactCompanies) {
+      throw errorContactCompanies;
+    }
+  } while (after);
 }

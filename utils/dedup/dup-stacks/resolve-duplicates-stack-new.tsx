@@ -1,8 +1,7 @@
 import { Database } from "@/types/supabase";
 import {
-  HsContactSimilarityType,
+  HsContactType,
   HsContactWithCompaniesAndSimilaritiesType,
-  HsContactWithCompaniesType,
   HsDupStackType,
   isAnHsContactWithCompaniesType,
 } from "@/utils/database-types";
@@ -13,6 +12,9 @@ import { nanoid } from "nanoid";
 async function deleteExistingDupstacksAndMarkUnchecked(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  contactsById: {
+    [key: string]: HsContactWithCompaniesAndSimilaritiesType;
+  },
   contactIds: string[]
 ) {
   let ors = [] as string[];
@@ -34,15 +36,23 @@ async function deleteExistingDupstacksAndMarkUnchecked(
     return;
   }
 
-  const contactToMarkUnchecked = existingDupStacks.reduce((acc, dupstack) => {
-    acc.push(...dupstack.confident_contact_ids);
+  const contactToMarkUnchecked = existingDupStacks
+    .reduce((acc, dupstack) => {
+      acc.push(...dupstack.confident_contact_ids);
 
-    if (dupstack.potential_contact_ids) {
-      acc.push(...dupstack.potential_contact_ids);
-    }
+      if (dupstack.potential_contact_ids) {
+        acc.push(...dupstack.potential_contact_ids);
+      }
 
-    return acc;
-  }, [] as string[]);
+      return acc;
+    }, [] as string[])
+    .filter((existingId) => {
+      !contactIds.find((IdFromDupstack) => IdFromDupstack === existingId);
+    });
+
+  if (!contactToMarkUnchecked || contactToMarkUnchecked.length === 0) {
+    return;
+  }
 
   const { error: error2 } = await supabase
     .from("hs_contacts")
@@ -64,14 +74,19 @@ async function deleteExistingDupstacksAndMarkUnchecked(
   if (error3) {
     throw error3;
   }
+
+  contactIds.forEach((id) => {
+    contactsById[id].dup_checked = false;
+  });
 }
 
-async function fetchContactAndSimilarSortedByFillScore(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string,
+function fetchContactAndSimilarSortedByFillScore(
+  contactsById: {
+    [key: string]: HsContactWithCompaniesAndSimilaritiesType;
+  },
   contactId: string
 ) {
-  const { data: contact, error: error0 } = await supabase
+  /*const { data: contact, error: error0 } = await supabase
     .from("hs_contacts")
     .select("*, hs_companies (*)")
     .eq("id", contactId)
@@ -145,18 +160,43 @@ async function fetchContactAndSimilarSortedByFillScore(
     };
   });
 
+  return res;*/
+
+  let res = {
+    contact: contactsById[contactId],
+    similarContacts: [] as HsContactWithCompaniesAndSimilaritiesType[],
+  };
+
+  res.similarContacts = res.contact.hs_contact_similarities
+    .reduce((acc, item) => {
+      const similarID =
+        item.contact_a_id === contactId ? item.contact_b_id : item.contact_a_id;
+
+      if (acc.find((v) => v === similarID)) {
+        return acc;
+      }
+
+      acc.push(similarID);
+      return acc;
+    }, [] as string[])
+    .map((id) => contactsById[id])
+    .sort((a, b) => b.filled_score - a.filled_score);
+
   return res;
 }
 
 export async function resolveNextDuplicatesStack(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  contactsById: {
+    [key: string]: HsContactWithCompaniesAndSimilaritiesType;
+  },
   specificContactId?: string
 ) {
-  let referenceContact: HsContactWithCompaniesType;
+  let referenceContact: Pick<HsContactType, "id" | "filled_score">;
 
   if (specificContactId) {
-    const { data, error } = await supabase
+    /*const { data, error } = await supabase
       .from("hs_contacts")
       .select("*, hs_companies (*)")
       .eq("id", specificContactId)
@@ -166,11 +206,13 @@ export async function resolveNextDuplicatesStack(
       throw error;
     }
 
-    referenceContact = data as HsContactWithCompaniesType;
+    referenceContact = data as HsContactWithCompaniesType;*/
+
+    referenceContact = contactsById[specificContactId];
   } else {
-    const { data, error } = await supabase
+    /*const { data, error } = await supabase
       .from("hs_contacts")
-      .select("*, hs_companies (*)")
+      .select("id, filled_score")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
       .eq("dup_checked", false)
@@ -183,8 +225,19 @@ export async function resolveNextDuplicatesStack(
       return false;
     }
 
-    referenceContact = data[0] as HsContactWithCompaniesType;
+    referenceContact = data[0];*/
+
+    const referenceContactId = Object.keys(contactsById).find(
+      (id) => contactsById[id].dup_checked === false
+    );
+    if (!referenceContactId) {
+      return false;
+    }
+
+    referenceContact = contactsById[referenceContactId];
   }
+
+  //console.log(referenceContact);
 
   // We recursively check if this contacts or its supposed duplicates have other duplicates to create
   // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
@@ -201,11 +254,7 @@ export async function resolveNextDuplicatesStack(
     isChildOfPotentialDup: boolean
   ) {
     let { contact: parentContact, similarContacts } =
-      await fetchContactAndSimilarSortedByFillScore(
-        supabase,
-        workspaceId,
-        parentContactId
-      );
+      fetchContactAndSimilarSortedByFillScore(contactsById, parentContactId);
     if (similarContacts.length === 0) {
       return;
     }
@@ -227,7 +276,11 @@ export async function resolveNextDuplicatesStack(
       let dupStatus = areContactsDups(
         parentContact,
         similarContact,
-        similarContact.hs_contact_similarities
+        similarContact.hs_contact_similarities.filter(
+          (similarity) =>
+            similarity.contact_a_id === parentContact.id ||
+            similarity.contact_b_id === parentContact.id
+        )
       );
 
       if (dupStatus) {
@@ -235,7 +288,12 @@ export async function resolveNextDuplicatesStack(
           similarContact.filled_score > referenceContact.filled_score;
 
         if (isMoreFilledThanReference) {
-          console.log("SHOULD NOT HAPPEN");
+          // console.log(
+          //   "dups is better, parent: ",
+          //   referenceContact,
+          //   "\nchild: ",
+          //   similarContact
+          // );
           // Restart the whole function with similarContact as reference, because it has more data
           throw similarContact;
         }
@@ -272,13 +330,15 @@ export async function resolveNextDuplicatesStack(
     await addChildsToStack(referenceContact.id, false);
   } catch (newReferenceContact) {
     if (isAnHsContactWithCompaniesType(newReferenceContact)) {
+      //console.log("Going deeper");
       return resolveNextDuplicatesStack(
         supabase,
         workspaceId,
+        contactsById,
         newReferenceContact.id
       );
     } else {
-      console.log(newReferenceContact);
+      //console.log(newReferenceContact);
       throw newReferenceContact;
     }
   }
@@ -293,18 +353,19 @@ export async function resolveNextDuplicatesStack(
 
   const allDupsId = [...dupStack.confident_contact_ids];
 
-  if (!dupStackIsEmpty) {
-    if (dupStack.potential_contact_ids) {
-      allDupsId.push(...dupStack.potential_contact_ids);
-    }
+  if (dupStack.potential_contact_ids) {
+    allDupsId.push(...dupStack.potential_contact_ids);
+  }
 
+  if (!dupStackIsEmpty) {
+    // TODO: Make this work for updates
     await deleteExistingDupstacksAndMarkUnchecked(
       supabase,
       workspaceId,
+      contactsById,
       allDupsId
     );
 
-    //
     const { error: errorDupstack } = await supabase
       .from("hs_dup_stacks")
       .insert(dupStack);
@@ -314,14 +375,34 @@ export async function resolveNextDuplicatesStack(
   }
 
   // Mark dupstack elements as dup_checked
+  markDupstackElementsAsDupChecked(
+    supabase,
+    workspaceId,
+    contactsById,
+    allDupsId
+  );
+
+  return true;
+}
+
+async function markDupstackElementsAsDupChecked(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  contactsById: {
+    [key: string]: HsContactWithCompaniesAndSimilaritiesType;
+  },
+  dupstackIds: string[]
+) {
   const { error: errorChecked } = await supabase
     .from("hs_contacts")
     .update({ dup_checked: true })
-    .in("id", allDupsId)
+    .in("id", dupstackIds)
     .eq("workspace_id", workspaceId);
   if (errorChecked) {
     throw errorChecked;
   }
 
-  return true;
+  dupstackIds.forEach((id) => {
+    contactsById[id].dup_checked = true;
+  });
 }
