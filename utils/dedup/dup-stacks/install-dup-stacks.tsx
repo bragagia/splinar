@@ -5,7 +5,6 @@ import {
 } from "@/utils/database-types";
 import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { formatError } from "pretty-print-error";
 
 async function fetchContactsDb(
   supabase: SupabaseClient<Database>,
@@ -112,7 +111,7 @@ async function updateDupStackInstallationDone(
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
   if (error || !dupTodo) {
-    console.log(formatError(error || new Error("missing count")));
+    console.log(error || new Error("missing count"));
     return;
   }
 
@@ -123,7 +122,7 @@ async function updateDupStackInstallationDone(
     })
     .eq("id", workspaceId);
   if (errorUpdate) {
-    console.log(formatError(errorUpdate));
+    console.log(errorUpdate);
     return 0;
   }
 
