@@ -3,6 +3,7 @@
 
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/utils/database-types";
+import { deferCatch } from "@/utils/dedup/defer-catch";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
@@ -19,43 +20,65 @@ async function workspaceInstall(
   },
   workspaceId: string
 ) {
-  console.log("Workspace Install", workspaceId);
+  await deferCatch(async () => {
+    console.log("### Workspace Install", workspaceId);
 
-  const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-  const { error } = await supabase.auth.setSession(supabaseSession);
-  if (error) {
-    throw error;
-  }
+    const startTime = performance.now();
 
-  console.log("Updating workspace status");
-  let workspaceUpdatePending: Partial<WorkspaceType> = {
-    installation_status: "PENDING",
-  };
-  await supabase
-    .from("workspaces")
-    .update(workspaceUpdatePending)
-    .eq("id", workspaceId);
+    const supabase = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { error } = await supabase.auth.setSession(supabaseSession);
+    if (error) {
+      throw error;
+    }
 
-  console.log("Fetching hubspot data");
-  await fullFetch(supabase, workspaceId);
-  await updateDupStackInstallationTotal(supabase, workspaceId);
+    console.log("### Updating workspace status");
+    let workspaceUpdatePending: Partial<WorkspaceType> = {
+      installation_status: "PENDING",
+    };
+    await supabase
+      .from("workspaces")
+      .update(workspaceUpdatePending)
+      .eq("id", workspaceId);
 
-  console.log("Install similarities");
-  await installSimilarities(supabase, workspaceId);
+    console.log(
+      "### Fetching hubspot data",
+      " # Time: ",
+      Math.round((performance.now() - startTime) / 1000)
+    );
+    await fullFetch(supabase, workspaceId);
+    await updateDupStackInstallationTotal(supabase, workspaceId);
 
-  console.log("Install dup stacks");
-  await installDupStacks(supabase, workspaceId);
+    console.log(
+      "### Install similarities",
+      " # Time: ",
+      Math.round((performance.now() - startTime) / 1000)
+    );
+    await installSimilarities(supabase, workspaceId);
 
-  let workspaceUpdateEnd: Partial<WorkspaceType> = {
-    installation_status: "DONE",
-  };
-  await supabase
-    .from("workspaces")
-    .update(workspaceUpdateEnd)
-    .eq("id", workspaceId);
+    console.log(
+      "### Install dup stacks",
+      " # Time: ",
+      Math.round((performance.now() - startTime) / 1000)
+    );
+    await installDupStacks(supabase, workspaceId);
+
+    let workspaceUpdateEnd: Partial<WorkspaceType> = {
+      installation_status: "DONE",
+    };
+    await supabase
+      .from("workspaces")
+      .update(workspaceUpdateEnd)
+      .eq("id", workspaceId);
+
+    console.log(
+      "### Install done",
+      " # Time: ",
+      Math.round((performance.now() - startTime) / 1000)
+    );
+  });
 }
 
 export default defer(workspaceInstall);

@@ -2,6 +2,7 @@ import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesAndSimilaritiesType,
+  WorkspaceType,
 } from "@/utils/database-types";
 import { installDupStacks } from "@/utils/dedup/dup-stacks/install-dup-stacks";
 import {
@@ -13,24 +14,32 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 300;
 
-type DbCache = {
-  hsContactsById: { [key: string]: HsContactWithCompaniesAndSimilaritiesType };
-};
-
 async function CalcDupStacks(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  console.log("Install dup stacks", workspaceId);
+  const startTime = performance.now();
+
+  console.log(
+    "### Install dup stacks",
+    " # Time: ",
+    Math.round((performance.now() - startTime) / 1000)
+  );
   await installDupStacks(supabase, workspaceId);
 
-  // let workspaceUpdateEnd: Partial<WorkspaceType> = {
-  //   installation_status: "DONE",
-  // };
-  // await supabase
-  //   .from("workspaces")
-  //   .update(workspaceUpdateEnd)
-  //   .eq("id", workspaceId);
+  let workspaceUpdateEnd: Partial<WorkspaceType> = {
+    installation_status: "DONE",
+  };
+  await supabase
+    .from("workspaces")
+    .update(workspaceUpdateEnd)
+    .eq("id", workspaceId);
+
+  console.log(
+    "### Install done",
+    " # Time: ",
+    Math.round((performance.now() - startTime) / 1000)
+  );
 }
 
 async function CalcDbCache(

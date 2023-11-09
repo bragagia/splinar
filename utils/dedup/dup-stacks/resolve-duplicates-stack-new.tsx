@@ -359,12 +359,12 @@ export async function resolveNextDuplicatesStack(
 
   if (!dupStackIsEmpty) {
     // TODO: Make this work for updates
-    await deleteExistingDupstacksAndMarkUnchecked(
-      supabase,
-      workspaceId,
-      contactsById,
-      allDupsId
-    );
+    // await deleteExistingDupstacksAndMarkUnchecked(
+    //   supabase,
+    //   workspaceId,
+    //   contactsById,
+    //   allDupsId
+    // );
 
     const { error: errorDupstack } = await supabase
       .from("hs_dup_stacks")
@@ -374,8 +374,8 @@ export async function resolveNextDuplicatesStack(
     }
   }
 
-  // Mark dupstack elements as dup_checked
-  markDupstackElementsAsDupChecked(
+  // Mark dupstack elements as dup_checked, at least the contact that was analysed
+  await markDupstackElementsAsDupChecked(
     supabase,
     workspaceId,
     contactsById,

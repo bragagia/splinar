@@ -51,10 +51,10 @@ export default function DuplicatesPage() {
       .select()
       .limit(PAGE_SIZE)
       .eq("workspace_id", workspace.id)
-      .order("id", { ascending: true });
+      .order("created_at", { ascending: true });
 
     if (nextCursor) {
-      query = query.gt("id", nextCursor);
+      query = query.gt("created_at", nextCursor);
     }
 
     const { data: newDupStacks, error: errorDupStacks } = await query;
@@ -98,7 +98,7 @@ export default function DuplicatesPage() {
 
     setContactsById(newContactsById);
     setDupStacks((dupStacks ?? []).concat(...newDupStacks));
-    setNextCursor(newDupStacks[newDupStacks.length - 1].id);
+    setNextCursor(newDupStacks[newDupStacks.length - 1].created_at);
 
     if (newDupStacks.length !== PAGE_SIZE) {
       setHasMore(false);

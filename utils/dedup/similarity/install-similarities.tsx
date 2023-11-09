@@ -6,7 +6,8 @@ import {
 import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 300;
+const SUPABASE_FILTER_MAX_SIZE = 300;
 
 async function compareContactBatches(
   supabase: SupabaseClient<Database>,
@@ -67,12 +68,14 @@ async function markBatchInstalled(
 ) {
   const batchIds = batch.map((contact) => contact.id);
 
-  const { error } = await supabase
-    .from("hs_contacts")
-    .update({ similarity_checked: true, dup_checked: false })
-    .in("id", batchIds);
-  if (error) {
-    throw error;
+  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { error } = await supabase
+      .from("hs_contacts")
+      .update({ similarity_checked: true, dup_checked: false })
+      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
+    if (error) {
+      throw error;
+    }
   }
 }
 

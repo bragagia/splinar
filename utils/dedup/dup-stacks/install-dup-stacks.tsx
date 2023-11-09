@@ -5,6 +5,7 @@ import {
 } from "@/utils/database-types";
 import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { formatError } from "pretty-print-error";
 
 async function fetchContactsDb(
   supabase: SupabaseClient<Database>,
@@ -69,8 +70,6 @@ export async function updateDupStacks(
     if (callbackOnInterval && counter % intervalCallback === 0) {
       await callbackOnInterval();
     }
-
-    if (counter > 300) return;
   } while (true);
 }
 
@@ -104,6 +103,7 @@ export async function updateDupStackInstallationTotal(
 async function updateDupStackInstallationDone(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  startTime: number,
   dupTotal: number
 ) {
   const { count: dupTodo, error } = await supabase
@@ -112,7 +112,8 @@ async function updateDupStackInstallationDone(
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
   if (error || !dupTodo) {
-    throw error || new Error("missing count");
+    console.log(formatError(error || new Error("missing count")));
+    return;
   }
 
   const { error: errorUpdate } = await supabase
@@ -122,10 +123,19 @@ async function updateDupStackInstallationDone(
     })
     .eq("id", workspaceId);
   if (errorUpdate) {
-    throw errorUpdate;
+    console.log(formatError(errorUpdate));
+    return 0;
   }
 
-  console.log("Dup stack batch ", dupTotal - dupTodo, "/", dupTotal);
+  console.log(
+    "Dup stack batch",
+    dupTotal - dupTodo,
+    "/",
+    dupTotal,
+    "- time:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 
   return dupTotal - dupTodo;
 }
@@ -135,8 +145,19 @@ export async function installDupStacks(
   workspaceId: string
 ) {
   const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
+  const startTime = performance.now();
 
-  await updateDupStacks(supabase, workspaceId, async () => {
-    await updateDupStackInstallationDone(supabase, workspaceId, dupTotal);
-  });
+  await updateDupStacks(
+    supabase,
+    workspaceId,
+    async () => {
+      await updateDupStackInstallationDone(
+        supabase,
+        workspaceId,
+        startTime,
+        dupTotal
+      );
+    },
+    30
+  );
 }
