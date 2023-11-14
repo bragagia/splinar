@@ -22,7 +22,8 @@ export default function WorkspaceSettingsPage() {
   const workspace = useWorkspace();
   const router = useRouter();
 
-  const [refetchLoading, setRefetchLoading] = useState(false);
+  const [resetWorkspaceLoading, setResetWorkspaceLoading] = useState(false);
+  const [recheckLoading, setRecheckLoading] = useState(false);
 
   function testAction() {
     fetch(URLS.workspace(workspace.id).api.testAction, {
@@ -30,14 +31,24 @@ export default function WorkspaceSettingsPage() {
     });
   }
 
-  async function onRefetch() {
-    setRefetchLoading(true);
+  async function onResetWorkspace() {
+    setResetWorkspaceLoading(true);
 
     await fetch(URLS.workspace(workspace.id).api.reset, {
       method: "POST",
     });
 
-    setRefetchLoading(false);
+    setResetWorkspaceLoading(false);
+  }
+
+  async function onRecheck() {
+    setRecheckLoading(true);
+
+    await fetch(URLS.workspace(workspace.id).api.reckeck, {
+      method: "POST",
+    });
+
+    setRecheckLoading(false);
   }
 
   async function onDeleteWorkspace() {
@@ -58,17 +69,19 @@ export default function WorkspaceSettingsPage() {
         </CardHeader>
 
         <CardContent className="grid gap-6">
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="performance" className="flex flex-col space-y-1">
-              <span>Test action</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                DO NOT USE
-              </span>
-            </Label>
-            <Button onClick={testAction} className="shrink-0">
-              Start
-            </Button>
-          </div>
+          {process.env.NODE_ENV === "development" && (
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="performance" className="flex flex-col space-y-1">
+                <span>Test action</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  DO NOT USE
+                </span>
+              </Label>
+              <Button onClick={testAction} className="shrink-0">
+                Start
+              </Button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="performance" className="flex flex-col space-y-1">
@@ -78,8 +91,16 @@ export default function WorkspaceSettingsPage() {
                 any data loss with this.
               </span>
             </Label>
-            <Button className="shrink-0" disabled>
-              Recheck
+            <Button
+              onClick={onRecheck}
+              className="shrink-0"
+              disabled={true} // TODO: {recheckLoading}
+            >
+              {recheckLoading ? (
+                <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                "Recheck"
+              )}
             </Button>
           </div>
 
@@ -96,11 +117,11 @@ export default function WorkspaceSettingsPage() {
               </span>
             </Label>
             <Button
-              onClick={onRefetch}
+              onClick={onResetWorkspace}
               className="bg-red-500 shrink-0"
-              disabled={refetchLoading}
+              disabled={resetWorkspaceLoading}
             >
-              {refetchLoading ? (
+              {resetWorkspaceLoading ? (
                 <Icons.spinner className="h-4 w-4 animate-spin" />
               ) : (
                 "Reset workspace"

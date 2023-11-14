@@ -1,6 +1,8 @@
 import { Database } from "@/types/supabase";
 import { MergeDeep } from "type-fest";
 
+export const SUPABASE_FILTER_MAX_SIZE = 300;
+
 export type WorkspaceType = MergeDeep<
   Database["public"]["Tables"]["workspaces"]["Insert"],
   {

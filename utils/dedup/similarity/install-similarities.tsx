@@ -2,12 +2,12 @@ import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
+  SUPABASE_FILTER_MAX_SIZE,
 } from "@/utils/database-types";
 import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 const BATCH_SIZE = 300;
-const SUPABASE_FILTER_MAX_SIZE = 300;
 
 async function compareContactBatches(
   supabase: SupabaseClient<Database>,

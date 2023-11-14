@@ -18,7 +18,8 @@ async function workspaceInstall(
     refresh_token: string;
     access_token: string;
   },
-  workspaceId: string
+  workspaceId: string,
+  softInstall: boolean = false
 ) {
   await deferCatch(async () => {
     console.log("### Workspace Install", workspaceId);
@@ -43,13 +44,15 @@ async function workspaceInstall(
       .update(workspaceUpdatePending)
       .eq("id", workspaceId);
 
-    console.log(
-      "### Fetching hubspot data",
-      " # Time: ",
-      Math.round((performance.now() - startTime) / 1000)
-    );
-    await fullFetch(supabase, workspaceId);
-    await updateDupStackInstallationTotal(supabase, workspaceId);
+    if (!softInstall) {
+      console.log(
+        "### Fetching hubspot data",
+        " # Time: ",
+        Math.round((performance.now() - startTime) / 1000)
+      );
+      await fullFetch(supabase, workspaceId);
+      await updateDupStackInstallationTotal(supabase, workspaceId);
+    }
 
     console.log(
       "### Install similarities",

@@ -110,7 +110,8 @@ export function WorkspaceInstallationWall({
 
   if (
     workspace.installation_status === "PENDING" &&
-    workspace.installation_dup_done === 0
+    workspace.installation_dup_done === 0 &&
+    process.env.NODE_ENV !== "development"
   ) {
     return (
       <div className="h-screen w-screen flex justify-center items-center">

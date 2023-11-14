@@ -3,37 +3,49 @@ import {
   HsContactWithCompaniesType,
 } from "@/utils/database-types";
 import {
-  ContactFieldsCount,
-  ContactFieldsList,
+  ContactFieldsType,
   listContactField,
 } from "@/utils/dedup/list-contact-fields";
 
 const scoring = {
   fullname: {
     exact: 30,
-    similar: 10,
-    potential: 0,
-    unlikely: 5,
-  },
-  phone: {
-    exact: 50, // phones can be shared
-    similar: 0,
-    potential: 0,
-    unlikely: 0,
-  },
-  email: {
-    exact: 80,
-    similar: 70,
-    potential: 30,
-    unlikely: 5,
-  },
-  company: {
-    exact: 30,
     similar: 20,
     potential: 5,
     unlikely: 0,
+    notMatching: -70,
+    sameCompanyMatchingBonus: 30,
+  },
+  phone: {
+    exact: 20, // phones can be shared like a company, but can also be unique, not sure what to do about them
+    similar: 0,
+    potential: 0,
+    unlikely: 0,
+    notMatching: 0,
+    sameCompanyMatchingBonus: 0,
+  },
+  email: {
+    exact: 80,
+    similar: 60,
+    potential: 40,
+    unlikely: 0,
+    notMatching: -10,
+    sameCompanyMatchingBonus: 30,
+  },
+  company: {
+    // This is a multiplier for the "sameCompanyMatchingBonus"
+    exact: 1,
+    similar: 0.33, // TODO: in the future, when there will be deduplication of companies, this should go to zero because similar companies shouldn't be considered the same at this point
+    potential: 0,
+    unlikely: 0,
+    notMatching: 0,
+    sameCompanyMatchingBonus: 0,
   },
 };
+
+const ContactFieldsList: ContactFieldsType[] = ["fullname", "email", "phone"];
+
+// TODO: Same company -> Multiply the chance that they are the same, but does not increase score by itself
 
 /*
   Score > 50 -> dup
@@ -54,18 +66,22 @@ export function areContactsDups(
     return false;
   }
 
-  let contactAFields = listContactField(contactA);
-  let contactBFields = listContactField(contactB);
+  const contactAFields = listContactField(contactA);
+  const contactBFields = listContactField(contactB);
 
-  let missingFieldsBonus =
-    5 *
-    (ContactFieldsCount -
-      Math.min(contactA.filled_score, contactB.filled_score));
+  const filledField = Math.min(contactA.filled_score, contactB.filled_score);
 
-  let unmatchingFieldMalus = 0;
+  let unmatchingFieldCount = 0;
   let similarityScore = 0;
 
-  // TODO: average the sum of score so that is is easier to reason about
+  // Calc similarity multiplier
+  let companySimilarity = similaritiesOfContacts.find(
+    (similarity) => similarity.field_type === "company"
+  );
+  const sameCompanyBonusMultiplier = companySimilarity
+    ? scoring["company"][companySimilarity.similarity_score]
+    : 0;
+
   ContactFieldsList.forEach((field) => {
     let similarity = similaritiesOfContacts.find(
       (similarity) => similarity.field_type === field
@@ -76,21 +92,37 @@ export function areContactsDups(
         contactAFields.find((cf) => cf === field) &&
         contactBFields.find((cf) => cf === field)
       ) {
-        unmatchingFieldMalus += 20;
+        unmatchingFieldCount++; // TODO: Use notMatchingFieldsScore instead
       }
 
       return;
     }
 
-    similarityScore += scoring[field][similarity.similarity_score];
+    similarityScore +=
+      scoring[field][similarity.similarity_score] +
+      sameCompanyBonusMultiplier * scoring[field]["sameCompanyMatchingBonus"];
   });
 
-  if (similarityScore + missingFieldsBonus - unmatchingFieldMalus >= 70) {
+  const missingFieldsMultiplierBonus = (() => {
+    switch (filledField) {
+      case 1:
+        return 2;
+      case 2:
+        return 1.5;
+      case 3:
+        return 1.2;
+      default:
+        return 1;
+    }
+  })();
+
+  const unmatchingFieldMalus = unmatchingFieldCount * 20; // TODO: missing logic to use score
+
+  const score =
+    (similarityScore - unmatchingFieldMalus) * missingFieldsMultiplierBonus;
+  if (score >= 70) {
     return "CONFIDENT";
-  } else if (
-    similarityScore + missingFieldsBonus - unmatchingFieldMalus >=
-    40
-  ) {
+  } else if (score >= 30) {
     return "POTENTIAL";
   } else {
     return false;

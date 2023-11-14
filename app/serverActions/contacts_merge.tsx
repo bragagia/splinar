@@ -62,7 +62,7 @@ export async function contactMerge(
     throw Error("Contact fetched from db are incoherent with dup stack");
   }
 
-  Promise.all(
+  await Promise.all(
     contactsToMerge.map((contactToMerge) => {
       return hsClient.crm.contacts.publicObjectApi.merge({
         primaryObjectId: referenceContact.hs_id,

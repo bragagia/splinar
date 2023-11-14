@@ -57,7 +57,7 @@ export function contactSimilarityCheck(
           similarity_score: "exact",
         });
       } else if (
-        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.8
+        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.9
       ) {
         // TODO: This constant must be tested on real database
         similarities.push({
@@ -65,12 +65,12 @@ export function contactSimilarityCheck(
           similarity_score: "similar",
         });
       } else if (
-        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.7
+        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.8
       ) {
         // TODO: This constant must be tested on real database
         similarities.push({
           ...fullNameSimilarityBase,
-          similarity_score: "unlikely",
+          similarity_score: "potential",
         });
       }
     }
@@ -89,14 +89,15 @@ export function contactSimilarityCheck(
           contact_b_value: emailB,
         };
 
-        let removeExt = (str: string) => str.split(".").slice(0, -1).join(".");
-        let removeInfiniteAddr = (str: string) =>
-          str.split(/\+[^@]*@/).join("@");
+        let removeInfiniteAddr = (str: string) => str.replace(/\+[^@]*$/, "");
         let removeUselessDots = (str: string) => str.split(".").join("");
-        let normalizeMail = (str: string) =>
-          removeUselessDots(removeInfiniteAddr(removeExt(str)));
+        let removeExt = (str: string) => str.split(".").slice(0, -1).join(".");
 
-        let removeDomain = (str: string) => str.split("@")[0];
+        const idA = removeUselessDots(emailA.split("@")[0]);
+        const idB = removeUselessDots(emailB.split("@")[0]);
+
+        const domainA = emailA.split("@")[1];
+        const domainB = emailB.split("@")[1];
 
         if (emailA === emailB) {
           similarities.push({
@@ -105,9 +106,10 @@ export function contactSimilarityCheck(
           });
         } else if (
           stringSimilarity.compareTwoStrings(
-            normalizeMail(emailA),
-            normalizeMail(emailB)
-          ) > 0.9
+            removeInfiniteAddr(idA),
+            removeInfiniteAddr(idB)
+          ) > 0.95 &&
+          stringSimilarity.compareTwoStrings(domainA, domainB) > 0.95
         ) {
           similarities.push({
             ...emailSimilarityBase,
@@ -115,8 +117,12 @@ export function contactSimilarityCheck(
           });
         } else if (
           stringSimilarity.compareTwoStrings(
-            removeDomain(normalizeMail(emailA)),
-            removeDomain(normalizeMail(emailB))
+            removeInfiniteAddr(idA),
+            removeInfiniteAddr(idB)
+          ) > 0.9 &&
+          stringSimilarity.compareTwoStrings(
+            removeExt(domainA),
+            removeExt(domainB)
           ) > 0.9
         ) {
           similarities.push({
@@ -125,8 +131,8 @@ export function contactSimilarityCheck(
           });
         } else if (
           stringSimilarity.compareTwoStrings(
-            removeDomain(normalizeMail(emailA)),
-            removeDomain(normalizeMail(emailB))
+            removeInfiniteAddr(idA),
+            removeInfiniteAddr(idB)
           ) > 0.9
         ) {
           similarities.push({
@@ -174,20 +180,12 @@ export function contactSimilarityCheck(
           });
         } else if (companyA.name && companyB.name) {
           if (
-            companyA.name.toLowerCase().trim() ===
-            companyB.name.toLowerCase().trim()
-          ) {
-            similarities.push({
-              ...emailSimilarityBase,
-              similarity_score: "similar",
-            });
-          } else if (
             stringSimilarity.compareTwoStrings(companyA.name, companyB.name) >
             0.9
           ) {
             similarities.push({
               ...emailSimilarityBase,
-              similarity_score: "potential",
+              similarity_score: "similar",
             });
           }
         }

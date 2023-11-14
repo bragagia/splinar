@@ -5,12 +5,6 @@ import {
 
 export type ContactFieldsType = "fullname" | "email" | "phone" | "company";
 export const ContactFieldsCount = 4;
-export const ContactFieldsList: ContactFieldsType[] = [
-  "fullname",
-  "email",
-  "phone",
-  "company",
-];
 
 export function listContactField(contact: HsContactWithCompaniesType) {
   let fields: ContactFieldsType[] = [];

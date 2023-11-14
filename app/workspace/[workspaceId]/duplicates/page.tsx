@@ -8,6 +8,7 @@ import { Database } from "@/types/supabase";
 import {
   HsContactWithCompaniesType,
   HsDupStackType,
+  SUPABASE_FILTER_MAX_SIZE,
 } from "@/utils/database-types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -15,7 +16,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
@@ -76,17 +77,27 @@ export default function DuplicatesPage() {
       return acc;
     }, [] as string[]);
 
-    const { data: contacts, error: errorContacts } = await supabase
-      .from("hs_contacts")
-      .select("*, hs_companies(*)")
-      .eq("workspace_id", workspace.id)
-      .in("id", contactIds);
-    if (errorContacts) {
-      throw errorContacts;
-    }
+    let contacts: HsContactWithCompaniesType[] = [];
+    for (let i = 0; i < contactIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+      const batchedContactIds = contactIds.slice(
+        i,
+        i + SUPABASE_FILTER_MAX_SIZE
+      );
 
-    if (!contacts || !newDupStacks) {
-      throw new Error("Something went wrong!");
+      const { data: batchedContacts, error: errorContacts } = await supabase
+        .from("hs_contacts")
+        .select("*, hs_companies(*)")
+        .eq("workspace_id", workspace.id)
+        .in("id", batchedContactIds);
+      if (errorContacts) {
+        throw errorContacts;
+      }
+
+      if (!batchedContacts || batchedContacts.length === 0) {
+        throw new Error("Something went wrong!");
+      }
+
+      contacts.push(...batchedContacts);
     }
 
     let newContactsById: { [key: string]: HsContactWithCompaniesType } =
@@ -140,7 +151,7 @@ export default function DuplicatesPage() {
               </div>
             }
           >
-            {dupStacks?.length == 0 ? (
+            {(!dupStacks || dupStacks.length === 0) && !hasMore ? (
               <p>{"You've got no duplicates :)"}</p>
             ) : (
               <div className="space-y-4">

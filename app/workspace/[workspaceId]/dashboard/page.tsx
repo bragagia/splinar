@@ -1,7 +1,37 @@
-import { Overview } from "@/app/workspace/[workspaceId]/dashboard/overview";
+import { Icons } from "@/components/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Database } from "@/types/supabase";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
-export default function WorkspacePage() {
+export default async function WorkspacePage({
+  params,
+}: {
+  params: { workspaceId: string };
+}) {
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient<Database>({
+    cookies: () => cookieStore,
+  });
+
+  const { data: dupStacks, error } = await supabase
+    .from("hs_dup_stacks")
+    .select()
+    .eq("workspace_id", params.workspaceId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    throw error;
+  }
+
+  const dupStackCount = dupStacks.length;
+  const dupUserCount = dupStacks.reduce(
+    (acc, dupStack) =>
+      acc +
+      dupStack.confident_contact_ids.length +
+      (dupStack.potential_contact_ids?.length || 0),
+    0
+  );
+
   return (
     <div className="flex-1 space-y-4">
       <div className="flex items-center justify-between space-y-2">
@@ -13,30 +43,24 @@ export default function WorkspacePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Duplicates detected
+                Duplicate contacts detected
               </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+
+              {dupStackCount > 0 ? (
+                <Icons.duplicatePersons className="w-4 h-4" />
+              ) : (
+                <Icons.happyPerson className="w-4 h-4" />
+              )}
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">532</div>
+              <div className="text-2xl font-bold">{dupUserCount}</div>
               <p className="text-xs text-muted-foreground">
-                could be merged as 143 uniques items
+                could be merged as {dupStackCount} uniques items
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Unsolved duplicates
@@ -90,10 +114,10 @@ export default function WorkspacePage() {
                 duplicates were prevented by Splinar web extension
               </p>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* <div className="grid gap-4 md:grid-cols-2">
           <Card className="col-span-4">
             <CardHeader>
               <CardTitle>Solved duplicates</CardTitle>
@@ -103,7 +127,7 @@ export default function WorkspacePage() {
               <Overview />
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
     </div>
   );
