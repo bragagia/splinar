@@ -1,4 +1,4 @@
-import workspaceReset from "@/defer/workspace-reset";
+import { workspaceReset } from "@/queues/workspace-reset";
 import { Database } from "@/types/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";

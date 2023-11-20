@@ -1,7 +1,18 @@
 import { UserAuthForm } from "@/app/user-auth-form";
+import { URLS } from "@/lib/urls";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const { data, error } = await supabase.auth.getSession();
+  if (!error && data.session?.user.id) {
+    redirect(URLS.workspaceIndex);
+  }
+
   return (
     <>
       <div className="container relative h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">

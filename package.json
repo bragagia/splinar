@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker:workspace-install": "npx dotenv -e .env.local -- npx tsx --watch defer/workspace-install.tsx"
   },
   "dependencies": {
     "@defer/client": "^1.13.0",
@@ -27,10 +28,13 @@
     "@supabase/auth-helpers-nextjs": "^0.8.1",
     "@supabase/supabase-js": "^2.38.0",
     "@vercel/analytics": "^1.1.1",
+    "bullmq": "^4.13.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cmdk": "^0.2.0",
+    "dotenv": "^16.3.1",
     "encoding": "^0.1.13",
+    "ioredis": "^5.3.2",
     "lucide-react": "^0.284.0",
     "nanoid": "^5.0.1",
     "next": "13.5.4",

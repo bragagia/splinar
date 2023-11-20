@@ -1,4 +1,4 @@
-import workspaceInstall from "@/defer/workspace-install";
+import { workspaceInstallQueue } from "@/queues/workspace-install";
 import { Database } from "@/types/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -27,13 +27,14 @@ export async function POST(
     throw error || new Error("missing session");
   }
 
-  await workspaceInstall(
-    {
+  await workspaceInstallQueue.add("workspaceInstallQueueTest", {
+    supabaseSession: {
       refresh_token: session.refresh_token,
       access_token: session.access_token,
     },
-    params.workspaceId
-  );
+    workspaceId: params.workspaceId,
+    softInstall: false,
+  });
 
   return NextResponse.json({});
 }

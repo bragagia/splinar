@@ -13,6 +13,8 @@ import { Database } from "@/types/supabase";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
+// TODO: Create a layout or something to ensure that user is logged in
+
 export default async function WorkspaceIndexPage() {
   const cookieStore = cookies();
   const supabase = createServerComponentClient<Database>({
