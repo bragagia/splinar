@@ -1,18 +1,19 @@
+import {
+  WorkspaceInstallWorkerArgs,
+  WorkspaceInstallId,
+} from "@/workers/workspace-install-types";
 import { Queue } from "bullmq";
 
-export const WorkspaceInstallId = "workspaceInstall";
-
-export type WorkspaceInstallWorkerArgs = {
-  supabaseSession: {
-    refresh_token: string;
-    access_token: string;
-  };
-  workspaceId: string;
-  softInstall: boolean;
-};
-
 import Redis from "ioredis";
-const connection = new Redis(process.env.REDIS_URL!);
+const connection = new Redis(process.env.REDIS_URL!, {
+  password: process.env.REDIS_PASSWORD!,
+  tls: {
+    checkServerIdentity: (hostname, cert) => {
+      return undefined; // TODO: Big security concern
+    },
+  },
+  maxRetriesPerRequest: null,
+});
 
 export const workspaceInstallQueue = new Queue<
   WorkspaceInstallWorkerArgs,

@@ -100,24 +100,25 @@ export function WorkspaceInstallationWall({
 }) {
   const workspace = useWorkspace();
 
-  if (workspace.installation_status === "FRESH") {
-    return (
-      <div>
-        <p>Not installed</p>
-      </div>
-    );
-  }
+  if (process.env.NODE_ENV !== "development") {
+    if (workspace.installation_status === "FRESH") {
+      return (
+        <div>
+          <p>Not installed</p>
+        </div>
+      );
+    }
 
-  if (
-    workspace.installation_status === "PENDING" &&
-    workspace.installation_dup_done === 0 &&
-    process.env.NODE_ENV !== "development"
-  ) {
-    return (
-      <div className="h-screen w-screen flex justify-center items-center">
-        <WorkspaceInstallationCard className="m-8 max-w-lg w-[32rem]" />
-      </div>
-    );
+    if (
+      workspace.installation_status === "PENDING" &&
+      workspace.installation_dup_done === 0
+    ) {
+      return (
+        <div className="h-screen w-screen flex justify-center items-center">
+          <WorkspaceInstallationCard className="m-8 max-w-lg w-[32rem]" />
+        </div>
+      );
+    }
   }
 
   return <>{children}</>;

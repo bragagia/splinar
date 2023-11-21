@@ -1,10 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env.local" });
 
-import {
-  WorkspaceInstallId,
-  WorkspaceInstallWorkerArgs,
-} from "@/queues/workspace-install";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/utils/database-types";
 import { deferCatch } from "@/utils/dedup/defer-catch";
@@ -14,11 +10,23 @@ import {
 } from "@/utils/dedup/dup-stacks/install-dup-stacks";
 import { fullFetch } from "@/utils/dedup/fetch/full-fetch";
 import { installSimilarities } from "@/utils/dedup/similarity/install-similarities";
+import {
+  WorkspaceInstallId,
+  WorkspaceInstallWorkerArgs,
+} from "@/workers/workspace-install-types";
 import { createClient } from "@supabase/supabase-js";
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 
-const connection = new Redis(process.env.REDIS_URL!);
+const connection = new Redis(process.env.REDIS_URL!, {
+  password: process.env.REDIS_PASSWORD!,
+  tls: {
+    checkServerIdentity: (hostname, cert) => {
+      return undefined; // TODO: Big security concern
+    },
+  },
+  maxRetriesPerRequest: null,
+});
 
 const worker = new Worker<WorkspaceInstallWorkerArgs, void>(
   WorkspaceInstallId,
