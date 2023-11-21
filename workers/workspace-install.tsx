@@ -3,7 +3,6 @@ dotenv.config({ path: "./.env.local" });
 
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/utils/database-types";
-import { deferCatch } from "@/utils/dedup/defer-catch";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
@@ -14,30 +13,55 @@ import {
   WorkspaceInstallId,
   WorkspaceInstallWorkerArgs,
 } from "@/workers/workspace-install-types";
+import * as Sentry from "@sentry/node";
 import { createClient } from "@supabase/supabase-js";
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 
-const connection = new Redis(process.env.REDIS_URL!, {
+Sentry.init({
+  dsn: "https://64828dd9591ce51bdf9d75d9749c4ace@o4506264997134336.ingest.sentry.io/4506264999231488",
+
+  // We recommend adjusting this value in production, or using tracesSampler
+  // for finer control
+  tracesSampleRate: 1.0,
+});
+
+async function workerCatch(fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (e) {
+    Sentry.captureException(e);
+    console.log(e);
+    throw e;
+  }
+}
+
+const redisClient = new Redis(process.env.REDIS_URL!, {
   password: process.env.REDIS_PASSWORD!,
-  tls: {
-    checkServerIdentity: (hostname, cert) => {
-      return undefined; // TODO: Big security concern
-    },
-  },
+  tls:
+    process.env.NODE_ENV! === "development"
+      ? {
+          checkServerIdentity: (hostname, cert) => {
+            return undefined;
+          },
+        }
+      : {},
   maxRetriesPerRequest: null,
+});
+
+redisClient.on("error", function (e) {
+  Sentry.captureException(e);
 });
 
 const worker = new Worker<WorkspaceInstallWorkerArgs, void>(
   WorkspaceInstallId,
 
   async (job) => {
-    console.log("# workspaceInstall");
-    console.log(job.data);
+    await workerCatch(async () => {
+      console.log("# workspaceInstall");
+      console.log(job.data);
 
-    await deferCatch(async () => {
       console.log("### Workspace Install", job.data.workspaceId);
-
       const startTime = performance.now();
 
       const supabase = createClient<Database>(
@@ -100,11 +124,18 @@ const worker = new Worker<WorkspaceInstallWorkerArgs, void>(
     });
   },
   {
-    connection,
+    connection: redisClient,
     concurrency: 5,
     removeOnComplete: { count: 1000 },
     removeOnFail: { count: 5000 },
   }
 );
+
+// TODO: Stop the worker gracefully
+// process.on('SIGINT', function() {
+//   db.stop(function(err) {
+//     process.exit(err ? 1 : 0);
+//   });
+// });
 
 export default worker;
