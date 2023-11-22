@@ -1,9 +1,9 @@
 "use server";
-import { workspaceInstallQueue } from "@/queues/workspace-install";
+import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
 // "use server" is needed for local dev to work as intended
 
+import { WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/utils/database-types";
 import { deferCatch } from "@/utils/dedup/defer-catch";
 import { createClient } from "@supabase/supabase-js";
 
@@ -47,7 +47,7 @@ export async function workspaceSoftReset(
       .eq("id", workspaceId);
   });
 
-  await workspaceInstallQueue.add("workspaceInstallQueueTest", {
+  await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
     supabaseSession,
     workspaceId,
     softInstall: true,

@@ -1,7 +1,7 @@
 import {
   HsContactType,
   HsContactWithCompaniesType,
-} from "@/utils/database-types";
+} from "@/types/database-types";
 
 export type ContactFieldsType = "fullname" | "email" | "phone" | "company";
 export const ContactFieldsCount = 4;

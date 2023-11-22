@@ -1,9 +1,9 @@
-import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
   SUPABASE_FILTER_MAX_SIZE,
-} from "@/utils/database-types";
+} from "@/types/database-types";
+import { Database } from "@/types/supabase";
 import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 

@@ -4,12 +4,12 @@ import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/conta
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Database } from "@/types/supabase";
 import {
   HsContactWithCompaniesType,
   HsDupStackType,
   SUPABASE_FILTER_MAX_SIZE,
-} from "@/utils/database-types";
+} from "@/types/database-types";
+import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";

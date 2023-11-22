@@ -1,7 +1,7 @@
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesType,
-} from "@/utils/database-types";
+} from "@/types/database-types";
 import { nanoid } from "nanoid";
 import stringSimilarity from "string-similarity";
 

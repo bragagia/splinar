@@ -1,4 +1,4 @@
-import { workspaceInstallQueue } from "@/queues/workspace-install";
+import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
 import { Database } from "@/types/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -27,7 +27,7 @@ export async function POST(
     throw error || new Error("missing session");
   }
 
-  await workspaceInstallQueue.add("workspaceInstallQueueTest", {
+  await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
     supabaseSession: {
       refresh_token: session.refresh_token,
       access_token: session.access_token,

@@ -1,10 +1,10 @@
+import { HsContactType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { HsContactType } from "@/utils/database-types";
 import { calcContactFilledScore } from "@/utils/dedup/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import { HsCompanyType } from "../../database-types";
+import { HsCompanyType } from "../../../types/database-types";
 
 async function convertHubIdToInternalId(
   supabase: SupabaseClient<Database>,

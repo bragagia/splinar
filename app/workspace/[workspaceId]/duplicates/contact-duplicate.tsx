@@ -12,7 +12,7 @@ import { URLS } from "@/lib/urls";
 import {
   HsContactWithCompaniesType,
   HsDupStackType,
-} from "@/utils/database-types";
+} from "@/types/database-types";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({

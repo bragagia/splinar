@@ -1,5 +1,5 @@
+import { HsCompanyType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { HsCompanyType } from "@/utils/database-types";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";

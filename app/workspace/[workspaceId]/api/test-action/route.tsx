@@ -1,9 +1,5 @@
+import { HsContactSimilarityType, WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesAndSimilaritiesType,
-  WorkspaceType,
-} from "@/utils/database-types";
 import { installDupStacks } from "@/utils/dedup/dup-stacks/install-dup-stacks";
 import {
   SupabaseClient,

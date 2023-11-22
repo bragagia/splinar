@@ -1,8 +1,8 @@
-import { Database } from "@/types/supabase";
 import {
   HsContactSimilarityType,
   HsContactWithCompaniesAndSimilaritiesType,
-} from "@/utils/database-types";
+} from "@/types/database-types";
+import { Database } from "@/types/supabase";
 import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
 import { SupabaseClient } from "@supabase/supabase-js";
 

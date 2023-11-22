@@ -1,4 +1,4 @@
-import { workspaceSoftReset } from "@/queues/workspace-soft-reset";
+import { workspaceSoftReset } from "@/lib/queues/workspace-soft-reset";
 import { Database } from "@/types/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";

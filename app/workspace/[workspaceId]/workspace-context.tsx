@@ -1,7 +1,7 @@
 "use client";
 
+import { WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/utils/database-types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import {
   ReactNode,

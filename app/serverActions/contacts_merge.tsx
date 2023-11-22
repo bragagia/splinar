@@ -1,8 +1,8 @@
 "use server";
 
 import { newHubspotClient } from "@/lib/hubspot";
+import { HsDupStackType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { HsDupStackType } from "@/utils/database-types";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 

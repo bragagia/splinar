@@ -10,8 +10,8 @@ import {
 
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { URLS } from "@/lib/urls";
+import { WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/utils/database-types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
