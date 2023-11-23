@@ -1,14 +1,12 @@
-import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesType,
-} from "@/types/database-types";
-import { nanoid } from "nanoid";
+import { uuid } from "@/lib/uuid";
+import { ContactWithCompaniesType } from "@/types/database-types";
+import { Database } from "@/types/supabase";
 import stringSimilarity from "string-similarity";
 
 export function contactSimilarityCheck(
   workspaceId: string,
-  contact: HsContactWithCompaniesType,
-  contactsBase: HsContactWithCompaniesType[]
+  contact: ContactWithCompaniesType,
+  contactsBase: ContactWithCompaniesType[]
 ) {
   let contactA = contact;
 
@@ -17,13 +15,21 @@ export function contactSimilarityCheck(
       return acc;
     }
 
-    let similarities: HsContactSimilarityType[] = [];
+    let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
+      [];
 
-    const similarityBase = {
-      workspace_id: workspaceId,
-      contact_a_id: contactA.id,
-      contact_b_id: contactB.id,
-    };
+    const similarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
+      {
+        workspace_id: workspaceId,
+        contact_a_id: contactA.id,
+        contact_b_id: contactB.id,
+
+        // Boiletplate, will be replaced later
+        field_type: "fullname",
+        contact_a_value: "",
+        contact_b_value: "",
+        similarity_score: "unlikely",
+      };
 
     // Name
     let aFullName = [contactA.first_name, contactA.last_name]
@@ -40,16 +46,14 @@ export function contactSimilarityCheck(
       .replaceAll("  ", " ");
 
     if (aFullName !== "" && bFullName !== "") {
-      const fullNameSimilarityBase: Omit<
-        HsContactSimilarityType,
-        "similarity_score"
-      > = {
-        ...similarityBase,
-        id: nanoid(),
-        field_type: "fullname",
-        contact_a_value: aFullName,
-        contact_b_value: bFullName,
-      };
+      const fullNameSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
+        {
+          ...similarityBase,
+          id: uuid(),
+          field_type: "fullname",
+          contact_a_value: aFullName,
+          contact_b_value: bFullName,
+        };
 
       if (aFullName == bFullName) {
         similarities.push({
@@ -78,16 +82,14 @@ export function contactSimilarityCheck(
     // Emails
     contactA.emails?.forEach((emailA) => {
       contactB.emails?.forEach((emailB) => {
-        const emailSimilarityBase: Omit<
-          HsContactSimilarityType,
-          "similarity_score"
-        > = {
-          ...similarityBase,
-          id: nanoid(),
-          field_type: "email",
-          contact_a_value: emailA,
-          contact_b_value: emailB,
-        };
+        const emailSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
+          {
+            ...similarityBase,
+            id: uuid(),
+            field_type: "email",
+            contact_a_value: emailA,
+            contact_b_value: emailB,
+          };
 
         let removeInfiniteAddr = (str: string) => str.replace(/\+[^@]*$/, "");
         let removeUselessDots = (str: string) => str.split(".").join("");
@@ -149,7 +151,7 @@ export function contactSimilarityCheck(
         if (phoneA === phoneB) {
           similarities.push({
             ...similarityBase,
-            id: nanoid(),
+            id: uuid(),
             field_type: "phone",
             contact_a_value: phoneA,
             contact_b_value: phoneB,
@@ -160,18 +162,16 @@ export function contactSimilarityCheck(
     });
 
     // Companies
-    contactA.hs_companies?.forEach((companyA) => {
-      contactB.hs_companies?.forEach((companyB) => {
-        const emailSimilarityBase: Omit<
-          HsContactSimilarityType,
-          "similarity_score"
-        > = {
-          ...similarityBase,
-          id: nanoid(),
-          field_type: "company",
-          contact_a_value: companyA.name || companyA.id,
-          contact_b_value: companyB.name || companyB.id,
-        };
+    contactA.companies?.forEach((companyA) => {
+      contactB.companies?.forEach((companyB) => {
+        const emailSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
+          {
+            ...similarityBase,
+            id: uuid(),
+            field_type: "company",
+            contact_a_value: companyA.name || companyA.id,
+            contact_b_value: companyB.name || companyB.id,
+          };
 
         if (companyA.id === companyB.id) {
           similarities.push({
@@ -199,7 +199,11 @@ export function contactSimilarityCheck(
       unlikely: 1,
     };
 
-    let filtered: { [key: string]: HsContactSimilarityType } = {};
+    let filtered: {
+      [
+        key: string
+      ]: Database["public"]["Tables"]["contact_similarities"]["Insert"];
+    } = {};
 
     for (let entry of similarities) {
       if (
@@ -211,10 +215,11 @@ export function contactSimilarityCheck(
       }
     }
 
-    const filteredValues: HsContactSimilarityType[] = Object.values(filtered);
+    const filteredValues: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
+      Object.values(filtered);
 
     acc.push(...filteredValues);
 
     return acc;
-  }, [] as HsContactSimilarityType[]);
+  }, [] as Database["public"]["Tables"]["contact_similarities"]["Insert"][]);
 }

@@ -1,12 +1,10 @@
-import {
-  HsContactType,
-  HsContactWithCompaniesType,
-} from "@/types/database-types";
+import { ContactWithCompaniesType } from "@/types/database-types";
+import { Database } from "@/types/supabase";
 
 export type ContactFieldsType = "fullname" | "email" | "phone" | "company";
 export const ContactFieldsCount = 4;
 
-export function listContactField(contact: HsContactWithCompaniesType) {
+export function listContactField(contact: ContactWithCompaniesType) {
   let fields: ContactFieldsType[] = [];
 
   let fullname = (contact.first_name || "") + (contact.last_name || "");
@@ -22,7 +20,7 @@ export function listContactField(contact: HsContactWithCompaniesType) {
     fields.push("phone");
   }
 
-  if (contact.hs_companies && contact.hs_companies.length > 0) {
+  if (contact.companies && contact.companies.length > 0) {
     fields.push("company");
   }
 
@@ -30,7 +28,7 @@ export function listContactField(contact: HsContactWithCompaniesType) {
 }
 
 export function calcContactFilledScore(
-  contact: HsContactType,
+  contact: Database["public"]["Tables"]["contacts"]["Insert"],
   hasCompanies: boolean
 ) {
   let score = 0;

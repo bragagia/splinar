@@ -1,14 +1,14 @@
 "use server";
 
 import { newHubspotClient } from "@/lib/hubspot";
-import { HsDupStackType } from "@/types/database-types";
+import { DupStackType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function contactMerge(
   workspaceId: string,
-  dupStack: HsDupStackType
+  dupStack: DupStackType
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -39,21 +39,21 @@ export async function contactMerge(
 
   let hsClient = await newHubspotClient(workspace.refresh_token);
 
-  let { data: hsContacts, error: errorContact } = await supabase
-    .from("hs_contacts")
+  let { data: contacts, error: errorContact } = await supabase
+    .from("contacts")
     .select()
     .in("id", dupStack.confident_contact_ids);
   if (errorContact) {
     throw errorContact;
   }
-  if (!hsContacts || hsContacts.length < 2) {
+  if (!contacts || contacts.length < 2) {
     throw new Error("Error fetching contacts");
   }
 
-  const referenceContact = hsContacts.find(
+  const referenceContact = contacts.find(
     (contact) => contact.id === dupStack.confident_contact_ids[0]
   );
-  const contactsToMerge = hsContacts.filter(
+  const contactsToMerge = contacts.filter(
     (contact) => contact.id !== dupStack.confident_contact_ids[0]
   );
   const contactIdsToMarkFalsePositive = dupStack.potential_contact_ids; // TODO:
@@ -65,14 +65,14 @@ export async function contactMerge(
   await Promise.all(
     contactsToMerge.map((contactToMerge) => {
       return hsClient.crm.contacts.publicObjectApi.merge({
-        primaryObjectId: referenceContact.hs_id,
-        objectIdToMerge: contactToMerge.hs_id,
+        primaryObjectId: referenceContact.hs_id.toString(),
+        objectIdToMerge: contactToMerge.hs_id.toString(),
       });
     })
   );
 
   const { error: errorDeleteContacts } = await supabase
-    .from("hs_contacts")
+    .from("contacts")
     .delete()
     .in(
       "id",
@@ -87,7 +87,7 @@ export async function contactMerge(
     contactIdsToMarkFalsePositive.length > 0
   ) {
     const { error: errorUpdateDupStack } = await supabase
-      .from("hs_dup_stacks")
+      .from("dup_stacks")
       .update({
         confident_contact_ids: [referenceContact.id],
       })
@@ -98,7 +98,7 @@ export async function contactMerge(
     }
   } else {
     const { error: errorDeleteDupstack } = await supabase
-      .from("hs_dup_stacks")
+      .from("dup_stacks")
       .delete()
       .eq("id", dupStack.id);
 

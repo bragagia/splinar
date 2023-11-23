@@ -1,8 +1,7 @@
-import { HsCompanyType } from "@/types/database-types";
+import { uuid } from "@/lib/uuid";
 import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { nanoid } from "nanoid";
 
 export async function fetchCompanies(
   hsClient: Client,
@@ -28,17 +27,17 @@ export async function fetchCompanies(
     }
 
     let dbCompanies = companies.map((company) => {
-      let dbCompany: HsCompanyType = {
-        id: nanoid(),
+      let dbCompany: Database["public"]["Tables"]["companies"]["Insert"] = {
+        id: uuid(),
         workspace_id: workspaceId,
-        hs_id: company.id,
+        hs_id: parseInt(company.id),
         name: company.properties.name,
       };
 
       return dbCompany;
     });
 
-    let { error } = await supabase.from("hs_companies").insert(dbCompanies);
+    let { error } = await supabase.from("companies").insert(dbCompanies);
     if (error) {
       throw error;
     }

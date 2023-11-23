@@ -1,6 +1,5 @@
 import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesType,
+  ContactWithCompaniesType,
   SUPABASE_FILTER_MAX_SIZE,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
@@ -12,10 +11,11 @@ const BATCH_SIZE = 300;
 async function compareContactBatches(
   supabase: SupabaseClient<Database>,
   workspace_id: string,
-  batchA: HsContactWithCompaniesType[],
-  batchB: HsContactWithCompaniesType[]
+  batchA: ContactWithCompaniesType[],
+  batchB: ContactWithCompaniesType[]
 ) {
-  let similarities: HsContactSimilarityType[] = [];
+  let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
+    [];
   batchA.forEach((contactA) => {
     let contactSimilarities = contactSimilarityCheck(
       workspace_id,
@@ -29,7 +29,7 @@ async function compareContactBatches(
   });
 
   let { error } = await supabase
-    .from("hs_contact_similarities")
+    .from("contact_similarities")
     .insert(similarities);
   if (error) {
     throw error;
@@ -39,9 +39,10 @@ async function compareContactBatches(
 async function compareContactBatchWithItself(
   supabase: SupabaseClient<Database>,
   workspace_id: string,
-  batch: HsContactWithCompaniesType[]
+  batch: ContactWithCompaniesType[]
 ) {
-  let similarities: HsContactSimilarityType[] = [];
+  let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
+    [];
   batch.forEach((contact, i) => {
     let contactSimilarities = contactSimilarityCheck(
       workspace_id,
@@ -55,7 +56,7 @@ async function compareContactBatchWithItself(
   });
 
   let { error } = await supabase
-    .from("hs_contact_similarities")
+    .from("contact_similarities")
     .insert(similarities);
   if (error) {
     throw error;
@@ -64,13 +65,13 @@ async function compareContactBatchWithItself(
 
 async function markBatchInstalled(
   supabase: SupabaseClient<Database>,
-  batch: HsContactWithCompaniesType[]
+  batch: ContactWithCompaniesType[]
 ) {
   const batchIds = batch.map((contact) => contact.id);
 
   for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error } = await supabase
-      .from("hs_contacts")
+      .from("contacts")
       .update({ similarity_checked: true, dup_checked: false })
       .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
     if (error) {
@@ -82,14 +83,14 @@ async function markBatchInstalled(
 async function compareBatchWithAllInstalledContacts(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  batch: HsContactWithCompaniesType[],
+  batch: ContactWithCompaniesType[],
   afterBatchCallback?: () => Promise<void>
 ) {
   let lastItemId: string | null = null;
   do {
     let query = supabase
-      .from("hs_contacts")
-      .select("*, hs_companies(*)")
+      .from("contacts")
+      .select("*, companies(*)")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
       .order("id")
@@ -129,8 +130,8 @@ async function updateSimilarities(
   let batchLength = 0;
   do {
     let query = supabase
-      .from("hs_contacts")
-      .select("*, hs_companies(*)")
+      .from("contacts")
+      .select("*, companies(*)")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
       .limit(BATCH_SIZE);
@@ -176,7 +177,7 @@ export async function installSimilarities(
   workspaceId: string
 ) {
   const { count: hsContactsCount, error: errorContactsCount } = await supabase
-    .from("hs_contacts")
+    .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId);
   if (errorContactsCount || !hsContactsCount) {

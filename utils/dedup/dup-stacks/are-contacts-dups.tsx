@@ -1,6 +1,6 @@
 import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesType,
+  ContactSimilarityType,
+  ContactWithCompaniesType,
 } from "@/types/database-types";
 import {
   ContactFieldsType,
@@ -58,9 +58,9 @@ const ContactFieldsList: ContactFieldsType[] = ["fullname", "email", "phone"];
 */
 
 export function areContactsDups(
-  contactA: HsContactWithCompaniesType,
-  contactB: HsContactWithCompaniesType,
-  similaritiesOfContacts: HsContactSimilarityType[]
+  contactA: ContactWithCompaniesType,
+  contactB: ContactWithCompaniesType,
+  similaritiesOfContacts: ContactSimilarityType[]
 ): "CONFIDENT" | "POTENTIAL" | false {
   if (!contactA || !contactB) {
     return false;

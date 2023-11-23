@@ -9,13 +9,5 @@ npm run dev
 Workers:
 
 ```bash
-NODE_ENV=development npx tsx workers/workspace-install.tsx
+NODE_ENV=development npx tsx -r dotenv/config workers/init.tsx dotenv_config_path=".env.local"
 ```
-
-or
-
-```bash
-pm2 start npx -i 0 -- tsx workers/workspace-install.tsx
-```
-
-`-i 0` tell to scale to as many cpu as possible

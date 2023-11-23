@@ -24,27 +24,21 @@ export async function workspaceReset(
       throw error;
     }
 
+    await supabase.from("dup_stacks").delete().eq("workspace_id", workspaceId);
+
     await supabase
-      .from("hs_dup_stacks")
+      .from("contact_similarities")
       .delete()
       .eq("workspace_id", workspaceId);
 
     await supabase
-      .from("hs_contact_similarities")
+      .from("contact_companies")
       .delete()
       .eq("workspace_id", workspaceId);
 
-    await supabase
-      .from("hs_contact_companies")
-      .delete()
-      .eq("workspace_id", workspaceId);
+    await supabase.from("contacts").delete().eq("workspace_id", workspaceId);
 
-    await supabase.from("hs_contacts").delete().eq("workspace_id", workspaceId);
-
-    await supabase
-      .from("hs_companies")
-      .delete()
-      .eq("workspace_id", workspaceId);
+    await supabase.from("companies").delete().eq("workspace_id", workspaceId);
 
     let workspaceUpdate: Partial<WorkspaceType> = {
       installation_status: "FRESH",

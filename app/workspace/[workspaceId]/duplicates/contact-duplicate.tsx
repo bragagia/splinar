@@ -9,10 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { URLS } from "@/lib/urls";
-import {
-  HsContactWithCompaniesType,
-  HsDupStackType,
-} from "@/types/database-types";
+import { ContactWithCompaniesType, DupStackType } from "@/types/database-types";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({
@@ -20,7 +17,7 @@ export function ContactDuplicateRow({
   isPotential = false,
   onUpgrade,
 }: {
-  contact: HsContactWithCompaniesType;
+  contact: ContactWithCompaniesType;
   isPotential?: boolean;
   onUpgrade?: () => void;
 }) {
@@ -69,10 +66,8 @@ export function ContactDuplicateRow({
       </div>
 
       <div className="text-gray-700 flex flex-col items-start justify-center basis-48">
-        {contact.hs_companies && contact.hs_companies.length > 0 ? (
-          contact.hs_companies?.map((company, i) => (
-            <p key={i}>{company.name}</p>
-          ))
+        {contact.companies && contact.companies.length > 0 ? (
+          contact.companies?.map((company, i) => <p key={i}>{company.name}</p>)
         ) : (
           <span className="text-gray-500 font-light">-</span>
         )}
@@ -94,9 +89,9 @@ export function ContactDuplicate({
   dupStack,
   contactsById,
 }: {
-  dupStack: HsDupStackType;
+  dupStack: DupStackType;
   contactsById: {
-    [key: string]: HsContactWithCompaniesType;
+    [key: string]: ContactWithCompaniesType;
   };
 }) {
   const workspace = useWorkspace();

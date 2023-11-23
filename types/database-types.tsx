@@ -1,54 +1,42 @@
 import { Database } from "@/types/supabase";
 import { MergeDeep } from "type-fest";
 
-export const SUPABASE_FILTER_MAX_SIZE = 300;
+export const SUPABASE_FILTER_MAX_SIZE = 200;
 
-export type WorkspaceType = MergeDeep<
-  Database["public"]["Tables"]["workspaces"]["Insert"],
+export type WorkspaceType = Database["public"]["Tables"]["workspaces"]["Row"];
+
+export type ContactType = Database["public"]["Tables"]["contacts"]["Row"];
+
+export type ContactWithCompaniesType = MergeDeep<
+  ContactType,
   {
-    installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR";
-  }
->;
-
-export type HsContactType =
-  Database["public"]["Tables"]["hs_contacts"]["Insert"];
-
-export type HsContactWithCompaniesType = MergeDeep<
-  HsContactType,
-  {
-    hs_companies: HsCompanyType[];
+    companies: CompanyType[]; // TODO:
   }
 >;
 
 export function isAnHsContactWithCompaniesType(
   obj: any
-): obj is HsContactWithCompaniesType {
+): obj is ContactWithCompaniesType {
   if (!obj) return false;
-  return "id" in obj && "first_name" in obj && "hs_companies" in obj;
+  return "id" in obj && "first_name" in obj && "companies" in obj;
 }
 
-export type HsContactWithCompaniesAndSimilaritiesType = MergeDeep<
-  HsContactWithCompaniesType,
+export type ContactWithCompaniesAndSimilaritiesType = MergeDeep<
+  ContactWithCompaniesType,
   {
-    hs_contact_similarities: HsContactSimilarityType[];
+    contact_similarities: ContactSimilarityType[];
   }
 >;
 
-export type HsCompanyType =
-  Database["public"]["Tables"]["hs_companies"]["Insert"];
+export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 
-export type HsContactToHsCompany =
-  Database["public"]["Tables"]["hs_contact_companies"]["Insert"];
+export type ContactToCompany =
+  Database["public"]["Tables"]["contact_companies"]["Row"];
 
-export type HsContactSimilarityType = MergeDeep<
-  Database["public"]["Tables"]["hs_contact_similarities"]["Insert"],
-  {
-    field_type: "fullname" | "phone" | "email" | "company";
-    similarity_score: "exact" | "similar" | "potential" | "unlikely";
-  }
->;
+export type ContactSimilarityType =
+  Database["public"]["Tables"]["contact_similarities"]["Row"];
 
-export type HsDupStackType = {
+export type DupStackType = {
   confident_contact_ids: string[];
   created_at?: string | undefined;
   id: string;
@@ -58,7 +46,7 @@ export type HsDupStackType = {
 
 // TODO: There is the possibility that, when a contact will be deleted, and then the raw_dup_stack_contact associated, there may be an empty dupstack that should be deleted afterward.
 
-export type HsRawDupStackContactType = {
+export type RawDupStackContactType = {
   dupstack_id: string; // PRIMARY
   contact_id: string; // PRIMARY + UNIQUE
   created_at?: string | undefined;
@@ -66,14 +54,14 @@ export type HsRawDupStackContactType = {
   type: "reference" | "confident" | "potential";
 };
 
-export type HsRawDupStackWithContactsType = {
+export type RawDupStackWithContactsType = {
   id: string;
   created_at?: string | undefined;
   workspace_id: string;
-  raw_dup_stack_contacts: HsRawDupStackContactType[];
+  raw_dup_stack_contacts: RawDupStackContactType[];
 };
 
-export function RawDupStackToView(raw: HsRawDupStackWithContactsType) {
+export function RawDupStackToView(raw: RawDupStackWithContactsType) {
   let confident_contact_ids: string[] = [];
   let potential_contact_ids: string[] = [];
 
@@ -87,7 +75,7 @@ export function RawDupStackToView(raw: HsRawDupStackWithContactsType) {
     }
   });
 
-  const view: HsDupStackType = {
+  const view: DupStackType = {
     ...raw,
     confident_contact_ids: confident_contact_ids,
     potential_contact_ids: potential_contact_ids,
@@ -96,7 +84,7 @@ export function RawDupStackToView(raw: HsRawDupStackWithContactsType) {
   return view;
 }
 
-export function RawDupStacksToViews(raws: HsRawDupStackWithContactsType[]) {
+export function RawDupStacksToViews(raws: RawDupStackWithContactsType[]) {
   return raws.map((raw) => RawDupStackToView(raw));
 }
 

@@ -24,13 +24,10 @@ export async function workspaceSoftReset(
       throw error;
     }
 
-    await supabase
-      .from("hs_dup_stacks")
-      .delete()
-      .eq("workspace_id", workspaceId);
+    await supabase.from("dup_stacks").delete().eq("workspace_id", workspaceId);
 
     await supabase
-      .from("hs_contact_similarities")
+      .from("contact_similarities")
       .delete()
       .eq("workspace_id", workspaceId);
 

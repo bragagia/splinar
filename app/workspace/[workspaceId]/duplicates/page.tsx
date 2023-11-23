@@ -5,8 +5,8 @@ import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  HsContactWithCompaniesType,
-  HsDupStackType,
+  ContactWithCompaniesType,
+  DupStackType,
   SUPABASE_FILTER_MAX_SIZE,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
@@ -23,16 +23,16 @@ export default function DuplicatesPage() {
   const supabase = createClientComponentClient<Database>();
 
   const [contactsById, setContactsById] = useState<{
-    [key: string]: HsContactWithCompaniesType;
+    [key: string]: ContactWithCompaniesType;
   } | null>(null);
 
-  const [dupStacks, setDupStacks] = useState<HsDupStackType[] | null>(null);
+  const [dupStacks, setDupStacks] = useState<DupStackType[] | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState<boolean>(true);
 
   const contactCount = useMemo(async () => {
     const { count, error } = await supabase
-      .from("hs_dup_stacks")
+      .from("dup_stacks")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspace.id);
     if (error) {
@@ -48,7 +48,7 @@ export default function DuplicatesPage() {
     }
 
     let query = supabase
-      .from("hs_dup_stacks")
+      .from("dup_stacks")
       .select()
       .limit(PAGE_SIZE)
       .eq("workspace_id", workspace.id)
@@ -77,7 +77,7 @@ export default function DuplicatesPage() {
       return acc;
     }, [] as string[]);
 
-    let contacts: HsContactWithCompaniesType[] = [];
+    let contacts: ContactWithCompaniesType[] = [];
     for (let i = 0; i < contactIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
       const batchedContactIds = contactIds.slice(
         i,
@@ -85,8 +85,8 @@ export default function DuplicatesPage() {
       );
 
       const { data: batchedContacts, error: errorContacts } = await supabase
-        .from("hs_contacts")
-        .select("*, hs_companies(*)")
+        .from("contacts")
+        .select("*, companies(*)")
         .eq("workspace_id", workspace.id)
         .in("id", batchedContactIds);
       if (errorContacts) {
@@ -100,7 +100,7 @@ export default function DuplicatesPage() {
       contacts.push(...batchedContacts);
     }
 
-    let newContactsById: { [key: string]: HsContactWithCompaniesType } =
+    let newContactsById: { [key: string]: ContactWithCompaniesType } =
       contactsById || {};
 
     contacts.forEach((contact) => {

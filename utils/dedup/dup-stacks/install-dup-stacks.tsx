@@ -1,6 +1,6 @@
 import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesAndSimilaritiesType,
+  ContactSimilarityType,
+  ContactWithCompaniesAndSimilaritiesType,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
 import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
@@ -11,11 +11,11 @@ async function fetchContactsDb(
   workspaceId: string
 ) {
   const { data, error } = await supabase
-    .from("hs_contacts")
+    .from("contacts")
     .select(
       `*,
-      hs_companies(*),
-      similarities_a:hs_contact_similarities!hs_contact_similarities_contact_a_id_fkey(*), similarities_b:hs_contact_similarities!hs_contact_similarities_contact_b_id_fkey(*)`
+      companies(*),
+      similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
     )
     .eq("workspace_id", workspaceId);
   //.order("filled_score", { ascending: false }); -> Not usefull because sorted by id
@@ -26,16 +26,16 @@ async function fetchContactsDb(
   const contacts = data.map((raw_contact) => {
     const { similarities_a, similarities_b, ...contact } = {
       ...raw_contact,
-      hs_contact_similarities: raw_contact.similarities_a.concat(
+      contact_similarities: raw_contact.similarities_a.concat(
         raw_contact.similarities_b
-      ) as HsContactSimilarityType[],
+      ) as ContactSimilarityType[],
     };
 
     return contact;
   });
 
   let contactsById: {
-    [key: string]: HsContactWithCompaniesAndSimilaritiesType;
+    [key: string]: ContactWithCompaniesAndSimilaritiesType;
   } = {};
 
   contacts.forEach((contact) => {
@@ -77,7 +77,7 @@ export async function updateDupStackInstallationTotal(
   workspaceId: string
 ) {
   const { count: dupTotal, error } = await supabase
-    .from("hs_contacts")
+    .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
@@ -106,7 +106,7 @@ async function updateDupStackInstallationDone(
   dupTotal: number
 ) {
   const { count: dupTodo, error } = await supabase
-    .from("hs_contacts")
+    .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);

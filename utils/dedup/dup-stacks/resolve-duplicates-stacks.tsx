@@ -1,19 +1,19 @@
+import { uuid } from "@/lib/uuid";
 import {
-  HsContactSimilarityType,
-  HsContactWithCompaniesType,
-  HsDupStackType,
+  ContactSimilarityType,
+  ContactWithCompaniesType,
+  DupStackType,
 } from "@/types/database-types";
 import { areContactsDups } from "@/utils/dedup/dup-stacks/are-contacts-dups";
 import { listContactField } from "@/utils/dedup/list-contact-fields";
-import { nanoid } from "nanoid";
 
 export function resolveDuplicatesStacks(
-  contacts: HsContactWithCompaniesType[],
-  similarities: HsContactSimilarityType[],
+  contacts: ContactWithCompaniesType[],
+  similarities: ContactSimilarityType[],
   workspaceId: string
 ) {
   let contactsById: {
-    [key: string]: HsContactWithCompaniesType;
+    [key: string]: ContactWithCompaniesType;
   } = {};
   contacts.forEach((contact) => (contactsById[contact.id] = contact));
 
@@ -22,13 +22,13 @@ export function resolveDuplicatesStacks(
     (a, b) => listContactField(b).length - listContactField(a).length
   );
 
-  let dupStacks: HsDupStackType[] = [];
+  let dupStacks: DupStackType[] = [];
   sortedContacts.forEach((contact) => {
     // We recursively check if this contacts or its supposed duplicates have other duplicates to create
     // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
     // be added to another stack
-    let dupStack: HsDupStackType = {
-      id: nanoid(),
+    let dupStack: DupStackType = {
+      id: uuid(),
       workspace_id: workspaceId,
       confident_contact_ids: [contact.id],
       potential_contact_ids: [],
@@ -54,7 +54,7 @@ export function resolveDuplicatesStacks(
       }
 
       let parentContactSimilaritiesByContact: {
-        [key: string]: HsContactSimilarityType[];
+        [key: string]: ContactSimilarityType[];
       } = {};
       parentContactSimilarities.forEach((similarity) => {
         let childContactId =

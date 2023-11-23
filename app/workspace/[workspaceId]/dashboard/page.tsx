@@ -4,7 +4,7 @@ import { Database } from "@/types/supabase";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function WorkspacePage({
   params,
@@ -17,7 +17,7 @@ export default async function WorkspacePage({
   });
 
   const { data: dupStacks, error } = await supabase
-    .from("hs_dup_stacks")
+    .from("dup_stacks")
     .select()
     .eq("workspace_id", params.workspaceId)
     .order("created_at", { ascending: true });

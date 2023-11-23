@@ -1,41 +1,40 @@
-import { HsContactType } from "@/types/database-types";
+import { uuid } from "@/lib/uuid";
 import { Database } from "@/types/supabase";
 import { calcContactFilledScore } from "@/utils/dedup/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { nanoid } from "nanoid";
-import { HsCompanyType } from "../../../types/database-types";
+import { CompanyType } from "../../../types/database-types";
 
 async function convertHubIdToInternalId(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   contactsToCompanies: {
     company_hub_id: string;
-    hs_contact_id: string;
+    contact_id: string;
     workspace_id: string;
   }[]
 ) {
   const { data: companies, error } = await supabase
-    .from("hs_companies")
+    .from("companies")
     .select()
     .eq("workspace_id", workspaceId)
     .in(
       "hs_id",
-      contactsToCompanies.map((c) => c.company_hub_id)
+      contactsToCompanies.map((cTc) => cTc.company_hub_id)
     );
   if (error) {
     throw error;
   }
 
-  let companiesByHsId: { [key: string]: HsCompanyType } = {};
+  let companiesByHsId: { [key: string]: CompanyType } = {};
   companies.forEach((c) => {
     companiesByHsId[c.hs_id] = c;
   });
 
   return contactsToCompanies.map((cTc) => ({
     workspace_id: workspaceId,
-    hs_contact_id: cTc.hs_contact_id,
-    hs_company_id: companiesByHsId[cTc.company_hub_id].id,
+    contact_id: cTc.contact_id,
+    company_id: companiesByHsId[cTc.company_hub_id].id,
   }));
 }
 
@@ -65,14 +64,14 @@ export async function fetchContacts(
 
     let contactsToCompanies: {
       company_hub_id: string;
-      hs_contact_id: string;
+      contact_id: string;
       workspace_id: string;
     }[] = [];
     let dbContacts = contacts.map((contact) => {
-      let dbContact: HsContactType = {
-        id: nanoid(),
+      let dbContact = {
+        id: uuid(),
         workspace_id: workspaceId,
-        hs_id: contact.id,
+        hs_id: parseInt(contact.id),
 
         first_name: contact.properties.firstname,
         last_name: contact.properties.lastname,
@@ -93,7 +92,7 @@ export async function fetchContacts(
         ?.filter((company) => company.type == "contact_to_company_unlabeled")
         .map((company) => ({
           workspace_id: workspaceId,
-          hs_contact_id: dbContact.id,
+          contact_id: dbContact.id,
           company_hub_id: company.id,
         }));
 
@@ -110,7 +109,7 @@ export async function fetchContacts(
     });
 
     let { error: errorContact } = await supabase
-      .from("hs_contacts")
+      .from("contacts")
       .insert(dbContacts);
     if (errorContact) {
       throw errorContact;
@@ -123,7 +122,7 @@ export async function fetchContacts(
     );
 
     let { error: errorContactCompanies } = await supabase
-      .from("hs_contact_companies")
+      .from("contact_companies")
       .insert(dbContactToCompanies);
     if (errorContactCompanies) {
       throw errorContactCompanies;

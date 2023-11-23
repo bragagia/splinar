@@ -13,9 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { URLS } from "@/lib/urls";
+import { uuid } from "@/lib/uuid";
 import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -60,7 +60,7 @@ export default function OAuthCallback({
       return;
     }
 
-    const workspaceId = nanoid();
+    const workspaceId = uuid();
     const { error } = await supabase.from("workspaces").insert({
       id: workspaceId,
       refresh_token: refresh_token,
