@@ -1,9 +1,9 @@
 import { uuid } from "@/lib/uuid";
 import {
-  ContactType,
+  ContactSimilarityType,
   ContactWithCompaniesAndSimilaritiesType,
   DupStackType,
-  isAnHsContactWithCompaniesType,
+  isAContactWithCompaniesAndSimilaritiesType,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
 import { areContactsDups } from "@/utils/dedup/dup-stacks/are-contacts-dups";
@@ -80,97 +80,27 @@ async function deleteExistingDupstacksAndMarkUnchecked(
   });
 }
 
-function fetchContactAndSimilarSortedByFillScore(
-  contactsById: {
+async function fetchSimilarContactsSortedByFillScore(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  contactsCacheById: {
     [key: string]: ContactWithCompaniesAndSimilaritiesType;
   },
-  contactId: string
+  parentContactId: string
 ) {
-  /*const { data: contact, error: error0 } = await supabase
-    .from("contacts")
-    .select("*, companies (*)")
-    .eq("id", contactId)
-    .eq("workspace_id", workspaceId)
-    .single();
-  if (error0) {
-    throw error0;
-  }
-  let res = {
-    contact: contact as HsContactWithCompaniesType,
-    similarContacts: [] as HsContactWithCompaniesAndSimilaritiesType[],
-  };
-
-  // Fetch the contact similarities first
-  const { data, error: error1 } = await supabase
-    .from("contact_similarities")
-    .select()
-    .eq("workspace_id", workspaceId)
-    .or(`contact_a_id.eq.${contactId}, contact_b_id.eq.${contactId}`);
-  if (error1) {
-    throw error1;
-  }
-  const similarities = data as HsContactSimilarityType[];
-  if (!similarities) {
-    return res;
-  }
-
-  // Extract contact IDs from response
-  let similarContactIDs = similarities.reduce((acc, item) => {
-    const similarID =
-      item.contact_a_id === contactId ? item.contact_b_id : item.contact_a_id;
-
-    if (acc.find((v) => v === similarID)) {
-      return acc;
-    }
-
-    acc.push(similarID);
-    return acc;
-  }, [] as string[]);
-
-  const { data: similarContacts, error: error3 } = await supabase
-    .from("contacts")
-    .select(
-      `*,
-      companies (*)`
-    )
-    .in("id", similarContactIDs)
-    .eq("workspace_id", workspaceId)
-    .order("filled_score", { ascending: false });
-  if (error3) {
-    throw error3;
-  }
-
-  res.similarContacts = (
-    similarContacts as HsContactWithCompaniesAndSimilaritiesType[]
-  ).map((similarContact) => {
-    const contactSimilarities = similarities.reduce((acc, similarity) => {
-      if (
-        similarity.contact_a_id === similarContact.id ||
-        similarity.contact_b_id === similarContact.id
-      ) {
-        acc.push(similarity);
-      }
-
-      return acc;
-    }, [] as HsContactSimilarityType[]);
-
-    return {
-      ...similarContact,
-      contact_similarities: contactSimilarities,
-    };
-  });
-
-  return res;*/
+  const parentContact = contactsCacheById[parentContactId];
 
   let res = {
-    contact: contactsById[contactId],
+    parentContact: contactsCacheById[parentContactId],
     similarContacts: [] as ContactWithCompaniesAndSimilaritiesType[],
   };
 
-  res.similarContacts = res.contact.contact_similarities
-    .reduce((acc, item) => {
+  const similarContactsIds = parentContact.contact_similarities.reduce(
+    (acc, item) => {
       const similarID =
-        item.contact_a_id === contactId ? item.contact_b_id : item.contact_a_id;
+        item.contact_a_id === parentContactId
+          ? item.contact_b_id
+          : item.contact_a_id;
 
       if (acc.find((v) => v === similarID)) {
         return acc;
@@ -178,9 +108,54 @@ function fetchContactAndSimilarSortedByFillScore(
 
       acc.push(similarID);
       return acc;
-    }, [] as string[])
-    .map((id) => contactsById[id])
-    .sort((a, b) => b.filled_score - a.filled_score);
+    },
+    [] as string[]
+  );
+
+  let similarContactsIdsToFetch: string[] = [];
+
+  similarContactsIds.forEach((id, i) => {
+    const cachedContact = contactsCacheById[id];
+
+    if (cachedContact) {
+      res.similarContacts.push(cachedContact);
+    } else {
+      similarContactsIdsToFetch.push(id);
+    }
+  });
+
+  if (similarContactsIdsToFetch.length > 0) {
+    const { data, error } = await supabase
+      .from("contacts")
+      .select(
+        `*,
+      companies(*),
+      similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+      )
+      .eq("workspace_id", workspaceId)
+      .in("id", similarContactsIdsToFetch);
+    if (error) {
+      throw error;
+    }
+
+    const fetchedContacts = data.map((raw_contact) => {
+      const { similarities_a, similarities_b, ...contact } = {
+        ...raw_contact,
+        contact_similarities: raw_contact.similarities_a.concat(
+          raw_contact.similarities_b
+        ) as ContactSimilarityType[],
+      };
+
+      return contact;
+    });
+
+    fetchedContacts.forEach((contact) => {
+      res.similarContacts.push(contact);
+      contactsCacheById[contact.id] = contact;
+    });
+  }
+
+  res.similarContacts.sort((a, b) => b.filled_score - a.filled_score);
 
   return res;
 }
@@ -188,31 +163,23 @@ function fetchContactAndSimilarSortedByFillScore(
 export async function resolveNextDuplicatesStack(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  contactsById: {
+  contactsCacheById: {
     [key: string]: ContactWithCompaniesAndSimilaritiesType;
   },
-  specificContactId?: string
+  specificContact?: ContactWithCompaniesAndSimilaritiesType
 ) {
-  let referenceContact: Pick<ContactType, "id" | "filled_score">;
+  let referenceContact: ContactWithCompaniesAndSimilaritiesType;
 
-  if (specificContactId) {
-    /*const { data, error } = await supabase
-      .from("contacts")
-      .select("*, companies (*)")
-      .eq("id", specificContactId)
-      .eq("workspace_id", workspaceId)
-      .single();
-    if (error) {
-      throw error;
-    }
-
-    referenceContact = data as HsContactWithCompaniesType;*/
-
-    referenceContact = contactsById[specificContactId];
+  if (specificContact) {
+    referenceContact = specificContact;
   } else {
-    /*const { data, error } = await supabase
+    const { data, error } = await supabase
       .from("contacts")
-      .select("id, filled_score")
+      .select(
+        `*,
+        companies(*),
+        similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+      )
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
       .eq("dup_checked", false)
@@ -225,19 +192,16 @@ export async function resolveNextDuplicatesStack(
       return false;
     }
 
-    referenceContact = data[0];*/
+    const { similarities_a, similarities_b, ...contact } = {
+      ...data[0],
+      contact_similarities: data[0].similarities_a.concat(
+        data[0].similarities_b
+      ) as ContactSimilarityType[],
+    };
 
-    const referenceContactId = Object.keys(contactsById).find(
-      (id) => contactsById[id].dup_checked === false
-    );
-    if (!referenceContactId) {
-      return false;
-    }
-
-    referenceContact = contactsById[referenceContactId];
+    referenceContact = contact;
+    contactsCacheById[contact.id] = contact;
   }
-
-  //console.log(referenceContact);
 
   // We recursively check if this contacts or its supposed duplicates have other duplicates to create
   // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
@@ -254,8 +218,13 @@ export async function resolveNextDuplicatesStack(
     parentContactId: string,
     isChildOfPotentialDup: boolean
   ) {
-    let { contact: parentContact, similarContacts } =
-      fetchContactAndSimilarSortedByFillScore(contactsById, parentContactId);
+    let { parentContact, similarContacts } =
+      await fetchSimilarContactsSortedByFillScore(
+        supabase,
+        workspaceId,
+        contactsCacheById,
+        parentContactId
+      );
     if (similarContacts.length === 0) {
       return;
     }
@@ -330,13 +299,13 @@ export async function resolveNextDuplicatesStack(
   try {
     await addChildsToStack(referenceContact.id, false);
   } catch (newReferenceContact) {
-    if (isAnHsContactWithCompaniesType(newReferenceContact)) {
+    if (isAContactWithCompaniesAndSimilaritiesType(newReferenceContact)) {
       //console.log("Going deeper");
       return resolveNextDuplicatesStack(
         supabase,
         workspaceId,
-        contactsById,
-        newReferenceContact.id
+        contactsCacheById,
+        newReferenceContact
       );
     } else {
       //console.log(newReferenceContact);
@@ -379,7 +348,7 @@ export async function resolveNextDuplicatesStack(
   await markDupstackElementsAsDupChecked(
     supabase,
     workspaceId,
-    contactsById,
+    contactsCacheById,
     allDupsId
   );
 

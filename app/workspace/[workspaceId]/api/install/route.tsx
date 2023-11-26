@@ -28,10 +28,7 @@ export async function POST(
   }
 
   await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
-    supabaseSession: {
-      refresh_token: session.refresh_token,
-      access_token: session.access_token,
-    },
+    userId: session.user.id,
     workspaceId: params.workspaceId,
     softInstall: false,
   });

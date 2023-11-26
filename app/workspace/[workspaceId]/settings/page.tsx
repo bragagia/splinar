@@ -23,7 +23,6 @@ export default function WorkspaceSettingsPage() {
   const router = useRouter();
 
   const [resetWorkspaceLoading, setResetWorkspaceLoading] = useState(false);
-  const [recheckLoading, setRecheckLoading] = useState(false);
 
   function testAction() {
     fetch(URLS.workspace(workspace.id).api.testAction, {
@@ -39,16 +38,6 @@ export default function WorkspaceSettingsPage() {
     });
 
     setResetWorkspaceLoading(false);
-  }
-
-  async function onRecheck() {
-    setRecheckLoading(true);
-
-    await fetch(URLS.workspace(workspace.id).api.reckeck, {
-      method: "POST",
-    });
-
-    setRecheckLoading(false);
   }
 
   async function onDeleteWorkspace() {
@@ -85,34 +74,13 @@ export default function WorkspaceSettingsPage() {
 
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="performance" className="flex flex-col space-y-1">
-              <span>Recheck all duplicates</span>
+              <span>Reset workspace data</span>
               <span className="font-normal leading-snug text-muted-foreground">
-                Re-analyse duplicates from scratch. You <b>don&apos;t</b> risk
-                any data loss with this.
-              </span>
-            </Label>
-            <Button
-              onClick={onRecheck}
-              className="shrink-0"
-              disabled={true} // TODO: {recheckLoading}
-            >
-              {recheckLoading ? (
-                <Icons.spinner className="h-4 w-4 animate-spin" />
-              ) : (
-                "Recheck"
-              )}
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="performance" className="flex flex-col space-y-1">
-              <span>Re-fetch workspace data</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                Erase all workspace data and fetch everything from Hubspot,
-                starting from scratch.{" "}
+                Erase all workspace data and fetch everything from Hubspot
+                again, starting from scratch.{" "}
                 <b>
                   Any information stored like &quot;Not a duplicate&quot; flags
-                  will be lost.
+                  will be lost /!\
                 </b>
               </span>
             </Label>

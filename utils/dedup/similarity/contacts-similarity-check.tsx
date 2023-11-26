@@ -18,6 +18,7 @@ export function contactSimilarityCheck(
     let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
       [];
 
+      // TODO: Should be a function
     const similarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
       {
         workspace_id: workspaceId,
@@ -164,7 +165,7 @@ export function contactSimilarityCheck(
     // Companies
     contactA.companies?.forEach((companyA) => {
       contactB.companies?.forEach((companyB) => {
-        const emailSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
+        const companySimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
           {
             ...similarityBase,
             id: uuid(),
@@ -175,7 +176,7 @@ export function contactSimilarityCheck(
 
         if (companyA.id === companyB.id) {
           similarities.push({
-            ...emailSimilarityBase,
+            ...companySimilarityBase,
             similarity_score: "exact",
           });
         } else if (companyA.name && companyB.name) {
@@ -184,7 +185,7 @@ export function contactSimilarityCheck(
             0.9
           ) {
             similarities.push({
-              ...emailSimilarityBase,
+              ...companySimilarityBase,
               similarity_score: "similar",
             });
           }

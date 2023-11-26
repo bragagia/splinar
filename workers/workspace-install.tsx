@@ -13,12 +13,10 @@ import console from "console";
 export const WorkspaceInstallId = "workspaceInstall";
 
 export type WorkspaceInstallWorkerArgs = {
-  supabaseSession: {
-    refresh_token: string;
-    access_token: string;
-  };
+  // secureUserId must be given from supabase auth, it is used to ensure that the worker respect its rights
+  userId: string;
   workspaceId: string;
-  softInstall: boolean;
+  softInstall: boolean; // TODO: is not used currently
 };
 
 export const workspaceInstallProcessor: Processor<
@@ -32,20 +30,16 @@ export const workspaceInstallProcessor: Processor<
   console.log("### Workspace Install", job.data.workspaceId);
   const startTime = performance.now();
 
-  const supabase = createClient<Database>(
+  const supabaseAdmin = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const { error } = await supabase.auth.setSession(job.data.supabaseSession);
-  if (error) {
-    throw error;
-  }
 
   console.log("### Updating workspace status");
   let workspaceUpdatePending: Partial<WorkspaceType> = {
     installation_status: "PENDING",
   };
-  await supabase
+  await supabaseAdmin
     .from("workspaces")
     .update(workspaceUpdatePending)
     .eq("id", job.data.workspaceId);
@@ -56,8 +50,8 @@ export const workspaceInstallProcessor: Processor<
       " # Time: ",
       Math.round((performance.now() - startTime) / 1000)
     );
-    await fullFetch(supabase, job.data.workspaceId);
-    await updateDupStackInstallationTotal(supabase, job.data.workspaceId);
+    await fullFetch(supabaseAdmin, job.data.workspaceId);
+    await updateDupStackInstallationTotal(supabaseAdmin, job.data.workspaceId);
   }
 
   console.log(
@@ -65,19 +59,19 @@ export const workspaceInstallProcessor: Processor<
     " # Time: ",
     Math.round((performance.now() - startTime) / 1000)
   );
-  await installSimilarities(supabase, job.data.workspaceId);
+  await installSimilarities(supabaseAdmin, job.data.workspaceId);
 
   console.log(
     "### Install dup stacks",
     " # Time: ",
     Math.round((performance.now() - startTime) / 1000)
   );
-  await installDupStacks(supabase, job.data.workspaceId);
+  await installDupStacks(supabaseAdmin, job.data.workspaceId);
 
   let workspaceUpdateEnd: Partial<WorkspaceType> = {
     installation_status: "DONE",
   };
-  await supabase
+  await supabaseAdmin
     .from("workspaces")
     .update(workspaceUpdateEnd)
     .eq("id", job.data.workspaceId);

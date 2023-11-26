@@ -27,13 +27,7 @@ export async function POST(
     throw error || new Error("missing session");
   }
 
-  await workspaceReset(
-    {
-      refresh_token: session.refresh_token,
-      access_token: session.access_token,
-    },
-    params.workspaceId
-  );
+  await workspaceReset(supabase, params.workspaceId, session.user.id);
 
   return NextResponse.json({});
 }

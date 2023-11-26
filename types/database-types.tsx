@@ -14,19 +14,24 @@ export type ContactWithCompaniesType = MergeDeep<
   }
 >;
 
-export function isAnHsContactWithCompaniesType(
-  obj: any
-): obj is ContactWithCompaniesType {
-  if (!obj) return false;
-  return "id" in obj && "first_name" in obj && "companies" in obj;
-}
-
 export type ContactWithCompaniesAndSimilaritiesType = MergeDeep<
   ContactWithCompaniesType,
   {
     contact_similarities: ContactSimilarityType[];
   }
 >;
+
+export function isAContactWithCompaniesAndSimilaritiesType(
+  obj: any
+): obj is ContactWithCompaniesAndSimilaritiesType {
+  if (!obj) return false;
+  return (
+    "id" in obj &&
+    "first_name" in obj &&
+    "companies" in obj &&
+    "contact_similarities" in obj
+  );
+}
 
 export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 

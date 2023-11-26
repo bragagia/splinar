@@ -12,7 +12,6 @@ export const URLS = {
     settings: `/workspace/${workspaceId}/settings`,
     api: {
       reset: `/workspace/${workspaceId}/api/reset`,
-      reckeck: `/workspace/${workspaceId}/api/recheck`,
       install: `/workspace/${workspaceId}/api/install`,
       testAction: `/workspace/${workspaceId}/api/test-action`,
     },

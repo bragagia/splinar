@@ -17,8 +17,8 @@ async function fetchContactsDb(
       companies(*),
       similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
     )
-    .eq("workspace_id", workspaceId);
-  //.order("filled_score", { ascending: false }); -> Not usefull because sorted by id
+    .eq("workspace_id", workspaceId)
+    .order("filled_score", { ascending: false });
   if (error) {
     throw error;
   }
@@ -53,9 +53,13 @@ export async function updateDupStacks(
 ) {
   let counter = 0;
 
-  const contactsById = await fetchContactsDb(supabase, workspaceId);
+  //const contactsById = await fetchContactsDb(supabase, workspaceId);
 
   do {
+    let contactsById: {
+      [key: string]: ContactWithCompaniesAndSimilaritiesType;
+    } = {};
+
     const hasFoundContact = await resolveNextDuplicatesStack(
       supabase,
       workspaceId,
@@ -81,7 +85,7 @@ export async function updateDupStackInstallationTotal(
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
-  if (error || !dupTotal) {
+  if (error || dupTotal === null) {
     throw error || new Error("missing count");
   }
 
