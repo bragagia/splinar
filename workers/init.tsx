@@ -1,11 +1,6 @@
 import newRedisClient from "@/lib/redis";
-import {
-  WorkspaceInstallId,
-  WorkspaceInstallWorkerArgs,
-  workspaceInstallProcessor,
-} from "@/workers/workspace-install";
 import * as Sentry from "@sentry/node";
-import { Worker } from "bullmq";
+import { Processor, Worker } from "bullmq";
 
 // Sentry init
 
@@ -17,75 +12,66 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-export async function workerCatch(fn: () => Promise<void>) {
-  try {
-    await fn();
-  } catch (e) {
-    Sentry.captureException(e);
-    console.log(e);
-    throw e;
-  }
-}
+export function workerInit<WorkerArgs>(
+  name: string,
+  processor: Processor<WorkerArgs, void>
+) {
+  console.log("Launching worker:", name);
 
-// #####
-// # Workers loading
-// #####
+  const worker = new Worker<WorkerArgs, void>(
+    name,
 
-const workerConfig = {
-  connection: newRedisClient(),
-  concurrency: 5,
-  removeOnComplete: {
-    age: 24 * 3600, // keep up to 1 day
-  },
-  removeOnFail: {
-    age: 4 * 24 * 3600, // keep up to 4 days
-  },
-};
+    async (job) => {
+      try {
+        await processor(job);
+      } catch (e) {
+        Sentry.captureException(e);
+        console.log(e);
+        throw e;
+      }
+    },
 
-const workspaceInstallWorker = new Worker<WorkspaceInstallWorkerArgs, void>(
-  WorkspaceInstallId,
-
-  async (job) => {
-    await workerCatch(async () => {
-      workspaceInstallProcessor(job);
-    });
-  },
-
-  workerConfig
-);
-
-// #####
-
-// Shutdown hooks
-
-async function gracefullShutdown() {
-  await workspaceInstallWorker.close();
-}
-
-async function forceShutdown() {
-  await workspaceInstallWorker.close(true);
-
-  console.log("Warning: Shutdown forced after 2 minutes");
-  Sentry.captureException(
-    new Error("Gracefull shutdown of worker failed after 2 minutes")
+    {
+      connection: newRedisClient(),
+      concurrency: 1,
+      removeOnComplete: {
+        age: 24 * 3600, // keep up to 1 day
+      },
+      removeOnFail: {
+        age: 4 * 24 * 3600, // keep up to 4 days
+      },
+    }
   );
 
-  process.exit(1);
-}
+  async function gracefullShutdown() {
+    await worker.close();
+  }
 
-let forceShutdownNextTime = false;
-process.on("SIGINT", async function () {
-  if (forceShutdownNextTime) {
-    console.log("Force shutdown");
+  async function forceShutdown() {
+    await worker.close(true);
+
+    console.log("Warning: Shutdown forced after 2 minutes");
+    Sentry.captureException(
+      new Error("Gracefull shutdown of worker failed after 2 minutes")
+    );
+
     process.exit(1);
   }
-  forceShutdownNextTime = true;
 
-  console.log("SIGINT received, closing workers gracefully");
+  let forceShutdownNextTime = false;
+  process.on("SIGINT", async function () {
+    if (forceShutdownNextTime) {
+      console.log("Force shutdown");
+      process.exit(1);
+    }
+    forceShutdownNextTime = true;
 
-  setTimeout(forceShutdown, 2 * 60 * 1000);
-  await gracefullShutdown();
+    console.log("SIGINT received, closing workers gracefully");
 
-  console.log("Shutdown complete");
-  process.exit(0);
-});
+    setTimeout(forceShutdown, 2 * 60 * 1000);
+    await gracefullShutdown();
+
+    console.log("Shutdown complete");
+    process.exit(0);
+  });
+}

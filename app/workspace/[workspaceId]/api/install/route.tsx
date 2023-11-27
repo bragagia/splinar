@@ -27,10 +27,20 @@ export async function POST(
     throw error || new Error("missing session");
   }
 
+  // Check for workspace access right
+  const { data: workspace, error: errorWorkspace } = await supabase
+    .from("workspaces")
+    .select()
+    .eq("id", params.workspaceId)
+    .limit(1)
+    .single();
+  if (errorWorkspace || workspace === null) {
+    throw errorWorkspace || new Error("Missing workspace");
+  }
+
   await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
-    userId: session.user.id,
     workspaceId: params.workspaceId,
-    softInstall: false,
+    reset: null,
   });
 
   return NextResponse.json({});

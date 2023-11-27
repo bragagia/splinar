@@ -36,3 +36,9 @@ next-env.d.ts
 
 # Sentry Config File
 .sentryclirc
+
+# Redis
+dump.rdb
+
+# PM2
+workers-production.config.js

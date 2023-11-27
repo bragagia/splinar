@@ -37,6 +37,9 @@ export default function WorkspaceSettingsPage() {
       method: "POST",
     });
 
+    router.push(URLS.workspace(workspace.id).dashboard);
+    router.refresh();
+
     setResetWorkspaceLoading(false);
   }
 

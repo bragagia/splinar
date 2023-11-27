@@ -284,6 +284,12 @@ export interface Database {
         }
         Returns: undefined
       }
+      similarities_increment_done_batches: {
+        Args: {
+          workspace_id_arg: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       contact_similaritie_field_type: "fullname" | "phone" | "email" | "company"
