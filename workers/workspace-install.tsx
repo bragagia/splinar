@@ -71,6 +71,10 @@ export const workspaceInstallProcessor: Processor<
         .eq("workspace_id", workspaceId);
 
       workspaceUpdate.installation_fetched = false;
+      workspaceUpdate.installation_dup_total = 0;
+      workspaceUpdate.installation_dup_done = 0;
+      workspaceUpdate.installation_similarity_total_batches = 0;
+      workspaceUpdate.installation_similarity_done_batches = 0;
     } else {
       let update: Partial<ContactType> = {
         dup_checked: false,
