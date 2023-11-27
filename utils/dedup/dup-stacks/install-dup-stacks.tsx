@@ -114,7 +114,7 @@ async function updateDupStackInstallationDone(
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
-  if (error || !dupTodo) {
+  if (error || dupTodo === null) {
     console.log(error || new Error("missing count"));
     return;
   }
