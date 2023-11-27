@@ -21,6 +21,14 @@ export type ContactWithCompaniesAndSimilaritiesType = MergeDeep<
   }
 >;
 
+export type ContactWithCompaniesAndRawSimilaritiesType = MergeDeep<
+  ContactWithCompaniesType,
+  {
+    similarities_a: ContactSimilarityType[];
+    similarities_b: ContactSimilarityType[];
+  }
+>;
+
 export function isAContactWithCompaniesAndSimilaritiesType(
   obj: any
 ): obj is ContactWithCompaniesAndSimilaritiesType {

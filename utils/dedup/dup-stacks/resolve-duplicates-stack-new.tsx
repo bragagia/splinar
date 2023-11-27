@@ -1,8 +1,10 @@
 import { uuid } from "@/lib/uuid";
 import {
   ContactSimilarityType,
+  ContactWithCompaniesAndRawSimilaritiesType,
   ContactWithCompaniesAndSimilaritiesType,
   DupStackType,
+  SUPABASE_FILTER_MAX_SIZE,
   isAContactWithCompaniesAndSimilaritiesType,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
@@ -125,20 +127,33 @@ async function fetchSimilarContactsSortedByFillScore(
   });
 
   if (similarContactsIdsToFetch.length > 0) {
-    const { data, error } = await supabase
-      .from("contacts")
-      .select(
-        `*,
-      companies(*),
-      similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
-      )
-      .eq("workspace_id", workspaceId)
-      .in("id", similarContactsIdsToFetch);
-    if (error) {
-      throw error;
+    let fetchedContactsRaw: ContactWithCompaniesAndRawSimilaritiesType[] = [];
+
+    for (
+      let i = 0;
+      i < similarContactsIdsToFetch.length;
+      i += SUPABASE_FILTER_MAX_SIZE
+    ) {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select(
+          `*,
+          companies(*),
+          similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+        )
+        .eq("workspace_id", workspaceId)
+        .in(
+          "id",
+          similarContactsIdsToFetch.slice(i, i + SUPABASE_FILTER_MAX_SIZE)
+        );
+      if (error) {
+        throw error;
+      }
+
+      fetchedContactsRaw.push(...data);
     }
 
-    const fetchedContacts = data.map((raw_contact) => {
+    const fetchedContacts = fetchedContactsRaw.map((raw_contact) => {
       const { similarities_a, similarities_b, ...contact } = {
         ...raw_contact,
         contact_similarities: raw_contact.similarities_a.concat(
