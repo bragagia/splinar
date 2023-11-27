@@ -1,5 +1,5 @@
 import {
-  SimilaritiesBatchEvalQueueEvents,
+  newSimilaritiesBatchEvalQueueEvents,
   similaritiesBatchEvalQueueAdd,
 } from "@/lib/queues/similarities-batch-eval";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/types/database-types";
@@ -134,9 +134,8 @@ async function updateSimilarities(
 
   console.log("Waiting for job end");
 
-  await Promise.all(
-    jobs.map((job) => job.waitUntilFinished(SimilaritiesBatchEvalQueueEvents))
-  );
+  const queueEvent = newSimilaritiesBatchEvalQueueEvents();
+  await Promise.all(jobs.map((job) => job.waitUntilFinished(queueEvent)));
 
   console.log("Marking contact without similarities as checked");
 

@@ -27,9 +27,8 @@ export function similaritiesBatchEvalQueueAdd(
   return queue.add(name, data, opts);
 }
 
-export const SimilaritiesBatchEvalQueueEvents = new QueueEvents(
-  SimilaritiesBatchEvalId,
-  {
+export function newSimilaritiesBatchEvalQueueEvents() {
+  return new QueueEvents(SimilaritiesBatchEvalId, {
     connection: newRedisClient(),
-  }
-);
+  });
+}
