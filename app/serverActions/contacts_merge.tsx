@@ -2,7 +2,7 @@
 
 import { newHubspotClient } from "@/lib/hubspot";
 import {
-  DupStackWithContactsType,
+  DupStackWithContactsAndCompaniesType,
   getDupstackConfidents,
   getDupstackPotentials,
   getDupstackReference,
@@ -14,7 +14,7 @@ import { cookies } from "next/headers";
 
 export async function contactMerge(
   workspaceId: string,
-  dupStack: DupStackWithContactsType
+  dupStack: DupStackWithContactsAndCompaniesType
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -56,15 +56,39 @@ export async function contactMerge(
     throw Error("Contact fetched from db are incoherent with dup stack");
   }
 
+  // TODO: We should catch if there is an error, and still save the merged contacts
+
   await Promise.all(
-    contactsToMerge.map(
-      async (contactToMerge) =>
-        await hsClient.crm.contacts.publicObjectApi.merge({
-          primaryObjectId: referenceContact.contact?.hs_id.toString() || "",
-          objectIdToMerge: contactToMerge.contact?.hs_id.toString() || "",
-        })
-    )
+    contactsToMerge.map(async (contactToMerge) => {
+      await hsClient.crm.contacts.publicObjectApi.merge({
+        primaryObjectId: referenceContact.contact?.hs_id.toString() || "",
+        objectIdToMerge: contactToMerge.contact?.hs_id.toString() || "",
+      });
+    })
   );
+
+  const mergedContacts: Database["public"]["Tables"]["merged_contacts"]["Insert"][] =
+    contactsToMerge.map((contact) => ({
+      workspace_id: workspaceId,
+      hs_id: contact.contact?.hs_id || 0,
+      merged_in_hs_id: referenceContact.contact?.hs_id || 0,
+
+      first_name: contact.contact?.first_name,
+      last_name: contact.contact?.last_name,
+      emails: contact.contact?.emails,
+      phones: contact.contact?.phones,
+      companies_hs_id: contact.contact?.companies.map(
+        (company) => company.hs_id
+      ),
+      company_name: contact.contact?.company_name,
+    }));
+
+  const { error } = await supabase
+    .from("merged_contacts")
+    .insert(mergedContacts);
+  if (error) {
+    captureException(error);
+  }
 
   if (
     contactIdsToMarkFalsePositive &&

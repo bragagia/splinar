@@ -7,6 +7,8 @@ export type WorkspaceType = Database["public"]["Tables"]["workspaces"]["Row"];
 
 export type ContactType = Database["public"]["Tables"]["contacts"]["Row"];
 
+export type MergedContactType = Database["public"]["Tables"]["merged_contacts"]["Row"];
+
 export type ContactWithCompaniesType = MergeDeep<
   ContactType,
   {

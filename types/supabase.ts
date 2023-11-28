@@ -252,6 +252,55 @@ export interface Database {
           }
         ]
       }
+      merged_contacts: {
+        Row: {
+          companies_hs_id: number[] | null
+          company_name: string | null
+          created_at: string
+          emails: string[] | null
+          first_name: string | null
+          hs_id: number
+          id: string
+          last_name: string | null
+          merged_in_hs_id: number
+          phones: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          companies_hs_id?: number[] | null
+          company_name?: string | null
+          created_at?: string
+          emails?: string[] | null
+          first_name?: string | null
+          hs_id: number
+          id?: string
+          last_name?: string | null
+          merged_in_hs_id: number
+          phones?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          companies_hs_id?: number[] | null
+          company_name?: string | null
+          created_at?: string
+          emails?: string[] | null
+          first_name?: string | null
+          hs_id?: number
+          id?: string
+          last_name?: string | null
+          merged_in_hs_id?: number
+          phones?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merged_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -315,6 +364,15 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      get_merged_contacts_by_months: {
+        Args: {
+          workspace_id_arg: string
+        }
+        Returns: {
+          month: string
+          count: number
+        }[]
+      }
       mark_contacts_without_similarities_as_dup_checked: {
         Args: {
           workspace_id_arg: string
