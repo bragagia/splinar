@@ -4,11 +4,7 @@ import { ContactDuplicate } from "@/app/workspace/[workspaceId]/duplicates/conta
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ContactWithCompaniesType,
-  DupStackType,
-  SUPABASE_FILTER_MAX_SIZE,
-} from "@/types/database-types";
+import { DupStackWithContactsAndCompaniesType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -22,11 +18,9 @@ export default function DuplicatesPage() {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
-  const [contactsById, setContactsById] = useState<{
-    [key: string]: ContactWithCompaniesType;
-  } | null>(null);
-
-  const [dupStacks, setDupStacks] = useState<DupStackType[] | null>(null);
+  const [dupStacks, setDupStacks] = useState<
+    DupStackWithContactsAndCompaniesType[] | null
+  >(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState<boolean>(true);
 
@@ -49,7 +43,7 @@ export default function DuplicatesPage() {
 
     let query = supabase
       .from("dup_stacks")
-      .select()
+      .select("*, dup_stack_contacts(*, contact:contacts(*, companies(*)))")
       .limit(PAGE_SIZE)
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: true });
@@ -68,53 +62,13 @@ export default function DuplicatesPage() {
       return;
     }
 
-    const contactIds = newDupStacks.reduce((acc, dupStack) => {
-      acc.push(...dupStack.confident_contact_ids);
-      if (dupStack.potential_contact_ids) {
-        acc.push(...dupStack.potential_contact_ids);
-      }
-
-      return acc;
-    }, [] as string[]);
-
-    let contacts: ContactWithCompaniesType[] = [];
-    for (let i = 0; i < contactIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
-      const batchedContactIds = contactIds.slice(
-        i,
-        i + SUPABASE_FILTER_MAX_SIZE
-      );
-
-      const { data: batchedContacts, error: errorContacts } = await supabase
-        .from("contacts")
-        .select("*, companies(*)")
-        .eq("workspace_id", workspace.id)
-        .in("id", batchedContactIds);
-      if (errorContacts) {
-        throw errorContacts;
-      }
-
-      if (!batchedContacts || batchedContacts.length === 0) {
-        throw new Error("Something went wrong!");
-      }
-
-      contacts.push(...batchedContacts);
-    }
-
-    let newContactsById: { [key: string]: ContactWithCompaniesType } =
-      contactsById || {};
-
-    contacts.forEach((contact) => {
-      newContactsById[contact.id] = contact;
-    });
-
-    setContactsById(newContactsById);
     setDupStacks((dupStacks ?? []).concat(...newDupStacks));
     setNextCursor(newDupStacks[newDupStacks.length - 1].created_at);
 
     if (newDupStacks.length !== PAGE_SIZE) {
       setHasMore(false);
     }
-  }, [supabase, workspace.id, contactsById, dupStacks, nextCursor, hasMore]);
+  }, [supabase, workspace.id, dupStacks, nextCursor, hasMore]);
 
   useEffect(() => {
     fetchNextPage();
@@ -157,11 +111,7 @@ export default function DuplicatesPage() {
               <div className="space-y-4">
                 <div className="flex flex-col gap-4">
                   {dupStacks?.map((dups, i) => (
-                    <ContactDuplicate
-                      key={i}
-                      dupStack={dups}
-                      contactsById={contactsById || {}}
-                    />
+                    <ContactDuplicate key={i} dupStack={dups} />
                   ))}
                 </div>
               </div>

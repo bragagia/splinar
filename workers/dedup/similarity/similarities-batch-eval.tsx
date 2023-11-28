@@ -3,7 +3,7 @@ import {
   SUPABASE_FILTER_MAX_SIZE,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { contactSimilarityCheck } from "@/utils/dedup/similarity/contacts-similarity-check";
+import { contactSimilarityCheck } from "@/workers/dedup/similarity/contacts-similarity-check";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 async function compareContactBatches(

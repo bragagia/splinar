@@ -184,26 +184,63 @@ export interface Database {
           }
         ]
       }
-      dup_stacks: {
+      dup_stack_contacts: {
         Row: {
-          confident_contact_ids: string[]
+          contact_id: string
           created_at: string
-          id: string
-          potential_contact_ids: string[] | null
+          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dupstack_id: string
           workspace_id: string
         }
         Insert: {
-          confident_contact_ids: string[]
+          contact_id: string
           created_at?: string
-          id?: string
-          potential_contact_ids?: string[] | null
+          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dupstack_id: string
           workspace_id: string
         }
         Update: {
-          confident_contact_ids?: string[]
+          contact_id?: string
+          created_at?: string
+          dup_type?: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dupstack_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dup_stack_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dup_stack_contacts_dup_stacks_id_fkey"
+            columns: ["dupstack_id"]
+            referencedRelation: "dup_stacks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dup_stack_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      dup_stacks: {
+        Row: {
+          created_at: string
+          id: string
+          workspace_id: string
+        }
+        Insert: {
           created_at?: string
           id?: string
-          potential_contact_ids?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
           workspace_id?: string
         }
         Relationships: [
@@ -298,6 +335,7 @@ export interface Database {
         | "similar"
         | "potential"
         | "unlikely"
+      dup_stack_contact_type: "REFERENCE" | "CONFIDENT" | "POTENTIAL"
       workspace_installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR"
     }
     CompositeTypes: {

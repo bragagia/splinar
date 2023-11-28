@@ -3,9 +3,9 @@ import { Database } from "@/types/supabase";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
-} from "@/utils/dedup/dup-stacks/install-dup-stacks";
-import { fullFetch } from "@/utils/dedup/fetch/full-fetch";
-import { installSimilarities } from "@/utils/dedup/similarity/install-similarities";
+} from "@/workers/dedup/dup-stacks/install-dup-stacks";
+import { fullFetch } from "@/workers/dedup/fetch/full-fetch";
+import { installSimilarities } from "@/workers/dedup/similarity/install-similarities";
 import { createClient } from "@supabase/supabase-js";
 import { Processor } from "bullmq";
 import console from "console";
@@ -38,6 +38,11 @@ export const workspaceInstallProcessor: Processor<
   // RESET
 
   if (reset) {
+    await supabaseAdmin
+      .from("dup_stack_contacts")
+      .delete()
+      .eq("workspace_id", workspaceId);
+
     await supabaseAdmin
       .from("dup_stacks")
       .delete()

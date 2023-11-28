@@ -9,7 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { URLS } from "@/lib/urls";
-import { ContactWithCompaniesType, DupStackType } from "@/types/database-types";
+import {
+  ContactWithCompaniesType,
+  DupStackWithContactsAndCompaniesType,
+  getDupstackConfidentsAndReference,
+  getDupstackPotentials,
+  getDupstackReference,
+} from "@/types/database-types";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({
@@ -87,12 +93,8 @@ export function ContactDuplicateRow({
 
 export function ContactDuplicate({
   dupStack,
-  contactsById,
 }: {
-  dupStack: DupStackType;
-  contactsById: {
-    [key: string]: ContactWithCompaniesType;
-  };
+  dupStack: DupStackWithContactsAndCompaniesType;
 }) {
   const workspace = useWorkspace();
   const [cachedDupStack, setCachedDupStack] = useState(dupStack);
@@ -102,11 +104,22 @@ export function ContactDuplicate({
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
 
   const onUpgradePotential = (id: string) => () => {
+    // TODO: must save to db
+
+    // TODO: Done this way, there is no garantee that the new confident contact is added at the end, maybe sort by score ?
     setCachedDupStack({
       ...cachedDupStack,
-      confident_contact_ids: [...cachedDupStack.confident_contact_ids, id],
-      potential_contact_ids: cachedDupStack.potential_contact_ids?.filter(
-        (v) => v !== id
+      dup_stack_contacts: cachedDupStack.dup_stack_contacts.map(
+        (dupStackContact) => {
+          if (dupStackContact.contact_id !== id) {
+            return dupStackContact;
+          } else {
+            return {
+              ...dupStackContact,
+              dup_type: "CONFIDENT",
+            };
+          }
+        }
       ),
     });
   };
@@ -118,18 +131,23 @@ export function ContactDuplicate({
     setMerged(true);
   };
 
-  let commonFullName = cachedDupStack.confident_contact_ids.reduce(
-    (acc, contactId) => {
+  let commonFullName = getDupstackConfidentsAndReference(cachedDupStack).reduce(
+    (acc, dupStackContact) => {
       let fullname = (
-        (contactsById[contactId].first_name || "") +
+        (dupStackContact.contact?.first_name || "") +
         " " +
-        (contactsById[contactId].last_name || "")
+        (dupStackContact.contact?.last_name || "")
       ).trim();
 
       return fullname.length > acc.length ? fullname : acc;
     },
     ""
   );
+
+  const reference = getDupstackReference(cachedDupStack);
+  const confidentsAndReference =
+    getDupstackConfidentsAndReference(cachedDupStack);
+  const potentials = getDupstackPotentials(cachedDupStack);
 
   return (
     <Card className="grow">
@@ -153,7 +171,7 @@ export function ContactDuplicate({
                 <a
                   href={URLS.external.hubspotContact(
                     workspace.hub_id,
-                    contactsById[dupStack.confident_contact_ids[0]].hs_id
+                    reference.contact?.hs_id || 0
                   )}
                   target="_blank"
                   className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
@@ -172,43 +190,52 @@ export function ContactDuplicate({
         <>
           <CardContent>
             <div className="flex flex-col gap-y-1">
-              {cachedDupStack.confident_contact_ids.map((dup, i) => (
-                <ContactDuplicateRow key={i} contact={contactsById[dup]} />
-              ))}
+              {confidentsAndReference.map(
+                (dupStackContact, i) =>
+                  dupStackContact.contact && (
+                    <ContactDuplicateRow
+                      key={i}
+                      contact={dupStackContact.contact}
+                    />
+                  )
+              )}
 
               <button
                 onClick={onMerge}
                 className="flex flex-row justify-center gap-1 items-center border border-black rounded-md text-sm px-2 py-1 hover:border-gray-500 hover:text-gray-600 disabled:text-gray-400 disabled:border-gray-300"
                 disabled={
-                  !cachedDupStack.confident_contact_ids ||
-                  cachedDupStack.confident_contact_ids.length <= 1
+                  !confidentsAndReference || confidentsAndReference.length <= 1
                 }
               >
                 <Icons.merge className="w-4 h-4" />
-                Merge {cachedDupStack.confident_contact_ids.length} contacts
+                Merge {confidentsAndReference.length} contacts
               </button>
             </div>
           </CardContent>
 
-          {cachedDupStack.potential_contact_ids &&
-            cachedDupStack.potential_contact_ids.length > 0 && (
-              <CardGrayedContent>
-                <div className="flex flex-col gap-y-1 pt-2">
-                  <p className="text-xs text-gray-600 py-1">
-                    Potentials matches:
-                  </p>
+          {potentials && potentials.length > 0 && (
+            <CardGrayedContent>
+              <div className="flex flex-col gap-y-1 pt-2">
+                <p className="text-xs text-gray-600 py-1">
+                  Potentials matches:
+                </p>
 
-                  {cachedDupStack.potential_contact_ids.map((dup, i) => (
-                    <ContactDuplicateRow
-                      key={i}
-                      contact={contactsById[dup]}
-                      isPotential
-                      onUpgrade={onUpgradePotential(dup)}
-                    />
-                  ))}
-                </div>
-              </CardGrayedContent>
-            )}
+                {potentials.map(
+                  (dupStackContact, i) =>
+                    dupStackContact.contact && (
+                      <ContactDuplicateRow
+                        key={i}
+                        contact={dupStackContact.contact}
+                        isPotential
+                        onUpgrade={onUpgradePotential(
+                          dupStackContact.contact.id
+                        )}
+                      />
+                    )
+                )}
+              </div>
+            </CardGrayedContent>
+          )}
         </>
       )}
     </Card>

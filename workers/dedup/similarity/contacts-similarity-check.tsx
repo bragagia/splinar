@@ -18,7 +18,6 @@ export function contactSimilarityCheck(
     let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
       [];
 
-      // TODO: Should be a function
     const similarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
       {
         workspace_id: workspaceId,
@@ -61,22 +60,23 @@ export function contactSimilarityCheck(
           ...fullNameSimilarityBase,
           similarity_score: "exact",
         });
-      } else if (
-        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.9
-      ) {
-        // TODO: This constant must be tested on real database
-        similarities.push({
-          ...fullNameSimilarityBase,
-          similarity_score: "similar",
-        });
-      } else if (
-        stringSimilarity.compareTwoStrings(aFullName, bFullName) > 0.8
-      ) {
-        // TODO: This constant must be tested on real database
-        similarities.push({
-          ...fullNameSimilarityBase,
-          similarity_score: "potential",
-        });
+      } else {
+        const compareScore = stringSimilarity.compareTwoStrings(
+          aFullName,
+          bFullName
+        );
+
+        if (compareScore > 0.9) {
+          similarities.push({
+            ...fullNameSimilarityBase,
+            similarity_score: "similar",
+          });
+        } else if (compareScore > 0.8) {
+          similarities.push({
+            ...fullNameSimilarityBase,
+            similarity_score: "potential",
+          });
+        }
       }
     }
 
@@ -92,56 +92,65 @@ export function contactSimilarityCheck(
             contact_b_value: emailB,
           };
 
-        let removeInfiniteAddr = (str: string) => str.replace(/\+[^@]*$/, "");
-        let removeUselessDots = (str: string) => str.split(".").join("");
-        let removeExt = (str: string) => str.split(".").slice(0, -1).join(".");
+        emailA = emailA.trim();
+        emailB = emailB.trim();
 
-        const idA = removeUselessDots(emailA.split("@")[0]);
-        const idB = removeUselessDots(emailB.split("@")[0]);
-
-        const domainA = emailA.split("@")[1];
-        const domainB = emailB.split("@")[1];
+        if (!emailA || !emailB) {
+          // We need to do this because for some ungodly reason hubspot accept " " as a valid email
+          return;
+        }
 
         if (emailA === emailB) {
           similarities.push({
             ...emailSimilarityBase,
             similarity_score: "exact",
           });
-        } else if (
-          stringSimilarity.compareTwoStrings(
-            removeInfiniteAddr(idA),
-            removeInfiniteAddr(idB)
-          ) > 0.95 &&
-          stringSimilarity.compareTwoStrings(domainA, domainB) > 0.95
-        ) {
-          similarities.push({
-            ...emailSimilarityBase,
-            similarity_score: "similar",
-          });
-        } else if (
-          stringSimilarity.compareTwoStrings(
-            removeInfiniteAddr(idA),
-            removeInfiniteAddr(idB)
-          ) > 0.9 &&
-          stringSimilarity.compareTwoStrings(
-            removeExt(domainA),
-            removeExt(domainB)
-          ) > 0.9
-        ) {
-          similarities.push({
-            ...emailSimilarityBase,
-            similarity_score: "potential",
-          });
-        } else if (
-          stringSimilarity.compareTwoStrings(
-            removeInfiniteAddr(idA),
-            removeInfiniteAddr(idB)
-          ) > 0.9
-        ) {
-          similarities.push({
-            ...emailSimilarityBase,
-            similarity_score: "unlikely",
-          });
+        } else {
+          let removeInfiniteAddr = (str: string) => str.replace(/\+[^@]*$/, "");
+          let removeUselessDots = (str: string) => str.split(".").join("");
+          let removeExt = (str: string) =>
+            str.split(".").slice(0, -1).join(".");
+
+          const idA = removeInfiniteAddr(
+            removeUselessDots(emailA.split("@")[0])
+          );
+          const idB = removeInfiniteAddr(
+            removeUselessDots(emailB.split("@")[0])
+          );
+
+          const idSimScore = stringSimilarity.compareTwoStrings(idA, idB);
+
+          // If we met the unlikely score, we check for the rest, else with just skip
+          if (idSimScore > 0.9) {
+            const domainA = emailA.split("@")[1];
+            const domainB = emailB.split("@")[1];
+
+            if (
+              idSimScore > 0.95 &&
+              stringSimilarity.compareTwoStrings(domainA, domainB) > 0.95
+            ) {
+              similarities.push({
+                ...emailSimilarityBase,
+                similarity_score: "similar",
+              });
+            } else if (
+              idSimScore > 0.9 &&
+              stringSimilarity.compareTwoStrings(
+                removeExt(domainA),
+                removeExt(domainB)
+              ) > 0.9
+            ) {
+              similarities.push({
+                ...emailSimilarityBase,
+                similarity_score: "potential",
+              });
+            } else if (idSimScore > 0.9) {
+              similarities.push({
+                ...emailSimilarityBase,
+                similarity_score: "unlikely",
+              });
+            }
+          }
         }
       });
     });
@@ -161,6 +170,20 @@ export function contactSimilarityCheck(
         }
       });
     });
+
+    // If there is no similarities or only unlikely ones, we skip, it will greatly reduce similarities db size
+    // !!!
+    // Note : Comapnies check is after, because it only acts as a multiplier for the dup score, so if there is only unlikely similarities,
+    // we can skip companies check too.
+    // There is a loooot of contacts that share the same company so dup_stack check will be much much faster
+    if (
+      similarities.length === 0 ||
+      !similarities.find(
+        (similarity) => similarity.similarity_score !== "unlikely"
+      )
+    ) {
+      return acc;
+    }
 
     // Companies
     contactA.companies?.forEach((companyA) => {

@@ -1,6 +1,6 @@
 import { ContactSimilarityType, WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { installDupStacks } from "@/utils/dedup/dup-stacks/install-dup-stacks";
+import { installDupStacks } from "@/workers/dedup/dup-stacks/install-dup-stacks";
 import {
   SupabaseClient,
   createRouteHandlerClient,

@@ -16,23 +16,21 @@ export default async function WorkspacePage({
     cookies: () => cookieStore,
   });
 
-  const { data: dupStacks, error } = await supabase
+  const { count: dupStackCount, error: errorStack } = await supabase
     .from("dup_stacks")
-    .select()
-    .eq("workspace_id", params.workspaceId)
-    .order("created_at", { ascending: true });
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", params.workspaceId);
+  if (errorStack || dupStackCount === null) {
+    throw errorStack || new Error("Missing dupstack count");
+  }
+
+  const { count: dupUserCount, error } = await supabase
+    .from("dup_stack_contacts")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", params.workspaceId);
   if (error) {
     throw error;
   }
-
-  const dupStackCount = dupStacks.length;
-  const dupUserCount = dupStacks.reduce(
-    (acc, dupStack) =>
-      acc +
-      dupStack.confident_contact_ids.length +
-      (dupStack.potential_contact_ids?.length || 0),
-    0
-  );
 
   return (
     <div className="flex-1 space-y-4">

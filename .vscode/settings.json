@@ -1,6 +1,3 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "[sql]": {
-    "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
-  }
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }

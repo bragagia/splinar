@@ -43,6 +43,8 @@ GRANT ALL ON TABLE public.workspaces TO anon;
 GRANT ALL ON TABLE public.workspaces TO authenticated;
 GRANT ALL ON TABLE public.workspaces TO service_role;
 
+-- TODO: There is a missing instruction to make workspaces accessible in realtime. It seems hard so no prio for now
+
 
 
 

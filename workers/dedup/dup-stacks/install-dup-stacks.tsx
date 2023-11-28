@@ -1,48 +1,28 @@
-import {
-  ContactSimilarityType,
-  ContactWithCompaniesAndSimilaritiesType,
-} from "@/types/database-types";
+import { ContactWithCompaniesAndSimilaritiesType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { resolveNextDuplicatesStack } from "@/utils/dedup/dup-stacks/resolve-duplicates-stack-new";
+import { resolveNextDuplicatesStack } from "@/workers/dedup/dup-stacks/resolve-duplicates-stack";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-async function fetchContactsDb(
+export async function installDupStacks(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  const { data, error } = await supabase
-    .from("contacts")
-    .select(
-      `*,
-      companies(*),
-      similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
-    )
-    .eq("workspace_id", workspaceId)
-    .order("filled_score", { ascending: false });
-  if (error) {
-    throw error;
-  }
+  const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
+  const startTime = performance.now();
 
-  const contacts = data.map((raw_contact) => {
-    const { similarities_a, similarities_b, ...contact } = {
-      ...raw_contact,
-      contact_similarities: raw_contact.similarities_a.concat(
-        raw_contact.similarities_b
-      ) as ContactSimilarityType[],
-    };
-
-    return contact;
-  });
-
-  let contactsById: {
-    [key: string]: ContactWithCompaniesAndSimilaritiesType;
-  } = {};
-
-  contacts.forEach((contact) => {
-    contactsById[contact.id] = contact;
-  });
-
-  return contactsById;
+  await updateDupStacks(
+    supabase,
+    workspaceId,
+    async () => {
+      await updateDupStackInstallationDone(
+        supabase,
+        workspaceId,
+        startTime,
+        dupTotal
+      );
+    },
+    30
+  );
 }
 
 export async function updateDupStacks(
@@ -52,8 +32,6 @@ export async function updateDupStacks(
   intervalCallback: number = 5
 ) {
   let counter = 0;
-
-  //const contactsById = await fetchContactsDb(supabase, workspaceId);
 
   do {
     let contactsById: {
@@ -141,26 +119,4 @@ async function updateDupStackInstallationDone(
   );
 
   return dupTotal - dupTodo;
-}
-
-export async function installDupStacks(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string
-) {
-  const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
-  const startTime = performance.now();
-
-  await updateDupStacks(
-    supabase,
-    workspaceId,
-    async () => {
-      await updateDupStackInstallationDone(
-        supabase,
-        workspaceId,
-        startTime,
-        dupTotal
-      );
-    },
-    30
-  );
 }

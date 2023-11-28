@@ -1,7 +1,7 @@
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
-import { fetchCompanies } from "@/utils/dedup/fetch/fetch-companies";
-import { fetchContacts } from "@/utils/dedup/fetch/fetch-contacts";
+import { fetchCompanies } from "@/workers/dedup/fetch/fetch-companies";
+import { fetchContacts } from "@/workers/dedup/fetch/fetch-contacts";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 export async function fullFetch(

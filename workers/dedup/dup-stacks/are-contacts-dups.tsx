@@ -5,7 +5,7 @@ import {
 import {
   ContactFieldsType,
   listContactField,
-} from "@/utils/dedup/list-contact-fields";
+} from "@/workers/dedup/list-contact-fields";
 
 const scoring = {
   fullname: {

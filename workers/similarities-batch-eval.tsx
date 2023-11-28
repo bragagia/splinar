@@ -1,5 +1,5 @@
 import { Database } from "@/types/supabase";
-import { similaritiesBatchEval } from "@/utils/dedup/similarity/similarities-batch-eval";
+import { similaritiesBatchEval } from "@/workers/dedup/similarity/similarities-batch-eval";
 import { createClient } from "@supabase/supabase-js";
 import { Processor } from "bullmq";
 import console from "console";

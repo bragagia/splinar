@@ -43,83 +43,112 @@ export function isAContactWithCompaniesAndSimilaritiesType(
 
 export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 
+// Similarities
+
 export type ContactToCompany =
   Database["public"]["Tables"]["contact_companies"]["Row"];
 
 export type ContactSimilarityType =
   Database["public"]["Tables"]["contact_similarities"]["Row"];
 
-export type DupStackType = {
-  confident_contact_ids: string[];
-  created_at?: string | undefined;
-  id: string;
-  potential_contact_ids?: string[] | null | undefined;
-  workspace_id: string;
-};
+// Dupstacks contacts
 
 // TODO: There is the possibility that, when a contact will be deleted, and then the raw_dup_stack_contact associated, there may be an empty dupstack that should be deleted afterward.
 
-export type RawDupStackContactType = {
-  dupstack_id: string; // PRIMARY
-  contact_id: string; // PRIMARY + UNIQUE
-  created_at?: string | undefined;
-  workspace_id: string;
-  type: "reference" | "confident" | "potential";
-};
+type DupStackContactType =
+  Database["public"]["Tables"]["dup_stack_contacts"]["Row"];
 
-export type RawDupStackWithContactsType = {
-  id: string;
-  created_at?: string | undefined;
-  workspace_id: string;
-  raw_dup_stack_contacts: RawDupStackContactType[];
-};
+type DupStackContactWithContactAndCompaniesType = MergeDeep<
+  Database["public"]["Tables"]["dup_stack_contacts"]["Row"],
+  {
+    contact: ContactWithCompaniesType | null;
+  }
+>;
 
-export function RawDupStackToView(raw: RawDupStackWithContactsType) {
-  let confident_contact_ids: string[] = [];
-  let potential_contact_ids: string[] = [];
+type DupStackWithContactsIdsType = MergeDeep<
+  Database["public"]["Tables"]["dup_stacks"]["Row"],
+  {
+    dup_stack_contacts: DupStackContactType[];
+  }
+>;
 
-  raw.raw_dup_stack_contacts.forEach((contact) => {
-    if (contact.type === "reference") {
-      confident_contact_ids = [contact.contact_id, ...confident_contact_ids];
-    } else if (contact.type === "confident") {
-      confident_contact_ids.push(contact.contact_id);
-    } else {
-      potential_contact_ids.push(contact.contact_id);
-    }
-  });
+type DupStackContactWithContactType = MergeDeep<
+  Database["public"]["Tables"]["dup_stack_contacts"]["Row"],
+  {
+    contact: ContactType | null;
+  }
+>;
 
-  const view: DupStackType = {
-    ...raw,
-    confident_contact_ids: confident_contact_ids,
-    potential_contact_ids: potential_contact_ids,
-  };
+// Dupstacks
 
-  return view;
+export type DupStackType = Database["public"]["Tables"]["dup_stacks"]["Row"];
+
+export type DupStackWithContactsType = MergeDeep<
+  Database["public"]["Tables"]["dup_stacks"]["Row"],
+  {
+    dup_stack_contacts: DupStackContactWithContactType[];
+  }
+>;
+
+export type DupStackWithContactsAndCompaniesType = MergeDeep<
+  Database["public"]["Tables"]["dup_stacks"]["Row"],
+  {
+    dup_stack_contacts: DupStackContactWithContactAndCompaniesType[];
+  }
+>;
+
+export type DupStackForInsertType = MergeDeep<
+  Database["public"]["Tables"]["dup_stacks"]["Insert"],
+  {
+    // note: first item of confident_contact_ids is considered to be the reference contact
+    id: string;
+    confident_contact_ids: string[];
+    potential_contact_ids: string[];
+  }
+>;
+
+export function getDupstackReference<
+  D extends
+    | DupStackWithContactsType
+    | DupStackWithContactsIdsType
+    | DupStackWithContactsAndCompaniesType
+>(dupstack: D): D["dup_stack_contacts"][number] {
+  return dupstack.dup_stack_contacts.find(
+    (dup_stack_contact) => dup_stack_contact.dup_type === "REFERENCE"
+  ) as D["dup_stack_contacts"][number];
 }
 
-export function RawDupStacksToViews(raws: RawDupStackWithContactsType[]) {
-  return raws.map((raw) => RawDupStackToView(raw));
+export function getDupstackConfidents<
+  D extends
+    | DupStackWithContactsType
+    | DupStackWithContactsIdsType
+    | DupStackWithContactsAndCompaniesType
+>(dupstack: D): D["dup_stack_contacts"] {
+  return dupstack.dup_stack_contacts.filter(
+    (dup_stack_contact) => dup_stack_contact.dup_type === "CONFIDENT"
+  );
 }
 
-// export function ViewDupStackToRaw(view: HsRawDupStackWithContactsType) {
-//   let confident_contact_ids: string[] = [];
-//   let potential_contact_ids: string[] = [];
+export function getDupstackConfidentsAndReference<
+  D extends
+    | DupStackWithContactsType
+    | DupStackWithContactsIdsType
+    | DupStackWithContactsAndCompaniesType
+>(dupstack: D): D["dup_stack_contacts"] {
+  return dupstack.dup_stack_contacts.filter(
+    (dup_stack_contact) =>
+      dup_stack_contact.dup_type === "CONFIDENT" ||
+      dup_stack_contact.dup_type === "REFERENCE"
+  );
+}
 
-//   raw.raw_dup_stack_contacts.forEach((contact) => {
-//     if (contact.type === "reference") {
-//       confident_contact_ids = [contact.contact_id, ...confident_contact_ids];
-//     } else if (contact.type === "confident") {
-//       confident_contact_ids.push(contact.contact_id);
-//     } else {
-//       potential_contact_ids.push(contact.contact_id);
-//     }
-//   });
-
-//   const view: HsDupStackType = {
-//     ...raw,
-//     confident_contact_ids: confident_contact_ids,
-//     potential_contact_ids: potential_contact_ids,
-//   };
-
-//   return view;
-// }
+export function getDupstackPotentials<
+  D extends
+    | DupStackWithContactsType
+    | DupStackWithContactsIdsType
+    | DupStackWithContactsAndCompaniesType
+>(dupstack: D): D["dup_stack_contacts"] {
+  return dupstack.dup_stack_contacts.filter(
+    (dup_stack_contact) => dup_stack_contact.dup_type === "POTENTIAL"
+  );
+}
