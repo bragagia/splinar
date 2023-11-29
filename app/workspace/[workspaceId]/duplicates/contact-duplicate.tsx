@@ -1,3 +1,5 @@
+"use client";
+
 import { contactMerge } from "@/app/serverActions/contacts_merge";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
@@ -8,24 +10,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { URLS } from "@/lib/urls";
 import {
   ContactWithCompaniesType,
   DupStackWithContactsAndCompaniesType,
+  DupStackWithContactsType,
   getDupstackConfidentsAndReference,
   getDupstackPotentials,
   getDupstackReference,
 } from "@/types/database-types";
+import { Database } from "@/types/supabase";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 
 export function ContactDuplicateRow({
   contact,
   isPotential = false,
-  onUpgrade,
+  isReference = false,
+  onUpdateDupType,
 }: {
   contact: ContactWithCompaniesType;
   isPotential?: boolean;
-  onUpgrade?: () => void;
+  isReference?: boolean;
+  onUpdateDupType: (
+    newDupType: DupStackWithContactsType["dup_stack_contacts"][number]["dup_type"]
+  ) => void;
 }) {
   const workspace = useWorkspace();
 
@@ -36,7 +51,7 @@ export function ContactDuplicateRow({
   ).trim();
 
   return (
-    <div className="flex flex-row rounded-md p-2 gap-3 text-sm">
+    <div className="flex flex-row rounded-md p-2 gap-3 text-sm group">
       <div className="font-medium flex items-center gap-2 basis-64">
         <div className="flex">
           <a
@@ -71,7 +86,7 @@ export function ContactDuplicateRow({
         )}
       </div>
 
-      <div className="text-gray-700 flex flex-col items-start justify-center basis-48">
+      <div className="text-gray-700 flex flex-col items-start justify-center basis-32">
         {contact.companies && contact.companies.length > 0 ? (
           contact.companies?.map((company, i) => <p key={i}>{company.name}</p>)
         ) : (
@@ -79,14 +94,93 @@ export function ContactDuplicateRow({
         )}
       </div>
 
-      {isPotential && (
-        <button
-          onClick={onUpgrade}
-          className="border border-black rounded-md text-sm px-1 py-1 bg-white hover:border-gray-500 hover:text-gray-600"
-        >
-          <Icons.add className="w-4 h-4" />
-        </button>
-      )}
+      <div className="flex flex-row justify-end items-center gap-2">
+        <TooltipProvider delayDuration={400} skipDelayDuration={1}>
+          {!isPotential && (
+            <>
+              {isReference ? (
+                <>
+                  <button className="invisible border px-1 py-1 ">
+                    <div className="w-4 h-4" />
+                  </button>
+
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="border rounded-lg text-sm px-1 py-1 bg-white text-gray-600 border-gray-600">
+                        <Icons.arrowsPointingIn className="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={10}>
+                      <div className="flex flex-row items-center gap-1">
+                        <Icons.infos />
+                        <p>
+                          This is the reference contact in which all others will
+                          be merged
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              ) : (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button
+                        onClick={() => onUpdateDupType("POTENTIAL")}
+                        className="border border-transparent rounded-lg text-sm px-1 py-1 text-gray-400 invisible hover:bg-white hover:text-gray-600 hover:border-gray-600 group-hover:visible"
+                      >
+                        <Icons.thumbDown className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={10}>
+                      <p>Mark as false positive</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button
+                        onClick={() => onUpdateDupType("REFERENCE")}
+                        className="border border-transparent rounded-lg text-sm px-1 py-1 text-gray-400 invisible hover:bg-white hover:text-gray-600 hover:border-gray-600 group-hover:visible"
+                      >
+                        <Icons.arrowsPointingIn className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={10}>
+                      <p>
+                        Set as reference contact in which all others will be
+                        merged
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+            </>
+          )}
+
+          {isPotential && (
+            <>
+              <button className="invisible border px-1 py-1 ">
+                <div className="w-4 h-4" />
+              </button>
+
+              <Tooltip>
+                <TooltipTrigger>
+                  <button
+                    onClick={() => onUpdateDupType("CONFIDENT")}
+                    className="border border-transparent rounded-lg text-sm px-1 py-1 text-gray-500  hover:bg-white hover:text-gray-600 hover:border-gray-600 group-hover:visible"
+                  >
+                    <Icons.add className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={10}>
+                  <p>Add to merge list</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
+        </TooltipProvider>
+      </div>
     </div>
   );
 }
@@ -97,32 +191,61 @@ export function ContactDuplicate({
   dupStack: DupStackWithContactsAndCompaniesType;
 }) {
   const workspace = useWorkspace();
+  const supabase = createClientComponentClient<Database>();
+
   const [cachedDupStack, setCachedDupStack] = useState(dupStack);
   const [merged, setMerged] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
 
-  const onUpgradePotential = (id: string) => () => {
-    // TODO: must save to db
+  const onUpdateDupType =
+    (id: string) =>
+    (
+      newDupType: DupStackWithContactsType["dup_stack_contacts"][number]["dup_type"]
+    ) => {
+      setCachedDupStack({
+        ...cachedDupStack,
+        dup_stack_contacts: cachedDupStack.dup_stack_contacts.map(
+          (dupStackContact) => {
+            if (dupStackContact.contact_id !== id) {
+              if (
+                newDupType === "REFERENCE" &&
+                dupStackContact.dup_type === "REFERENCE"
+              ) {
+                supabase
+                  .from("dup_stack_contacts")
+                  .update({ dup_type: "CONFIDENT" })
+                  .eq("workspace_id", workspace.id)
+                  .eq("contact_id", dupStackContact.contact_id)
+                  .eq("dupstack_id", dupStackContact.dupstack_id)
+                  .then();
 
-    // TODO: Done this way, there is no garantee that the new confident contact is added at the end, maybe sort by score ?
-    setCachedDupStack({
-      ...cachedDupStack,
-      dup_stack_contacts: cachedDupStack.dup_stack_contacts.map(
-        (dupStackContact) => {
-          if (dupStackContact.contact_id !== id) {
-            return dupStackContact;
-          } else {
-            return {
-              ...dupStackContact,
-              dup_type: "CONFIDENT",
-            };
+                return {
+                  ...dupStackContact,
+                  dup_type: "CONFIDENT",
+                };
+              } else {
+                return dupStackContact;
+              }
+            } else {
+              supabase
+                .from("dup_stack_contacts")
+                .update({ dup_type: newDupType })
+                .eq("workspace_id", workspace.id)
+                .eq("contact_id", dupStackContact.contact_id)
+                .eq("dupstack_id", dupStackContact.dupstack_id)
+                .then();
+
+              return {
+                ...dupStackContact,
+                dup_type: newDupType,
+              };
+            }
           }
-        }
-      ),
-    });
-  };
+        ),
+      });
+    };
 
   const onMerge = async () => {
     setLoading(true);
@@ -190,15 +313,28 @@ export function ContactDuplicate({
         <>
           <CardContent>
             <div className="flex flex-col gap-y-1">
-              {confidentsAndReference.map(
-                (dupStackContact, i) =>
-                  dupStackContact.contact && (
-                    <ContactDuplicateRow
-                      key={i}
-                      contact={dupStackContact.contact}
-                    />
-                  )
-              )}
+              {confidentsAndReference
+                .sort((a, b) => {
+                  if (!a.contact || !b.contact) return 0;
+
+                  if (a.contact?.filled_score !== b.contact?.filled_score)
+                    return b.contact.filled_score - a.contact.filled_score;
+
+                  return b.contact.hs_id - a.contact.hs_id;
+                })
+                .map(
+                  (dupStackContact, i) =>
+                    dupStackContact.contact && (
+                      <ContactDuplicateRow
+                        key={i}
+                        contact={dupStackContact.contact}
+                        isReference={dupStackContact.dup_type === "REFERENCE"}
+                        onUpdateDupType={onUpdateDupType(
+                          dupStackContact.contact.id
+                        )}
+                      />
+                    )
+                )}
 
               <button
                 onClick={onMerge}
@@ -220,19 +356,28 @@ export function ContactDuplicate({
                   Potentials matches:
                 </p>
 
-                {potentials.map(
-                  (dupStackContact, i) =>
-                    dupStackContact.contact && (
-                      <ContactDuplicateRow
-                        key={i}
-                        contact={dupStackContact.contact}
-                        isPotential
-                        onUpgrade={onUpgradePotential(
-                          dupStackContact.contact.id
-                        )}
-                      />
-                    )
-                )}
+                {potentials
+                  .sort((a, b) => {
+                    if (!a.contact || !b.contact) return 0;
+
+                    if (a.contact?.filled_score !== b.contact?.filled_score)
+                      return b.contact.filled_score - a.contact.filled_score;
+
+                    return b.contact.hs_id - a.contact.hs_id;
+                  })
+                  .map(
+                    (dupStackContact, i) =>
+                      dupStackContact.contact && (
+                        <ContactDuplicateRow
+                          key={i}
+                          contact={dupStackContact.contact}
+                          isPotential
+                          onUpdateDupType={onUpdateDupType(
+                            dupStackContact.contact.id
+                          )}
+                        />
+                      )
+                  )}
               </div>
             </CardGrayedContent>
           )}

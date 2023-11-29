@@ -29,7 +29,7 @@ INSERT INTO
             'f30a6561-31f7-4d0a-b0b8-227677374bb0',
             'authenticated',
             'authenticated',
-            'mathias@bragagia.com',
+            'mathias@localhost.com',
             crypt ('password123', gen_salt ('bf')),
             current_timestamp,
             current_timestamp,
