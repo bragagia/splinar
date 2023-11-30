@@ -2,11 +2,6 @@ import { URLS } from "@/lib/urls";
 import { Client } from "@hubspot/api-client";
 import { redirect } from "next/navigation";
 
-const APP_CLIENT_ID = "1e3368cb-a326-4217-943d-0f9a14a91f07";
-const APP_SECRET = "ac5adc6f-f597-45b9-bbc2-f42df06d598c";
-
-const ACCESS_CODE = "eu1-e6c9-0609-41fb-8ec4-c6d9fa867cb0";
-
 const GRANT_TYPES = {
   AUTHORIZATION_CODE: "authorization_code",
   REFRESH_TOKEN: "refresh_token",
@@ -33,8 +28,8 @@ export default async function OAuthCallback({
       GRANT_TYPES.AUTHORIZATION_CODE,
       code,
       URLS.hubspot.callback,
-      APP_CLIENT_ID,
-      APP_SECRET
+      process.env.HUBSPOT_CLIENT_ID!,
+      process.env.HUBSPOT_SECRET!
     );
 
     var getRefreshTokenResponse =
