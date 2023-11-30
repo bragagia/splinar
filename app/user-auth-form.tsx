@@ -72,8 +72,10 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     setIsLoading(false);
 
-    if (data.user) {
+    if (data.session) {
       router.push(URLS.workspaceIndex);
+    } else {
+      setErrorMessage("We sent you a verification mail ;)");
     }
   }
 
