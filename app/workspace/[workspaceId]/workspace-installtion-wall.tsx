@@ -66,7 +66,7 @@ export function WorkspaceInstallationCard({
 
       <CardContent className="flex flex-col gap-4">
         <div className="text-sm gap-2 flex flex-col">
-          <p>This is the only time you will to wait, we promise.</p>
+          <p>This is the only time you will have to wait, we promise.</p>
 
           <p>
             Future changes of your data will{" "}
