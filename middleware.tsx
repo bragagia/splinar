@@ -8,6 +8,7 @@ import type { NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
+  console.log("middleware");
   try {
     const supabase = createMiddlewareClient({ req, res });
 
@@ -22,11 +23,14 @@ export async function middleware(req: NextRequest) {
 
     // if user is not signed in and the current path is not / redirect the user to /
     if (!session && req.nextUrl.pathname !== "/") {
+      console.log("redirected");
       return NextResponse.redirect(new URL(URLS.login, req.url));
     }
   } catch (error) {
     captureException(error);
   }
+
+  console.log("middleware end");
 
   return res;
 }

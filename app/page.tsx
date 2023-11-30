@@ -5,12 +5,16 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
+  console.log("page");
+
   const cookieStore = cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
-  const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession(); // TODO: remove, middleware does that
   if (!error && data.session?.user.id) {
     redirect(URLS.workspaceIndex);
   }
+
+  console.log("page content");
 
   return (
     <>
