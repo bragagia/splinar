@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import { captureException } from "@/lib/sentry";
 import Redis from "ioredis";
 
 export default function newRedisClient() {
@@ -27,7 +27,7 @@ export default function newRedisClient() {
   });
 
   redis.on("error", function (e) {
-    Sentry.captureException(e);
+    captureException(e);
     throw e;
   });
 
