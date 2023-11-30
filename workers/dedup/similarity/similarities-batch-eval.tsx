@@ -1,3 +1,4 @@
+import { captureException } from "@/lib/sentry";
 import {
   ContactWithCompaniesType,
   SUPABASE_FILTER_MAX_SIZE,
@@ -94,15 +95,16 @@ export async function similaritiesBatchEval(
 
   if (!batchBIds) {
     await compareContactBatchWithItself(supabase, workspaceId, batchA);
-
-    return;
   } else {
     const batchB = await fetchBatch(supabase, workspaceId, batchBIds);
 
     await compareContactBatches(supabase, workspaceId, batchA, batchB);
   }
 
-  await supabase.rpc("similarities_increment_done_batches", {
+  const { error } = await supabase.rpc("similarities_increment_done_batches", {
     workspace_id_arg: workspaceId,
   });
+  if (error) {
+    captureException(error);
+  }
 }
