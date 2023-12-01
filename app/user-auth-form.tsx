@@ -20,7 +20,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mode, setMode] = useState<"SIGNUP" | "LOGIN">("SIGNUP");
+  const [mode, setMode] = useState<"SIGNUP" | "LOGIN">("LOGIN");
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -62,6 +62,9 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const { data, error } = await supabase.auth.signUp({
       email: emailRef.current.value,
       password: passwordRef.current.value,
+      options: {
+        emailRedirectTo: URLS.mailValidation,
+      },
     });
 
     if (error) {

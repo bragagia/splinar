@@ -19,7 +19,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-export default function OAuthCallback({
+export default function AddTeamValidationPage({
   params,
   searchParams,
 }: {
