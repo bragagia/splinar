@@ -1,18 +1,27 @@
+"use client";
+
 import { UserAuthForm } from "@/app/user-auth-form";
 import { URLS } from "@/lib/urls";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { useEffect } from "react";
 
-export default async function Home() {
+export default function Home() {
   console.log("page");
 
   const cookieStore = cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
-  const { data, error } = await supabase.auth.getSession(); // TODO: remove, middleware does that
-  if (!error && data.session?.user.id) {
-    redirect(URLS.workspaceIndex);
-  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log("result");
+      if (!error && data.session?.user.id) {
+        console.log("redirect");
+        redirect(URLS.workspaceIndex);
+      }
+    }); // TODO: remove, middleware does that
+  }, [supabase]);
 
   console.log("page content");
 
