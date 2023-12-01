@@ -18,14 +18,25 @@ export async function middleware(req: NextRequest) {
 
     // if user is signed in and the current path is / redirect the user to /account
     if (session && req.nextUrl.pathname === "/") {
-      return NextResponse.redirect(new URL(URLS.workspaceIndex, req.url));
+      console.log("redirected1");
+      return NextResponse.redirect(URLS.workspaceIndex);
     }
 
     // if user is not signed in and the current path is not / redirect the user to /
     if (!session && req.nextUrl.pathname !== "/") {
-      console.log("redirected");
-      return NextResponse.redirect(new URL(URLS.login, req.url));
+      console.log("redirected2");
+      return NextResponse.redirect(URLS.login);
     }
+
+    console.log("hasSession: ", session ? true : false);
+    console.log("session: ", session);
+
+    const {
+      data: { session: session2 },
+    } = await supabase.auth.getSession();
+
+    console.log("hasSession2: ", session2 ? true : false);
+    console.log("session2: ", session2);
   } catch (error) {
     captureException(error);
   }
