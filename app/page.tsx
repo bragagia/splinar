@@ -2,16 +2,14 @@
 
 import { UserAuthForm } from "@/app/user-auth-form";
 import { URLS } from "@/lib/urls";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { redirect } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
   console.log("page");
 
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
