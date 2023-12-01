@@ -5,8 +5,6 @@ export const URLS = {
 
   login: "/",
 
-  mailValidation: `/mail-validation/`,
-
   // Retuns a link to last workspace if teamId is null
   workspace: (workspaceId: string) => ({
     dashboard: `/workspace/${workspaceId}/dashboard`,

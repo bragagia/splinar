@@ -62,9 +62,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const { data, error } = await supabase.auth.signUp({
       email: emailRef.current.value,
       password: passwordRef.current.value,
-      options: {
-        emailRedirectTo: URLS.mailValidation,
-      },
     });
 
     if (error) {
