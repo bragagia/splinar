@@ -8,6 +8,7 @@ export const SimilaritiesBatchEvalId = "similaritiesBatchEval";
 
 export type SimilaritiesBatchEvalWorkerArgs = {
   workspaceId: string;
+  table: "contacts" | "companies";
   batchAIds: string[];
   batchBIds?: string[];
 };
@@ -27,6 +28,7 @@ export const similaritiesBatchEvalProcessor: Processor<
   await similaritiesBatchEval(
     supabaseAdmin,
     job.data.workspaceId,
+    job.data.table,
     job.data.batchAIds,
     job.data.batchBIds
   );

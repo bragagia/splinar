@@ -12,11 +12,12 @@ const BATCH_SIZE = 1000;
 
 async function markBatchInstalled(
   supabase: SupabaseClient<Database>,
+  table: "contacts" | "companies",
   batchIds: string[]
 ) {
   for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error } = await supabase
-      .from("contacts")
+      .from(table)
       .update({ similarity_checked: true, dup_checked: false })
       .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
     if (error) {
@@ -25,9 +26,10 @@ async function markBatchInstalled(
   }
 }
 
-async function compareBatchWithAllInstalledContacts(
+async function compareBatchWithAllInstalledBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  table: "contacts" | "companies",
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
@@ -36,7 +38,7 @@ async function compareBatchWithAllInstalledContacts(
   let lastItemId: string | null = null;
   do {
     let query = supabase
-      .from("contacts")
+      .from(table)
       .select("id")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
@@ -62,6 +64,7 @@ async function compareBatchWithAllInstalledContacts(
       workspaceId + "-" + batchIds[0] + "-" + installedBatchIds[0],
       {
         workspaceId: workspaceId,
+        table: table,
         batchAIds: batchIds,
         batchBIds: installedBatchIds,
       }
@@ -84,6 +87,7 @@ async function compareBatchWithAllInstalledContacts(
 async function updateSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  table: "contacts" | "companies",
   afterBatchCallback?: () => Promise<void>
 ) {
   let jobs: Job<SimilaritiesBatchEvalWorkerArgs, void, string>[] = [];
@@ -91,11 +95,14 @@ async function updateSimilarities(
   let batchLength = 0;
   do {
     let query = supabase
-      .from("contacts")
+      .from(table)
       .select("id")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
+      .order("id")
       .limit(BATCH_SIZE);
+
+    // TODO: Sorting by uuid seems sketchy, i should use some combination of uuid and created at (or hs_id ?)
 
     const { data: batch, error: error } = await query;
     if (error) {
@@ -112,6 +119,7 @@ async function updateSimilarities(
       workspaceId + "-" + batchIds[0] + "-single",
       {
         workspaceId: workspaceId,
+        table: table,
         batchAIds: batchIds,
       }
     );
@@ -121,15 +129,16 @@ async function updateSimilarities(
       await afterBatchCallback();
     }
 
-    const newJobs = await compareBatchWithAllInstalledContacts(
+    const newJobs = await compareBatchWithAllInstalledBatches(
       supabase,
       workspaceId,
+      table,
       batchIds,
       afterBatchCallback
     );
     jobs.push(...newJobs);
 
-    await markBatchInstalled(supabase, batchIds);
+    await markBatchInstalled(supabase, table, batchIds);
   } while (batchLength === BATCH_SIZE);
 
   console.log("Waiting for job end");
@@ -137,18 +146,34 @@ async function updateSimilarities(
   const queueEvent = newSimilaritiesBatchEvalQueueEvents();
   await Promise.all(jobs.map((job) => job.waitUntilFinished(queueEvent)));
 
-  console.log("Marking contact without similarities as checked");
+  switch (table) {
+    case "companies":
+      console.log("Marking contact without similarities as checked");
 
-  const { error } = await supabase.rpc(
-    "mark_contacts_without_similarities_as_dup_checked",
-    { workspace_id_arg: workspaceId }
-  );
-  if (error) {
-    throw error;
+      const { error: errorCompanies } = await supabase.rpc(
+        "mark_companies_without_similarities_as_dup_checked",
+        { workspace_id_arg: workspaceId }
+      );
+      if (errorCompanies) {
+        throw errorCompanies;
+      }
+      break;
+
+    case "contacts":
+      console.log("Marking contact without similarities as checked");
+
+      const { error: errorContacts } = await supabase.rpc(
+        "mark_contacts_without_similarities_as_dup_checked",
+        { workspace_id_arg: workspaceId }
+      );
+      if (errorContacts) {
+        throw errorContacts;
+      }
+      break;
   }
 }
 
-export async function installSimilarities(
+async function installContactsSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
@@ -166,8 +191,8 @@ export async function installSimilarities(
   const { error } = await supabase
     .from("workspaces")
     .update({
-      installation_similarity_total_batches: totalOperations,
-      installation_similarity_done_batches: 0,
+      installation_contacts_similarities_total_batches: totalOperations,
+      installation_contacts_similarities_done_batches: 0,
     })
     .eq("id", workspaceId);
   if (error) {
@@ -178,8 +203,62 @@ export async function installSimilarities(
   async function incrementBatchStarted() {
     batchStarted += 1;
 
-    console.log("Similarities batch started: ", batchStarted);
+    console.log("Contacts similarities batch started: ", batchStarted);
   }
 
-  await updateSimilarities(supabase, workspaceId, incrementBatchStarted);
+  await updateSimilarities(
+    supabase,
+    workspaceId,
+    "contacts",
+    incrementBatchStarted
+  );
+}
+
+async function installCompaniesSimilarities(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { count: hsCompaniesCount, error: errorCompaniesCount } = await supabase
+    .from("companies")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (errorCompaniesCount || !hsCompaniesCount) {
+    throw errorCompaniesCount || new Error("hsCompaniesCount: missing");
+  }
+
+  let batchTotal = Math.ceil(hsCompaniesCount / BATCH_SIZE);
+  let totalOperations = (batchTotal + 1) * (batchTotal / 2);
+
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      installation_companies_similarities_total_batches: totalOperations,
+      installation_companies_similarities_done_batches: 0,
+    })
+    .eq("id", workspaceId);
+  if (error) {
+    throw error;
+  }
+
+  let batchStarted = 0;
+  async function incrementBatchStarted() {
+    batchStarted += 1;
+
+    console.log("Companies similarities batch started: ", batchStarted);
+  }
+
+  await updateSimilarities(
+    supabase,
+    workspaceId,
+    "companies",
+    incrementBatchStarted
+  );
+}
+
+export async function installSimilarities(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  await installContactsSimilarities(supabase, workspaceId);
+  await installCompaniesSimilarities(supabase, workspaceId);
 }

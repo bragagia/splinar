@@ -15,7 +15,21 @@ export async function fetchCompanies(
     pageId++;
     console.log("Fetching companies page ", pageId);
     const res = await hsClient.crm.companies.basicApi.getPage(100, after, [
+      "address",
+      "zip",
+      "city",
+      "state",
+      "country",
+
+      "domain",
+      "website",
+      "hubspot_owner_id",
       "name",
+      "phone",
+
+      "facebook_company_page",
+      "linkedin_company_page",
+      "twitterhandle",
     ]);
 
     after = res.paging?.next?.after;
@@ -31,7 +45,28 @@ export async function fetchCompanies(
         id: uuid(),
         workspace_id: workspaceId,
         hs_id: parseInt(company.id),
+
+        address: company.properties.address,
+        zip: company.properties.zip,
+        city: company.properties.city,
+        state: company.properties.state,
+        country: company.properties.country,
+
+        domain: company.properties.domain,
+        website: company.properties.website,
+        owner_hs_id: company.properties.hubspot_owner_id
+          ? parseInt(company.properties.hubspot_owner_id)
+          : null,
         name: company.properties.name,
+        phone: company.properties.phone,
+
+        facebook_company_page: company.properties.facebook_company_page,
+        linkedin_company_page: company.properties.linkedin_company_page,
+        twitterhandle: company.properties.twitterhandle,
+
+        dup_checked: false,
+        similarity_checked: false,
+        filled_score: 0, // ! TODO:
       };
 
       return dbCompany;

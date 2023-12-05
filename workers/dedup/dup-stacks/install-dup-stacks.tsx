@@ -1,6 +1,11 @@
-import { ContactWithCompaniesAndSimilaritiesType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { resolveNextDuplicatesStack } from "@/workers/dedup/dup-stacks/resolve-duplicates-stack";
+import { areContactsDups } from "@/workers/dedup/dup-stacks/are-contacts-dups";
+import {
+  createContactsDupstack,
+  fetchNextContactReference,
+  fetchSimilarContactsSortedByFillScore,
+  resolveNextDuplicatesStack,
+} from "@/workers/dedup/dup-stacks/resolve-duplicates-stack";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function installDupStacks(
@@ -34,14 +39,13 @@ export async function updateDupStacks(
   let counter = 0;
 
   do {
-    let contactsById: {
-      [key: string]: ContactWithCompaniesAndSimilaritiesType;
-    } = {};
-
     const hasFoundContact = await resolveNextDuplicatesStack(
       supabase,
       workspaceId,
-      contactsById
+      areContactsDups,
+      fetchNextContactReference,
+      fetchSimilarContactsSortedByFillScore,
+      createContactsDupstack
     );
     if (!hasFoundContact) {
       return counter;

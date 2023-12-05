@@ -27,8 +27,11 @@ export function WorkspaceInstallationCard({
 
   let progressTotal =
     1 +
-    (workspace.installation_similarity_total_batches > 0
-      ? workspace.installation_similarity_total_batches
+    (workspace.installation_companies_similarities_total_batches +
+      workspace.installation_contacts_similarities_total_batches >
+    0
+      ? workspace.installation_companies_similarities_total_batches +
+        workspace.installation_contacts_similarities_total_batches
       : 50) +
     (workspace.installation_dup_total > 0
       ? workspace.installation_dup_total / 30
@@ -36,7 +39,9 @@ export function WorkspaceInstallationCard({
 
   let progress = 0;
   progress += workspace.installation_fetched ? 1 : 0;
-  progress += workspace.installation_similarity_done_batches;
+  progress +=
+    workspace.installation_companies_similarities_done_batches +
+    workspace.installation_contacts_similarities_done_batches;
   progress += workspace.installation_dup_done / 30;
 
   let percent = (100 * progress) / progressTotal;
@@ -45,9 +50,12 @@ export function WorkspaceInstallationCard({
   if (!workspace.installation_fetched) {
     explanation = "Fetching your hubspot data";
   } else if (
-    workspace.installation_similarity_total_batches === 0 ||
-    workspace.installation_similarity_done_batches <
-      workspace.installation_similarity_total_batches
+    workspace.installation_contacts_similarities_done_batches === 0 ||
+    workspace.installation_contacts_similarities_done_batches <
+      workspace.installation_contacts_similarities_total_batches ||
+    workspace.installation_companies_similarities_done_batches === 0 ||
+    workspace.installation_companies_similarities_done_batches <
+      workspace.installation_companies_similarities_total_batches
   ) {
     explanation = "Checking for similarities in your data";
   } else {

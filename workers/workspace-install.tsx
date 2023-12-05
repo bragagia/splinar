@@ -39,6 +39,11 @@ export const workspaceInstallProcessor: Processor<
 
   if (reset) {
     await supabaseAdmin
+      .from("dup_stack_companies")
+      .delete()
+      .eq("workspace_id", workspaceId);
+
+    await supabaseAdmin
       .from("dup_stack_contacts")
       .delete()
       .eq("workspace_id", workspaceId);
@@ -78,8 +83,10 @@ export const workspaceInstallProcessor: Processor<
       workspaceUpdate.installation_fetched = false;
       workspaceUpdate.installation_dup_total = 0;
       workspaceUpdate.installation_dup_done = 0;
-      workspaceUpdate.installation_similarity_total_batches = 0;
-      workspaceUpdate.installation_similarity_done_batches = 0;
+      workspaceUpdate.installation_contacts_similarities_total_batches = 0;
+      workspaceUpdate.installation_contacts_similarities_done_batches = 0;
+      workspaceUpdate.installation_companies_similarities_done_batches = 0;
+      workspaceUpdate.installation_companies_similarities_done_batches = 0;
     } else {
       let update: Partial<ContactType> = {
         dup_checked: false,
@@ -91,8 +98,10 @@ export const workspaceInstallProcessor: Processor<
       if (reset === "similarities_and_dup") {
         update.similarity_checked = false;
 
-        workspaceUpdate.installation_similarity_total_batches = 0;
-        workspaceUpdate.installation_similarity_done_batches = 0;
+        workspaceUpdate.installation_contacts_similarities_total_batches = 0;
+        workspaceUpdate.installation_contacts_similarities_done_batches = 0;
+        workspaceUpdate.installation_companies_similarities_done_batches = 0;
+        workspaceUpdate.installation_companies_similarities_done_batches = 0;
       }
 
       await supabaseAdmin
@@ -139,9 +148,12 @@ export const workspaceInstallProcessor: Processor<
   }
 
   if (
-    workspace.installation_similarity_done_batches === 0 ||
-    workspace.installation_similarity_done_batches <
-      workspace.installation_similarity_total_batches
+    workspace.installation_contacts_similarities_done_batches === 0 ||
+    workspace.installation_contacts_similarities_done_batches <
+      workspace.installation_contacts_similarities_total_batches ||
+    workspace.installation_companies_similarities_done_batches === 0 ||
+    workspace.installation_companies_similarities_done_batches <
+      workspace.installation_companies_similarities_total_batches
   ) {
     console.log(
       "### Install similarities",

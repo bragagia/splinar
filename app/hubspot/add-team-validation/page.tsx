@@ -71,8 +71,10 @@ export default function AddTeamValidationPage({
       installation_dup_done: 0,
       installation_dup_total: 0,
       installation_fetched: false,
-      installation_similarity_done_batches: 0,
-      installation_similarity_total_batches: 0,
+      installation_companies_similarities_done_batches: 0,
+      installation_companies_similarities_total_batches: 0,
+      installation_contacts_similarities_done_batches: 0,
+      installation_contacts_similarities_total_batches: 0,
     });
 
     if (error) {

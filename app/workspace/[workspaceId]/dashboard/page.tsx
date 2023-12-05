@@ -22,7 +22,8 @@ export default async function WorkspacePage({
   const { count: dupStackCount, error: errorDupStack } = await supabase
     .from("dup_stacks")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", "CONTACTS");
   if (errorDupStack || dupStackCount === null) {
     throw errorDupStack || new Error("Missing dupstack count");
   }

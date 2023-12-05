@@ -1,9 +1,9 @@
 import { uuid } from "@/lib/uuid";
 import { Database } from "@/types/supabase";
+import { calcContactFilledScore } from "@/workers/dedup/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { CompanyType } from "../../../types/database-types";
-import { calcContactFilledScore } from "@/workers/dedup/list-contact-fields";
 
 async function convertHubIdToInternalId(
   supabase: SupabaseClient<Database>,

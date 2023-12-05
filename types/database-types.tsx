@@ -7,7 +7,8 @@ export type WorkspaceType = Database["public"]["Tables"]["workspaces"]["Row"];
 
 export type ContactType = Database["public"]["Tables"]["contacts"]["Row"];
 
-export type MergedContactType = Database["public"]["Tables"]["merged_contacts"]["Row"];
+export type MergedContactType =
+  Database["public"]["Tables"]["merged_contacts"]["Row"];
 
 export type ContactWithCompaniesType = MergeDeep<
   ContactType,
@@ -45,13 +46,16 @@ export function isAContactWithCompaniesAndSimilaritiesType(
 
 export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 
-// Similarities
-
 export type ContactToCompany =
   Database["public"]["Tables"]["contact_companies"]["Row"];
 
+// Similarities
+
 export type ContactSimilarityType =
   Database["public"]["Tables"]["contact_similarities"]["Row"];
+
+export type CompanySimilarityType =
+  Database["public"]["Tables"]["company_similarities"]["Row"];
 
 // Dupstacks contacts
 
@@ -96,16 +100,6 @@ export type DupStackWithContactsAndCompaniesType = MergeDeep<
   Database["public"]["Tables"]["dup_stacks"]["Row"],
   {
     dup_stack_contacts: DupStackContactWithContactAndCompaniesType[];
-  }
->;
-
-export type DupStackForInsertType = MergeDeep<
-  Database["public"]["Tables"]["dup_stacks"]["Insert"],
-  {
-    // note: first item of confident_contact_ids is considered to be the reference contact
-    id: string;
-    confident_contact_ids: string[];
-    potential_contact_ids: string[];
   }
 >;
 

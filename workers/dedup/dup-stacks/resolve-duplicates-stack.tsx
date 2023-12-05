@@ -3,156 +3,191 @@ import {
   ContactSimilarityType,
   ContactWithCompaniesAndRawSimilaritiesType,
   ContactWithCompaniesAndSimilaritiesType,
-  DupStackForInsertType,
   SUPABASE_FILTER_MAX_SIZE,
-  isAContactWithCompaniesAndSimilaritiesType,
 } from "@/types/database-types";
 import { Database } from "@/types/supabase";
-import { areContactsDups } from "@/workers/dedup/dup-stacks/are-contacts-dups";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function resolveNextDuplicatesStack(
+export type GenericDupStack = {
+  // note: first item of confident_contact_ids is considered to be the reference contact
+  confident_ids: string[];
+  potential_ids: string[];
+};
+
+export async function fetchNextContactReference(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { data, error } = await supabase
+    .from("contacts")
+    .select(
+      `*,
+    companies(*),
+    similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", true)
+    .eq("dup_checked", false)
+    .order("filled_score", { ascending: false })
+    .limit(1);
+  if (error) {
+    throw error;
+  }
+  if (!data || data.length === 0) {
+    return undefined;
+  }
+
+  const { similarities_a, similarities_b, ...contact } = {
+    ...data[0],
+    contact_similarities: data[0].similarities_a.concat(
+      data[0].similarities_b
+    ) as ContactSimilarityType[],
+  };
+
+  return contact;
+}
+
+export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  contactsCacheById: {
-    [key: string]: ContactWithCompaniesAndSimilaritiesType;
-  },
-  specificContact?: ContactWithCompaniesAndSimilaritiesType
-): Promise<boolean> {
-  let referenceContact: ContactWithCompaniesAndSimilaritiesType;
 
-  if (specificContact) {
-    referenceContact = specificContact;
+  areItemsDups: (itemA: T, itemB: T) => "CONFIDENT" | "POTENTIAL" | false,
+
+  fetchNextReference: (
+    supabase: SupabaseClient<Database>,
+    workspaceId: string
+  ) => Promise<T | undefined>,
+
+  fetchSortedSimilar: (
+    supabase: SupabaseClient<Database>,
+    workspaceId: string,
+    itemsCacheById: {
+      [key: string]: T;
+    },
+    parentId: string
+  ) => Promise<{ parentItem: T; similarItems: T[] }>,
+
+  createDupstack: (
+    supabase: SupabaseClient<Database>,
+    workspaceId: string,
+    genericDupstack: GenericDupStack
+  ) => Promise<void>,
+
+  itemsCacheById: {
+    [key: string]: T;
+  } = {},
+
+  startWithItem?: T
+): Promise<boolean> {
+  let referenceItem: T;
+
+  if (startWithItem) {
+    referenceItem = startWithItem;
   } else {
-    const { data, error } = await supabase
-      .from("contacts")
-      .select(
-        `*,
-        companies(*),
-        similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
-      )
-      .eq("workspace_id", workspaceId)
-      .eq("similarity_checked", true)
-      .eq("dup_checked", false)
-      .order("filled_score", { ascending: false })
-      .limit(1);
-    if (error) {
-      throw error;
-    }
-    if (!data || data.length === 0) {
+    const item = await fetchNextReference(supabase, workspaceId);
+
+    if (!item) {
       return false;
     }
 
-    const { similarities_a, similarities_b, ...contact } = {
-      ...data[0],
-      contact_similarities: data[0].similarities_a.concat(
-        data[0].similarities_b
-      ) as ContactSimilarityType[],
-    };
-
-    referenceContact = contact;
-    contactsCacheById[contact.id] = contact;
+    referenceItem = item;
   }
+  itemsCacheById[referenceItem.id] = referenceItem;
 
   // We recursively check if this contacts or its supposed duplicates have other duplicates to create
   // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
   // be added to another stack
 
-  let dupStack: DupStackForInsertType = {
-    id: uuid(),
-    workspace_id: workspaceId,
-    confident_contact_ids: [referenceContact.id],
-    potential_contact_ids: [],
+  let dupStack: GenericDupStack = {
+    confident_ids: [referenceItem.id],
+    potential_ids: [],
   };
 
   async function addChildsToStack(
-    parentContactId: string,
+    parentId: string,
     isChildOfPotentialDup: boolean
   ) {
-    let { parentContact, similarContacts } =
-      await fetchSimilarContactsSortedByFillScore(
-        supabase,
-        workspaceId,
-        contactsCacheById,
-        parentContactId
-      );
-    if (similarContacts.length === 0) {
+    let { parentItem, similarItems } = await fetchSortedSimilar(
+      supabase,
+      workspaceId,
+      itemsCacheById,
+      parentId
+    );
+    if (similarItems.length === 0) {
       return;
     }
 
-    let parentContactNewDuplicates = {
-      confident_contact_ids: [] as string[],
-      potential_contact_ids: [] as string[],
+    let childsNewDuplicates: GenericDupStack = {
+      confident_ids: [],
+      potential_ids: [],
     };
 
-    similarContacts.forEach((similarContact) => {
+    similarItems.forEach((similarItem) => {
       const isInDupstack =
-        dupStack.confident_contact_ids.find((id) => similarContact.id === id) ||
-        dupStack.potential_contact_ids.find((id) => similarContact.id === id);
+        dupStack.confident_ids.find((id) => similarItem.id === id) ||
+        dupStack.potential_ids.find((id) => similarItem.id === id);
 
       if (isInDupstack) {
         return;
       }
 
-      let dupStatus = areContactsDups(
-        parentContact,
-        similarContact,
-        similarContact.contact_similarities.filter(
-          (similarity) =>
-            similarity.contact_a_id === parentContact.id ||
-            similarity.contact_b_id === parentContact.id
-        )
-      );
+      let dupStatus = areItemsDups(parentItem, similarItem);
 
-      if (dupStatus) {
-        const isMoreFilledThanReference =
-          similarContact.filled_score > referenceContact.filled_score;
+      // TODO: This must be thought about when doing hook update
+      // if (dupStatus) {
+      //   const isMoreFilledThanReference =
+      //     similarItem.filled_score > referenceItem.filled_score;
 
-        if (isMoreFilledThanReference) {
-          // Restart the whole function with similarContact as reference, because it has more data
-          throw similarContact;
-        }
-      }
+      //   if (isMoreFilledThanReference) {
+      //     // Restart the whole function with similarContact as reference, because it has more data
+      //     throw similarItem;
+      //   }
+      // }
 
       if (dupStatus === "CONFIDENT" && !isChildOfPotentialDup) {
-        parentContactNewDuplicates.confident_contact_ids.push(
-          similarContact.id
-        );
+        childsNewDuplicates.confident_ids.push(similarItem.id);
       } else if (dupStatus) {
         // Even if the dup is confident, if we descent from a potential dup, we only add it as a potential too
-        parentContactNewDuplicates.potential_contact_ids.push(
-          similarContact.id
-        );
+        childsNewDuplicates.potential_ids.push(similarItem.id);
       }
     });
 
     // We push all childs before calling recursive to prevent going into a deep and expensive call stack
-    parentContactNewDuplicates.confident_contact_ids.forEach((id) => {
-      dupStack.confident_contact_ids.push(id);
+    childsNewDuplicates.confident_ids.forEach((id) => {
+      dupStack.confident_ids.push(id);
     });
-    parentContactNewDuplicates.potential_contact_ids.forEach((id) => {
-      dupStack.potential_contact_ids.push(id);
+    childsNewDuplicates.potential_ids.forEach((id) => {
+      dupStack.potential_ids.push(id);
     });
     await Promise.all(
-      parentContactNewDuplicates.confident_contact_ids.map(async (id) => {
+      childsNewDuplicates.confident_ids.map(async (id) => {
         await addChildsToStack(id, false);
       })
     );
     await Promise.all(
-      parentContactNewDuplicates.potential_contact_ids.map(async (id) => {
+      childsNewDuplicates.potential_ids.map(async (id) => {
         await addChildsToStack(id, true);
       })
     );
   }
 
+  function isAT(obj: any): obj is T {
+    if (!obj) return false;
+    return "id" in obj;
+  }
+
   try {
-    await addChildsToStack(referenceContact.id, false);
+    await addChildsToStack(referenceItem.id, false);
   } catch (newReferenceContact) {
-    if (isAContactWithCompaniesAndSimilaritiesType(newReferenceContact)) {
+    if (isAT(newReferenceContact)) {
       return await resolveNextDuplicatesStack(
         supabase,
         workspaceId,
-        contactsCacheById,
+        areItemsDups,
+        fetchNextReference,
+        fetchSortedSimilar,
+        createDupstack,
+        itemsCacheById,
         newReferenceContact
       );
     } else {
@@ -162,13 +197,9 @@ export async function resolveNextDuplicatesStack(
 
   // dupStack empty == only the reference element
   const dupStackIsEmpty =
-    dupStack.confident_contact_ids.length <= 1 &&
-    dupStack.potential_contact_ids.length == 0;
+    dupStack.confident_ids.length <= 1 && dupStack.potential_ids.length == 0;
 
-  const allDupsId = [
-    ...dupStack.confident_contact_ids,
-    ...dupStack.potential_contact_ids,
-  ];
+  const allDupsId = [...dupStack.confident_ids, ...dupStack.potential_ids];
 
   if (!dupStackIsEmpty) {
     // TODO: Make this work for updates
@@ -179,7 +210,7 @@ export async function resolveNextDuplicatesStack(
     //   allDupsId
     // );
 
-    await createDupstack(supabase, dupStack);
+    await createDupstack(supabase, workspaceId, dupStack);
   }
 
   // Mark dupstack elements as dup_checked, at least the contact that was analysed
@@ -188,39 +219,42 @@ export async function resolveNextDuplicatesStack(
   return true;
 }
 
-async function createDupstack(
+export async function createContactsDupstack(
   supabase: SupabaseClient<Database>,
-  dupstackForInsert: DupStackForInsertType
+  workspaceId: string,
+  genericDupstack: GenericDupStack
 ) {
+  const dupstackId = uuid();
   const dupstack: Database["public"]["Tables"]["dup_stacks"]["Insert"] = {
-    id: dupstackForInsert.id,
-    workspace_id: dupstackForInsert.workspace_id,
+    id: dupstackId,
+    workspace_id: workspaceId,
+    item_type: "CONTACTS",
   };
 
   const dupstackContacts: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"][] =
     [];
 
   dupstackContacts.push(
-    ...dupstackForInsert.confident_contact_ids.map((id, i) => {
+    ...genericDupstack.confident_ids.map((id, i) => {
       const ret: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"] =
         {
           contact_id: id,
           dup_type: i === 0 ? "REFERENCE" : "CONFIDENT",
-          dupstack_id: dupstackForInsert.id,
-          workspace_id: dupstackForInsert.workspace_id,
+          dupstack_id: dupstackId,
+          workspace_id: dupstack.workspace_id,
         };
       return ret;
     })
   );
 
   dupstackContacts.push(
-    ...dupstackForInsert.potential_contact_ids.map((id, i) => {
+    ...genericDupstack.potential_ids.map((id, i) => {
       const ret: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"] =
         {
           contact_id: id,
           dup_type: "POTENTIAL",
-          dupstack_id: dupstackForInsert.id,
-          workspace_id: dupstackForInsert.workspace_id,
+          dupstack_id: dupstackId,
+          workspace_id: dupstack.workspace_id,
         };
       return ret;
     })
@@ -256,7 +290,7 @@ async function markDupstackElementsAsDupChecked(
   }
 }
 
-async function fetchSimilarContactsSortedByFillScore(
+export async function fetchSimilarContactsSortedByFillScore(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   contactsCacheById: {
@@ -267,8 +301,8 @@ async function fetchSimilarContactsSortedByFillScore(
   const parentContact = contactsCacheById[parentContactId];
 
   let res = {
-    parentContact: contactsCacheById[parentContactId],
-    similarContacts: [] as ContactWithCompaniesAndSimilaritiesType[],
+    parentItem: contactsCacheById[parentContactId],
+    similarItems: [] as ContactWithCompaniesAndSimilaritiesType[],
   };
 
   const similarContactsIds = parentContact.contact_similarities.reduce(
@@ -294,7 +328,7 @@ async function fetchSimilarContactsSortedByFillScore(
     const cachedContact = contactsCacheById[id];
 
     if (cachedContact) {
-      res.similarContacts.push(cachedContact);
+      res.similarItems.push(cachedContact);
     } else {
       similarContactsIdsToFetch.push(id);
     }
@@ -339,12 +373,12 @@ async function fetchSimilarContactsSortedByFillScore(
     });
 
     fetchedContacts.forEach((contact) => {
-      res.similarContacts.push(contact);
+      res.similarItems.push(contact);
       contactsCacheById[contact.id] = contact;
     });
   }
 
-  res.similarContacts.sort((a, b) => b.filled_score - a.filled_score);
+  res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
 
   return res;
 }

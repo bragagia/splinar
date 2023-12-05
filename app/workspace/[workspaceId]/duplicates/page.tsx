@@ -28,7 +28,8 @@ export default function DuplicatesPage() {
     const { count, error } = await supabase
       .from("dup_stacks")
       .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspace.id);
+      .eq("workspace_id", workspace.id)
+      .eq("item_type", "CONTACTS");
     if (error) {
       throw error;
     }
@@ -46,6 +47,7 @@ export default function DuplicatesPage() {
       .select("*, dup_stack_contacts(*, contact:contacts(*, companies(*)))")
       .limit(PAGE_SIZE)
       .eq("workspace_id", workspace.id)
+      .eq("item_type", "CONTACTS")
       .order("created_at", { ascending: true });
 
     if (nextCursor) {
