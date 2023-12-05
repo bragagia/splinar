@@ -3,9 +3,9 @@ import { Database } from "@/types/supabase";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
-} from "@/workers/dedup/dup-stacks/install-dup-stacks";
-import { fullFetch } from "@/workers/dedup/fetch/full-fetch";
-import { installSimilarities } from "@/workers/dedup/similarity/install-similarities";
+} from "@/workers/dedup/dup-stacks/install";
+import { fullFetch } from "@/workers/dedup/fetch/install";
+import { installSimilarities } from "@/workers/dedup/similarity/install";
 import { createClient } from "@supabase/supabase-js";
 import { Processor } from "bullmq";
 import console from "console";

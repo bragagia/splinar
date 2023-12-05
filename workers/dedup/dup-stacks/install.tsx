@@ -1,11 +1,5 @@
 import { Database } from "@/types/supabase";
-import { areContactsDups } from "@/workers/dedup/dup-stacks/are-contacts-dups";
-import {
-  createContactsDupstack,
-  fetchNextContactReference,
-  fetchSimilarContactsSortedByFillScore,
-  resolveNextDuplicatesStack,
-} from "@/workers/dedup/dup-stacks/resolve-duplicates-stack";
+import { updateDupStacks } from "@/workers/dedup/dup-stacks/update";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function installDupStacks(
@@ -28,34 +22,6 @@ export async function installDupStacks(
     },
     30
   );
-}
-
-export async function updateDupStacks(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string,
-  callbackOnInterval?: () => Promise<void>,
-  intervalCallback: number = 5
-) {
-  let counter = 0;
-
-  do {
-    const hasFoundContact = await resolveNextDuplicatesStack(
-      supabase,
-      workspaceId,
-      areContactsDups,
-      fetchNextContactReference,
-      fetchSimilarContactsSortedByFillScore,
-      createContactsDupstack
-    );
-    if (!hasFoundContact) {
-      return counter;
-    }
-
-    counter++;
-    if (callbackOnInterval && counter % intervalCallback === 0) {
-      await callbackOnInterval();
-    }
-  } while (true);
 }
 
 export async function updateDupStackInstallationTotal(

@@ -1,5 +1,5 @@
 import { Database } from "@/types/supabase";
-import { similaritiesBatchEval } from "@/workers/dedup/similarity/similarities-batch-eval";
+import { similaritiesUpdateBatch } from "@/workers/dedup/similarity/update-batch";
 import { createClient } from "@supabase/supabase-js";
 import { Processor } from "bullmq";
 import console from "console";
@@ -25,7 +25,7 @@ export const similaritiesBatchEvalProcessor: Processor<
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  await similaritiesBatchEval(
+  await similaritiesUpdateBatch(
     supabaseAdmin,
     job.data.workspaceId,
     job.data.table,

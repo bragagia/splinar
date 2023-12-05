@@ -1,7 +1,31 @@
 import { uuid } from "@/lib/uuid";
-import { CompanyType } from "@/types/database-types";
+import { CompanyType, SUPABASE_FILTER_MAX_SIZE } from "@/types/database-types";
 import { Database } from "@/types/supabase";
+import { SupabaseClient } from "@supabase/supabase-js";
 import stringSimilarity from "string-similarity";
+
+export async function fetchCompaniesBatch(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  batchIds: string[]
+) {
+  let batch: CompanyType[] = [];
+
+  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { data: batchSlice, error } = await supabase
+      .from("companies")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
+    if (error || !batchSlice) {
+      throw error;
+    }
+
+    batch.push(...batchSlice);
+  }
+
+  return batch;
+}
 
 export function companiesSimilarityCheck(
   workspaceId: string,

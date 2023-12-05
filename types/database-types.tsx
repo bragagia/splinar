@@ -46,6 +46,21 @@ export function isAContactWithCompaniesAndSimilaritiesType(
 
 export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 
+export type CompanyWithSimilaritiesType = MergeDeep<
+  CompanyType,
+  {
+    company_similarities: CompanySimilarityType[];
+  }
+>;
+
+export type CompanyWithRawSimilaritiesType = MergeDeep<
+  CompanyType,
+  {
+    similarities_a: ContactSimilarityType[];
+    similarities_b: ContactSimilarityType[];
+  }
+>;
+
 export type ContactToCompany =
   Database["public"]["Tables"]["contact_companies"]["Row"];
 
