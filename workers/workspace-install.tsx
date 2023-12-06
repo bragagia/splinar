@@ -39,31 +39,36 @@ export const workspaceInstallProcessor: Processor<
   // RESET
 
   if (reset) {
-    await supabaseAdmin
+    const { error: error1 } = await supabaseAdmin
       .from("dup_stack_companies")
       .delete()
       .eq("workspace_id", workspaceId);
+    if (error1) throw error1;
 
-    await supabaseAdmin
+    const { error: error2 } = await supabaseAdmin
       .from("dup_stack_contacts")
       .delete()
       .eq("workspace_id", workspaceId);
+    if (error2) throw error2;
 
-    await supabaseAdmin
+    const { error: error3 } = await supabaseAdmin
       .from("dup_stacks")
       .delete()
       .eq("workspace_id", workspaceId);
+    if (error3) throw error3;
 
     if (reset === "full" || reset === "similarities_and_dup") {
-      await supabaseAdmin
+      const { error: error4 } = await supabaseAdmin
         .from("company_similarities")
         .delete()
         .eq("workspace_id", workspaceId);
+      if (error4) throw error4;
 
-      await supabaseAdmin
+      const { error: error5 } = await supabaseAdmin
         .from("contact_similarities")
         .delete()
         .eq("workspace_id", workspaceId);
+      if (error5) throw error5;
     }
 
     let workspaceUpdate: Partial<WorkspaceType> = {
@@ -71,20 +76,23 @@ export const workspaceInstallProcessor: Processor<
     };
 
     if (reset === "full") {
-      await supabaseAdmin
+      const { error: error6 } = await supabaseAdmin
         .from("contact_companies")
         .delete()
         .eq("workspace_id", workspaceId);
+      if (error6) throw error6;
 
-      await supabaseAdmin
+      const { error: error7 } = await supabaseAdmin
         .from("contacts")
         .delete()
         .eq("workspace_id", workspaceId);
+      if (error7) throw error7;
 
-      await supabaseAdmin
+      const { error: error8 } = await supabaseAdmin
         .from("companies")
         .delete()
         .eq("workspace_id", workspaceId);
+      if (error8) throw error8;
 
       workspaceUpdate.installation_fetched = false;
       workspaceUpdate.installation_dup_total = 0;
@@ -110,16 +118,18 @@ export const workspaceInstallProcessor: Processor<
         workspaceUpdate.installation_companies_similarities_done_batches = 0;
       }
 
-      await supabaseAdmin
+      const { error: error9 } = await supabaseAdmin
         .from("contacts")
         .update(update)
         .eq("workspace_id", workspaceId);
+      if (error9) throw error9;
     }
 
-    await supabaseAdmin
+    const { error: error10 } = await supabaseAdmin
       .from("workspaces")
       .update(workspaceUpdate)
       .eq("id", workspaceId);
+    if (error10) throw error10;
   }
 
   // INSTALL
@@ -128,10 +138,11 @@ export const workspaceInstallProcessor: Processor<
   let workspaceUpdatePending: Partial<WorkspaceType> = {
     installation_status: "PENDING",
   };
-  await supabaseAdmin
+  const { error: error1 } = await supabaseAdmin
     .from("workspaces")
     .update(workspaceUpdatePending)
     .eq("id", workspaceId);
+  if (error1) throw error1;
 
   const { data: workspace, error } = await supabaseAdmin
     .from("workspaces")
@@ -179,10 +190,11 @@ export const workspaceInstallProcessor: Processor<
   let workspaceUpdateEnd: Partial<WorkspaceType> = {
     installation_status: "DONE",
   };
-  await supabaseAdmin
+  const { error: error2 } = await supabaseAdmin
     .from("workspaces")
     .update(workspaceUpdateEnd)
     .eq("id", workspaceId);
+  if (error2) throw error2;
 
   console.log(
     "### Install done",
