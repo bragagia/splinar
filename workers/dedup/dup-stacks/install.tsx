@@ -1,5 +1,8 @@
 import { Database } from "@/types/supabase";
-import { updateDupStacks } from "@/workers/dedup/dup-stacks/update";
+import {
+  updateCompaniesDupStacks,
+  updateContactsDupStacks,
+} from "@/workers/dedup/dup-stacks/update";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function installDupStacks(
@@ -9,7 +12,21 @@ export async function installDupStacks(
   const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
   const startTime = performance.now();
 
-  await updateDupStacks(
+  await updateContactsDupStacks(
+    supabase,
+    workspaceId,
+    async () => {
+      await updateDupStackInstallationDone(
+        supabase,
+        workspaceId,
+        startTime,
+        dupTotal
+      );
+    },
+    30
+  );
+
+  await updateCompaniesDupStacks(
     supabase,
     workspaceId,
     async () => {
@@ -28,14 +45,25 @@ export async function updateDupStackInstallationTotal(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  const { count: dupTotal, error } = await supabase
+  const { count: dupTotalContacts, error: errorContacts } = await supabase
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
-  if (error || dupTotal === null) {
-    throw error || new Error("missing count");
+  if (errorContacts || dupTotalContacts === null) {
+    throw errorContacts || new Error("missing count on contacts");
   }
+
+  const { count: dupTotalCompanies, error: errorCompanies } = await supabase
+    .from("companies")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("dup_checked", false);
+  if (errorCompanies || dupTotalCompanies === null) {
+    throw errorCompanies || new Error("missing count on companies");
+  }
+
+  const dupTotal = dupTotalContacts + dupTotalCompanies;
 
   const { error: errorUpdate } = await supabase
     .from("workspaces")
@@ -57,15 +85,27 @@ async function updateDupStackInstallationDone(
   startTime: number,
   dupTotal: number
 ) {
-  const { count: dupTodo, error } = await supabase
+  const { count: dupContactsTodo, error: errorContacts } = await supabase
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", false);
-  if (error || dupTodo === null) {
-    console.log(error || new Error("missing count"));
+  if (errorContacts || dupContactsTodo === null) {
+    console.log(errorContacts || new Error("missing count"));
     return;
   }
+
+  const { count: dupCompaniesTodo, error: errorCompanies } = await supabase
+    .from("companies")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("dup_checked", false);
+  if (errorCompanies || dupCompaniesTodo === null) {
+    console.log(errorCompanies || new Error("missing count"));
+    return;
+  }
+
+  const dupTodo = dupContactsTodo + dupCompaniesTodo;
 
   const { error: errorUpdate } = await supabase
     .from("workspaces")

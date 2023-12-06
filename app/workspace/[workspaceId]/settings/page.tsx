@@ -50,12 +50,14 @@ export default function WorkspaceSettingsPage() {
   return (
     <div className="flex-1 space-y-4 w-full">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Workspace settings
+        </h2>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Dangerous zone</CardTitle>
+          <CardTitle className="text-xl">Dangerous zone</CardTitle>
           <CardDescription>Here there is no going back</CardDescription>
         </CardHeader>
 

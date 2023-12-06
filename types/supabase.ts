@@ -398,6 +398,76 @@ export interface Database {
           }
         ]
       }
+      merged_companies: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          domain: string | null
+          facebook_company_page: string | null
+          hs_id: number
+          id: string
+          linkedin_company_page: string | null
+          merged_in_hs_id: number
+          name: string | null
+          owner_hs_id: number | null
+          phone: string | null
+          state: string | null
+          twitterhandle: string | null
+          website: string | null
+          workspace_id: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          domain?: string | null
+          facebook_company_page?: string | null
+          hs_id: number
+          id?: string
+          linkedin_company_page?: string | null
+          merged_in_hs_id: number
+          name?: string | null
+          owner_hs_id?: number | null
+          phone?: string | null
+          state?: string | null
+          twitterhandle?: string | null
+          website?: string | null
+          workspace_id: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          domain?: string | null
+          facebook_company_page?: string | null
+          hs_id?: number
+          id?: string
+          linkedin_company_page?: string | null
+          merged_in_hs_id?: number
+          name?: string | null
+          owner_hs_id?: number | null
+          phone?: string | null
+          state?: string | null
+          twitterhandle?: string | null
+          website?: string | null
+          workspace_id?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merged_companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       merged_contacts: {
         Row: {
           companies_hs_id: number[] | null
@@ -527,6 +597,15 @@ export interface Database {
           workspace_id_arg: string
         }
         Returns: undefined
+      }
+      get_merged_companies_by_months: {
+        Args: {
+          workspace_id_arg: string
+        }
+        Returns: {
+          month: string
+          count: number
+        }[]
       }
       get_merged_contacts_by_months: {
         Args: {

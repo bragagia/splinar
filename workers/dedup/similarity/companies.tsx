@@ -1,5 +1,7 @@
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
-import { CompanyType, SUPABASE_FILTER_MAX_SIZE } from "@/types/database-types";
+import { CompanyType } from "@/types/companies";
+import { InsertCompanySimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import stringSimilarity from "string-similarity";
@@ -36,21 +38,19 @@ export function companiesSimilarityCheck(
     return undefined;
   }
 
-  let similarities: Database["public"]["Tables"]["company_similarities"]["Insert"][] =
-    [];
+  let similarities: InsertCompanySimilarityType[] = [];
 
-  const similarityBase: Database["public"]["Tables"]["company_similarities"]["Insert"] =
-    {
-      workspace_id: workspaceId,
-      company_a_id: companyA.id,
-      company_b_id: companyB.id,
+  const similarityBase: InsertCompanySimilarityType = {
+    workspace_id: workspaceId,
+    company_a_id: companyA.id,
+    company_b_id: companyB.id,
 
-      // Boilerplate, will be replaced later
-      field_type: "name",
-      company_a_value: "",
-      company_b_value: "",
-      similarity_score: "unlikely",
-    };
+    // Boilerplate, will be replaced later
+    field_type: "name",
+    company_a_value: "",
+    company_b_value: "",
+    similarity_score: "unlikely",
+  };
 
   // Name
   if (companyA.name && companyB.name) {
@@ -58,14 +58,13 @@ export function companiesSimilarityCheck(
     let bName = companyB.name.trim().toLowerCase().replaceAll("  ", " ");
 
     if (aName !== "" && bName !== "") {
-      const nameSimilarityBase: Database["public"]["Tables"]["company_similarities"]["Insert"] =
-        {
-          ...similarityBase,
-          id: uuid(),
-          field_type: "name",
-          company_a_value: aName,
-          company_b_value: bName,
-        };
+      const nameSimilarityBase: InsertCompanySimilarityType = {
+        ...similarityBase,
+        id: uuid(),
+        field_type: "name",
+        company_a_value: aName,
+        company_b_value: bName,
+      };
 
       if (aName == bName) {
         similarities.push({

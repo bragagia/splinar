@@ -1,8 +1,7 @@
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
-import {
-  ContactWithCompaniesType,
-  SUPABASE_FILTER_MAX_SIZE,
-} from "@/types/database-types";
+import { ContactWithCompaniesType } from "@/types/contacts";
+import { InsertContactSimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import stringSimilarity from "string-similarity";
@@ -39,21 +38,19 @@ export function contactSimilarityCheck(
     return undefined;
   }
 
-  let similarities: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
-    [];
+  let similarities: InsertContactSimilarityType[] = [];
 
-  const similarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
-    {
-      workspace_id: workspaceId,
-      contact_a_id: contactA.id,
-      contact_b_id: contactB.id,
+  const similarityBase: InsertContactSimilarityType = {
+    workspace_id: workspaceId,
+    contact_a_id: contactA.id,
+    contact_b_id: contactB.id,
 
-      // Boilerplate, will be replaced later
-      field_type: "fullname",
-      contact_a_value: "",
-      contact_b_value: "",
-      similarity_score: "unlikely",
-    };
+    // Boilerplate, will be replaced later
+    field_type: "fullname",
+    contact_a_value: "",
+    contact_b_value: "",
+    similarity_score: "unlikely",
+  };
 
   // Name
   let aFullName = [contactA.first_name, contactA.last_name]
@@ -70,14 +67,13 @@ export function contactSimilarityCheck(
     .replaceAll("  ", " ");
 
   if (aFullName !== "" && bFullName !== "") {
-    const fullNameSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
-      {
-        ...similarityBase,
-        id: uuid(),
-        field_type: "fullname",
-        contact_a_value: aFullName,
-        contact_b_value: bFullName,
-      };
+    const fullNameSimilarityBase: InsertContactSimilarityType = {
+      ...similarityBase,
+      id: uuid(),
+      field_type: "fullname",
+      contact_a_value: aFullName,
+      contact_b_value: bFullName,
+    };
 
     if (aFullName == bFullName) {
       similarities.push({
@@ -107,14 +103,13 @@ export function contactSimilarityCheck(
   // Emails
   contactA.emails?.forEach((emailA) => {
     contactB.emails?.forEach((emailB) => {
-      const emailSimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
-        {
-          ...similarityBase,
-          id: uuid(),
-          field_type: "email",
-          contact_a_value: emailA,
-          contact_b_value: emailB,
-        };
+      const emailSimilarityBase: InsertContactSimilarityType = {
+        ...similarityBase,
+        id: uuid(),
+        field_type: "email",
+        contact_a_value: emailA,
+        contact_b_value: emailB,
+      };
 
       emailA = emailA.trim();
       emailB = emailB.trim();
@@ -207,14 +202,13 @@ export function contactSimilarityCheck(
   // Companies
   contactA.companies?.forEach((companyA) => {
     contactB.companies?.forEach((companyB) => {
-      const companySimilarityBase: Database["public"]["Tables"]["contact_similarities"]["Insert"] =
-        {
-          ...similarityBase,
-          id: uuid(),
-          field_type: "company",
-          contact_a_value: companyA.name || companyA.id,
-          contact_b_value: companyB.name || companyB.id,
-        };
+      const companySimilarityBase: InsertContactSimilarityType = {
+        ...similarityBase,
+        id: uuid(),
+        field_type: "company",
+        contact_a_value: companyA.name || companyA.id,
+        contact_b_value: companyB.name || companyB.id,
+      };
 
       if (companyA.id === companyB.id) {
         similarities.push({
@@ -242,9 +236,7 @@ export function contactSimilarityCheck(
   };
 
   let filtered: {
-    [
-      key: string
-    ]: Database["public"]["Tables"]["contact_similarities"]["Insert"];
+    [key: string]: InsertContactSimilarityType;
   } = {};
 
   for (let entry of similarities) {
@@ -257,8 +249,7 @@ export function contactSimilarityCheck(
     }
   }
 
-  const filteredValues: Database["public"]["Tables"]["contact_similarities"]["Insert"][] =
-    Object.values(filtered);
+  const filteredValues: InsertContactSimilarityType[] = Object.values(filtered);
 
   return filteredValues;
 }

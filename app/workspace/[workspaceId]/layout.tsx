@@ -7,8 +7,8 @@ import {
 } from "@/app/workspace/[workspaceId]/workspace-installtion-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
 import { URLS } from "@/lib/urls";
-import { WorkspaceType } from "@/types/database-types";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/types/workspaces";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";

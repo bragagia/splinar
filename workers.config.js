@@ -7,7 +7,7 @@ module.exports = {
       interpreter: "/opt/homebrew/bin/tsx",
       interpreter_args: "--watch",
       time: true,
-      instances: 8,
+      instances: 4,
 
       env: {
         NODE_ENV: "development",
@@ -32,7 +32,7 @@ module.exports = {
       interpreter: "/opt/homebrew/bin/tsx",
       interpreter_args: "--watch",
       time: true,
-      instances: 2,
+      instances: 1,
 
       env: {
         NODE_ENV: "development",

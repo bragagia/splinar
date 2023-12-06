@@ -1,5 +1,6 @@
-import { ContactType, WorkspaceType } from "@/types/database-types";
+import { ContactType } from "@/types/contacts";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/types/workspaces";
 import {
   installDupStacks,
   updateDupStackInstallationTotal,
@@ -54,6 +55,11 @@ export const workspaceInstallProcessor: Processor<
       .eq("workspace_id", workspaceId);
 
     if (reset === "full" || reset === "similarities_and_dup") {
+      await supabaseAdmin
+        .from("company_similarities")
+        .delete()
+        .eq("workspace_id", workspaceId);
+
       await supabaseAdmin
         .from("contact_similarities")
         .delete()

@@ -1,12 +1,13 @@
 "use server";
 
 import { newHubspotClient } from "@/lib/hubspot";
+import { InsertMergedContactType } from "@/types/contacts";
 import {
   DupStackWithContactsAndCompaniesType,
   getDupstackConfidents,
   getDupstackPotentials,
   getDupstackReference,
-} from "@/types/database-types";
+} from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import { captureException } from "@sentry/node";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
@@ -67,8 +68,8 @@ export async function contactMerge(
     })
   );
 
-  const mergedContacts: Database["public"]["Tables"]["merged_contacts"]["Insert"][] =
-    contactsToMerge.map((contact) => ({
+  const mergedContacts: InsertMergedContactType[] = contactsToMerge.map(
+    (contact) => ({
       workspace_id: workspaceId,
       hs_id: contact.contact?.hs_id || 0,
       merged_in_hs_id: referenceContact.contact?.hs_id || 0,
@@ -81,7 +82,8 @@ export async function contactMerge(
         (company) => company.hs_id
       ),
       company_name: contact.contact?.company_name,
-    }));
+    })
+  );
 
   const { error } = await supabase
     .from("merged_contacts")

@@ -1,5 +1,4 @@
-import { ContactWithCompaniesType } from "@/types/database-types";
-import { Database } from "@/types/supabase";
+import { ContactWithCompaniesType, InsertContactType } from "@/types/contacts";
 
 export type ContactFieldsType = "fullname" | "email" | "phone" | "company";
 export const ContactFieldsCount = 4;
@@ -28,7 +27,7 @@ export function listContactField(contact: ContactWithCompaniesType) {
 }
 
 export function calcContactFilledScore(
-  contact: Database["public"]["Tables"]["contacts"]["Insert"],
+  contact: InsertContactType,
   hasCompanies: boolean
 ) {
   let score = 0;

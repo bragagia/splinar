@@ -1,5 +1,7 @@
 import { uuid } from "@/lib/uuid";
+import { InsertCompanyType } from "@/types/companies";
 import { Database } from "@/types/supabase";
+import { calcCompanyFilledScore } from "@/workers/dedup/list-company-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -41,7 +43,7 @@ export async function fetchCompanies(
     }
 
     let dbCompanies = companies.map((company) => {
-      let dbCompany: Database["public"]["Tables"]["companies"]["Insert"] = {
+      let dbCompany: InsertCompanyType = {
         id: uuid(),
         workspace_id: workspaceId,
         hs_id: parseInt(company.id),
@@ -66,8 +68,10 @@ export async function fetchCompanies(
 
         dup_checked: false,
         similarity_checked: false,
-        filled_score: 0, // ! TODO:
+        filled_score: 0,
       };
+
+      dbCompany.filled_score = calcCompanyFilledScore(dbCompany);
 
       return dbCompany;
     });

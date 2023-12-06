@@ -1,10 +1,14 @@
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
 import {
-  ContactSimilarityType,
   ContactWithCompaniesAndRawSimilaritiesType,
   ContactWithCompaniesAndSimilaritiesType,
-  SUPABASE_FILTER_MAX_SIZE,
-} from "@/types/database-types";
+} from "@/types/contacts";
+import {
+  InsertDupStackContactItemType,
+  InsertDupStackType,
+} from "@/types/dupstacks";
+import { ContactSimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
 import { GenericDupStack } from "@/workers/dedup/dup-stacks/resolve-next-dup-stack";
 import {
@@ -281,37 +285,34 @@ export async function createContactsDupstack(
   genericDupstack: GenericDupStack
 ) {
   const dupstackId = uuid();
-  const dupstack: Database["public"]["Tables"]["dup_stacks"]["Insert"] = {
+  const dupstack: InsertDupStackType = {
     id: dupstackId,
     workspace_id: workspaceId,
     item_type: "CONTACTS",
   };
 
-  const dupstackContacts: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"][] =
-    [];
+  const dupstackContacts: InsertDupStackContactItemType[] = [];
 
   dupstackContacts.push(
     ...genericDupstack.confident_ids.map((id, i) => {
-      const ret: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"] =
-        {
-          contact_id: id,
-          dup_type: i === 0 ? "REFERENCE" : "CONFIDENT",
-          dupstack_id: dupstackId,
-          workspace_id: dupstack.workspace_id,
-        };
+      const ret: InsertDupStackContactItemType = {
+        contact_id: id,
+        dup_type: i === 0 ? "REFERENCE" : "CONFIDENT",
+        dupstack_id: dupstackId,
+        workspace_id: dupstack.workspace_id,
+      };
       return ret;
     })
   );
 
   dupstackContacts.push(
     ...genericDupstack.potential_ids.map((id, i) => {
-      const ret: Database["public"]["Tables"]["dup_stack_contacts"]["Insert"] =
-        {
-          contact_id: id,
-          dup_type: "POTENTIAL",
-          dupstack_id: dupstackId,
-          workspace_id: dupstack.workspace_id,
-        };
+      const ret: InsertDupStackContactItemType = {
+        contact_id: id,
+        dup_type: "POTENTIAL",
+        dupstack_id: dupstackId,
+        workspace_id: dupstack.workspace_id,
+      };
       return ret;
     })
   );

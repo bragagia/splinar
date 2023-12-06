@@ -60,8 +60,8 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
   }
   itemsCacheById[referenceItem.id] = referenceItem;
 
-  // We recursively check if this contacts or its supposed duplicates have other duplicates to create
-  // a "stack" of duplicates. Any contact added to the stack is removed from the checklist to never
+  // We recursively check if this item or its supposed duplicates have other duplicates to create
+  // a "stack" of duplicates. Any item added to the stack is removed from the checklist to never
   // be added to another stack
 
   let dupStack: GenericDupStack = {
@@ -144,8 +144,8 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
 
   try {
     await addChildsToStack(referenceItem.id, false);
-  } catch (newReferenceContact) {
-    if (isAT(newReferenceContact)) {
+  } catch (newReferenceItem) {
+    if (isAT(newReferenceItem)) {
       return await resolveNextDuplicatesStack(
         supabase,
         workspaceId,
@@ -155,10 +155,10 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
         createDupstack,
         markDupstackElementsAsDupChecked,
         itemsCacheById,
-        newReferenceContact
+        newReferenceItem
       );
     } else {
-      throw newReferenceContact;
+      throw newReferenceItem;
     }
   }
 

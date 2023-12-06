@@ -2,7 +2,7 @@ import {
   newSimilaritiesBatchEvalQueueEvents,
   similaritiesBatchEvalQueueAdd,
 } from "@/lib/queues/similarities-batch-eval";
-import { SUPABASE_FILTER_MAX_SIZE } from "@/types/database-types";
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SimilaritiesBatchEvalWorkerArgs } from "@/workers/similarities-batch-eval";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
