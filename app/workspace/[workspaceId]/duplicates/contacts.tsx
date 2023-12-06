@@ -1,6 +1,6 @@
+import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import { DupItemTypeType } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { DupStackRowInfos } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
-import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/page";
 import { URLS } from "@/lib/urls";
 import { DupStackContactItemWithContactAndCompaniesType } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";

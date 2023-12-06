@@ -9,6 +9,7 @@ import {
   saveNewCompanyDupType,
   sortCompaniesItems,
 } from "@/app/workspace/[workspaceId]/duplicates/companies";
+import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import {
   getContactCardTitle,
   getContactRowInfos,
@@ -21,10 +22,10 @@ import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DupStackWithCompaniesType,
   DupStackCompanyItemWithCompanyType,
-  DupStackWithContactsAndCompaniesType,
   DupStackContactItemWithContactAndCompaniesType,
+  DupStackWithCompaniesType,
+  DupStackWithContactsAndCompaniesType,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import {
@@ -35,8 +36,6 @@ import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
 export const dynamic = "force-dynamic";
-
-export const PAGE_SIZE = 25;
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
