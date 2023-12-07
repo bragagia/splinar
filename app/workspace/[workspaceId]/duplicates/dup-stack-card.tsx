@@ -6,6 +6,7 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
+import { SpButton, SpIconButton } from "@/components/sp-button";
 import {
   Card,
   CardContent,
@@ -13,12 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   DupStackItemBase,
   DupStackType,
   getDupstackConfidentsAndReference,
-  getDupstackReference,
   getDupstackPotentials,
+  getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import {
@@ -69,6 +71,7 @@ export function DupStackCard<
   const [cachedDupStack, setCachedDupStack] = useState<DupstackT>(dupStack);
   const [merged, setMerged] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [allExpanded, setAllExpanded] = useState(false);
 
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
 
@@ -130,36 +133,52 @@ export function DupStackCard<
     getDupstackConfidentsAndReference(cachedDupStack);
   const potentials = getDupstackPotentials(cachedDupStack);
 
+  const isExpandable =
+    getRowInfos(workspace.hub_id, reference).columns.length > 4;
+
   return (
-    <Card className="grow shadow-lg">
+    <Card className="grow shadow-lg group/card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg flex flex-row items-center gap-2">
-          {cardTitle}
+        <CardTitle className="text-lg flex flex-row items-center gap-2 justify-between w-full">
+          <div>
+            {cardTitle}
 
-          {loading && (
-            <span className="flex flex-row items-center gap-1 text-gray-500">
-              <Icons.spinner className="h-4 w-4 animate-spin" />
-              <span className="text-xs font-light">merging</span>
-            </span>
-          )}
+            {loading && (
+              <span className="flex flex-row items-center gap-1 text-gray-500">
+                <Icons.spinner className="h-4 w-4 animate-spin" />
+                <span className="text-xs font-light">merging</span>
+              </span>
+            )}
 
-          {merged && (
-            <span className="flex flex-row items-center gap-1 text-gray-500">
-              <Icons.check className="h-4 w-4" />
-              <span className="text-xs font-light">merged</span>
+            {merged && (
+              <span className="flex flex-row items-center gap-1 text-gray-500">
+                <Icons.check className="h-4 w-4" />
+                <span className="text-xs font-light">merged</span>
 
-              <div className="flex ml-1">
-                <a
-                  href={getRowInfos(workspace.hub_id, reference).hubspotLink}
-                  target="_blank"
-                  className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
-                >
-                  <span className="flex w-3 h-3 items-center justify-center">
-                    <Icons.hubspot />
-                  </span>
-                </a>
-              </div>
-            </span>
+                <div className="flex ml-1">
+                  <a
+                    href={getRowInfos(workspace.hub_id, reference).hubspotLink}
+                    target="_blank"
+                    className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
+                  >
+                    <span className="flex w-3 h-3 items-center justify-center">
+                      <Icons.hubspot />
+                    </span>
+                  </a>
+                </div>
+              </span>
+            )}
+          </div>
+
+          {isExpandable && (
+            <SpIconButton
+              variant={allExpanded ? "ghostActivated" : "ghost"}
+              className={
+                !allExpanded ? "invisible group-hover/card:visible" : ""
+              }
+              icon={Icons.maximize}
+              onClick={() => setAllExpanded(!allExpanded)}
+            />
           )}
         </CardTitle>
       </CardHeader>
@@ -167,47 +186,72 @@ export function DupStackCard<
       {!loading && !merged && (
         <>
           <CardContent>
-            <div className="flex flex-col gap-y-1">
+            <div className="flex flex-col">
               {sortItems(confidentsAndReference).map((dupStackItem, i) => (
-                <DupStackCardRow
-                  key={i}
-                  rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                  isReference={dupStackItem.dup_type === "REFERENCE"}
-                  onUpdateDupType={onUpdateDupType(
-                    getDupstackItemId(dupStackItem)
+                <div key={i}>
+                  {i !== 0 && (
+                    <div
+                      className={cn(
+                        "w-full",
+                        { "border-b border-gray-100": !allExpanded },
+                        { "border-b-2 border-gray-300": allExpanded }
+                      )}
+                    ></div>
                   )}
-                />
+
+                  <DupStackCardRow
+                    rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                    isReference={dupStackItem.dup_type === "REFERENCE"}
+                    onUpdateDupType={onUpdateDupType(
+                      getDupstackItemId(dupStackItem)
+                    )}
+                    expand={allExpanded}
+                  />
+                </div>
               ))}
 
-              <button
+              <SpButton
+                variant="outline"
+                icon={Icons.merge}
                 onClick={onMerge}
-                className="flex flex-row justify-center gap-1 items-center border border-black rounded-md text-sm px-2 py-1 hover:border-gray-500 hover:text-gray-600 disabled:text-gray-400 disabled:border-gray-300"
                 disabled={
                   !confidentsAndReference || confidentsAndReference.length <= 1
                 }
+                className="mt-2"
               >
-                <Icons.merge className="w-4 h-4" />
                 Merge {confidentsAndReference.length} {itemWordName}
-              </button>
+              </SpButton>
             </div>
           </CardContent>
 
           {potentials && potentials.length > 0 && (
             <CardGrayedContent>
-              <div className="flex flex-col gap-y-1 pt-2">
+              <div className="flex flex-col pt-2">
                 <p className="text-xs text-gray-600 py-1">
                   Potentials matches:
                 </p>
 
                 {sortItems(potentials).map((dupStackItem, i) => (
-                  <DupStackCardRow
-                    key={i}
-                    rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                    isPotential
-                    onUpdateDupType={onUpdateDupType(
-                      getDupstackItemId(dupStackItem)
+                  <div key={i}>
+                    {i !== 0 && (
+                      <div
+                        className={cn(
+                          "w-full border-b",
+                          { "border-b border-gray-200": !allExpanded },
+                          { "border-b-2 border-gray-300": allExpanded }
+                        )}
+                      ></div>
                     )}
-                  />
+
+                    <DupStackCardRow
+                      rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                      isPotential
+                      onUpdateDupType={onUpdateDupType(
+                        getDupstackItemId(dupStackItem)
+                      )}
+                      expand={allExpanded}
+                    />
+                  </div>
                 ))}
               </div>
             </CardGrayedContent>

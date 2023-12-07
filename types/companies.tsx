@@ -7,7 +7,7 @@ export type CompanyType = Database["public"]["Tables"]["companies"]["Row"];
 export type InsertCompanyType =
   Database["public"]["Tables"]["companies"]["Insert"];
 
-export function getCompanyAdress(company: CompanyType) {
+export function getCompanyAddress(company: CompanyType) {
   return [
     company.address,
     company.zip,

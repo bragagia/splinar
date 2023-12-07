@@ -1,8 +1,14 @@
 import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import { DupItemTypeType } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
-import { DupStackRowInfos } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
+import {
+  DupStackRowInfos,
+  FacebookLinkButton,
+  LinkedinLinkButton,
+  StandardLinkButton,
+  TwitterLinkButton,
+} from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { URLS } from "@/lib/urls";
-import { getCompanyAdress } from "@/types/companies";
+import { getCompanyAddress } from "@/types/companies";
 import { DupStackCompanyItemWithCompanyType } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -91,19 +97,63 @@ export function getCompanyRowInfos(
     columns: [
       {
         value: company.name,
-        style: "text-black font-medium basis-48",
+        style: "text-black font-medium",
+        tips: "Name",
       },
+
       {
-        value: company.domain,
-        style: "text-gray-700 basis-48",
+        value: company.domain ? (
+          <StandardLinkButton href={company.domain}>
+            {company.domain}
+          </StandardLinkButton>
+        ) : null,
+        style: "text-gray-700",
+        tips: "Domain",
       },
+
       {
-        value: getCompanyAdress(company),
-        style: "text-gray-700 basis-80",
+        value: company.linkedin_company_page ? (
+          <LinkedinLinkButton href={company.linkedin_company_page}>
+            {company.linkedin_company_page?.replace(
+              /.*linkedin\.com(\/company)?\//,
+              ""
+            )}
+          </LinkedinLinkButton>
+        ) : null,
+        style: "text-gray-700",
+        tips: "Linkedin page",
       },
+
       {
         value: company.phone,
-        style: "text-gray-700 basis-48",
+        style: "text-gray-700",
+        tips: "Phone number",
+      },
+
+      {
+        value: getCompanyAddress(company),
+        style: "text-gray-700 text-xs",
+        tips: "Physical address",
+      },
+
+      {
+        value: company.facebook_company_page ? (
+          <FacebookLinkButton href={company.facebook_company_page}>
+            {company.facebook_company_page?.replace(/.*facebook\.com\//, "")}
+          </FacebookLinkButton>
+        ) : null,
+        style: "text-gray-700",
+        tips: "Facebook page",
+      },
+
+      {
+        value: company.twitterhandle ? (
+          <TwitterLinkButton href={"https://x.com/" + company.twitterhandle}>
+            {company.twitterhandle}
+          </TwitterLinkButton>
+        ) : null,
+        style: "text-gray-700",
+        tips: "X/Twitter page",
       },
     ],
   };

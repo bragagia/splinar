@@ -102,19 +102,23 @@ export function getContactRowInfos(
     columns: [
       {
         value: fullname,
-        style: "text-black font-medium basis-64",
+        style: "text-black font-medium",
+        tips: "Full name",
       },
       {
         value: contact.emails,
-        style: "text-gray-700 basis-80",
+        style: "text-gray-700",
+        tips: "Emails",
       },
       {
         value: contact.phones,
-        style: "text-gray-700 basis-48",
+        style: "text-gray-700",
+        tips: "Phone numbers",
       },
       {
         value: contact.companies.map((company) => company.name || ""),
-        style: "text-gray-700 basis-32",
+        style: "text-gray-700",
+        tips: "Companies",
       },
     ],
   };
