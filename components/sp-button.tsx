@@ -13,10 +13,10 @@ const spButtonVariants = cva("border rounded-lg text-sm", {
         "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900",
 
       outline:
-        "text-black border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white",
+        "text-black border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white disabled:text-gray-400 disabled:border-gray-300",
 
       ghostActivated:
-        "text-gray-500 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
+        "text-gray-600 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
 
       full: "bg-gray-500 border-gray-500 text-gray-100 hover:bg-gray-700 hover:border-gray-700",
       // link: "text-primary underline-offset-4 hover:underline",
