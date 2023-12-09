@@ -93,12 +93,15 @@ export function getCompanyRowInfos(
   }
 
   return {
-    hubspotLink: URLS.external.hubspotCompany(workspaceHubId, company.hs_id),
     columns: [
       {
         value: company.name,
         style: "text-black font-medium",
         tips: "Name",
+        hubspotLink: URLS.external.hubspotCompany(
+          workspaceHubId,
+          company.hs_id
+        ),
       },
 
       {

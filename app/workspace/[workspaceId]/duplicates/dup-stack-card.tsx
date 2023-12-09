@@ -157,7 +157,10 @@ export function DupStackCard<
 
                 <div className="flex ml-1">
                   <a
-                    href={getRowInfos(workspace.hub_id, reference).hubspotLink}
+                    href={
+                      getRowInfos(workspace.hub_id, reference).columns[0]
+                        .hubspotLink
+                    }
                     target="_blank"
                     className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
                   >

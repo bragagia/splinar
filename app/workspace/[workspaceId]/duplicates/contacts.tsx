@@ -98,12 +98,15 @@ export function getContactRowInfos(
   ).trim();
 
   return {
-    hubspotLink: URLS.external.hubspotContact(workspaceHubId, contact.hs_id),
     columns: [
       {
         value: fullname,
         style: "text-black font-medium",
         tips: "Full name",
+        hubspotLink: URLS.external.hubspotContact(
+          workspaceHubId,
+          contact.hs_id
+        ),
       },
       {
         value: contact.emails,

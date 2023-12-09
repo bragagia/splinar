@@ -15,7 +15,7 @@ export function similaritiesBatchEvalQueueAdd(
     {
       connection: newRedisClient(),
       defaultJobOptions: {
-        attempts: 1,
+        attempts: 7,
         backoff: {
           type: "exponential",
           delay: 5000,

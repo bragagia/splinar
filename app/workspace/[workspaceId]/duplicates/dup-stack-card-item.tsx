@@ -13,10 +13,10 @@ export type DupStackRowColumnType = {
   value: DupStackRowColumnValueType;
   style: string;
   tips: string;
+  hubspotLink?: string;
 };
 
 export type DupStackRowInfos = {
-  hubspotLink: string;
   columns: DupStackRowColumnType[];
 };
 
@@ -191,6 +191,59 @@ function DupStackRowInfo({
   );
 }
 
+function DupStackCardCell({
+  columnData,
+  isFirstLine,
+  isLastLine,
+  isCardExpanded,
+}: {
+  columnData?: DupStackRowColumnType;
+  isFirstLine: boolean;
+  isLastLine: boolean;
+  isCardExpanded: boolean;
+}) {
+  return (
+    <div
+      className={cn("p-1 border-transparent w-full", {
+        // "border-gray-100": !isPotential,
+        // "border-gray-200": isPotential,
+        // "border-t": expand && i / 4 >= 1,
+        // "border-l": expand && i % 4 !== 0,
+        "pt-3": isCardExpanded && isFirstLine,
+        "pb-3": isCardExpanded && isLastLine,
+        "pt-2": !isCardExpanded && isFirstLine,
+        "pb-2": !isCardExpanded && isLastLine,
+      })}
+    >
+      {columnData && (
+        <SpTooltip
+          className="flex flex-row items-center justify-center w-full h-full text-left"
+          tooltip={
+            columnData.hubspotLink
+              ? `Hubspot page (${columnData.tips})`
+              : columnData.tips
+          }
+          align="start"
+        >
+          {columnData.hubspotLink ? (
+            <HubspotLinkButton href={columnData.hubspotLink}>
+              <DupStackRowInfo
+                value={columnData.value}
+                className={columnData.style}
+              />
+            </HubspotLinkButton>
+          ) : (
+            <DupStackRowInfo
+              value={columnData.value}
+              className={columnData.style}
+            />
+          )}
+        </SpTooltip>
+      )}
+    </div>
+  );
+}
+
 export function DupStackCardRow({
   rowInfos,
   isPotential = false,
@@ -204,72 +257,54 @@ export function DupStackCardRow({
   onUpdateDupType: (newDupType: DupItemTypeType) => void;
   expand?: boolean;
 }) {
-  const firstLineUntil = 4;
+  const firstLineUntil = 3;
   const lastLineAfter =
-    rowInfos.columns.length - (((rowInfos.columns.length - 1) % 4) + 1);
-  const fillerCells = (4 - (rowInfos.columns.length % 4)) % 4;
+    rowInfos.columns.length - (((rowInfos.columns.length - 2) % 3) + 1);
+  //const fillerCells = (4 - (rowInfos.columns.length % 4)) % 4;
 
   return (
     <div className="flex flex-col group">
       <div className="flex flex-row gap-3 text-sm">
         <div className={cn("grid grid-cols-4 w-full")}>
-          {(expand ? rowInfos.columns : rowInfos.columns.slice(0, 4)).map(
-            (column, i) => (
-              <div
+          <div
+            className={cn(
+              "col-span-1 flex flex-row items-center justify-stretch w-full"
+            )}
+          >
+            <DupStackCardCell
+              columnData={rowInfos.columns[0]}
+              isFirstLine={true}
+              isLastLine={true}
+              isCardExpanded={expand}
+            />
+          </div>
+          <div className={cn("col-span-3 spa grid grid-cols-3 w-full")}>
+            {(expand
+              ? rowInfos.columns.slice(1)
+              : rowInfos.columns.slice(1).slice(0, 3)
+            ).map((column, i) => (
+              <DupStackCardCell
                 key={i}
-                className={cn("p-1 border-transparent", {
-                  // "border-gray-100": !isPotential,
-                  // "border-gray-200": isPotential,
-                  "border-t": expand && i / 4 >= 1,
-                  "border-l": expand && i % 4 !== 0,
-                  "pt-3": expand && i < firstLineUntil,
-                  "pb-3": expand && i >= lastLineAfter,
-                  "pt-2": !expand && i < firstLineUntil,
-                  "pb-2": !expand && i >= lastLineAfter,
-                })}
-              >
-                <SpTooltip
-                  className="flex flex-row items-center justify-center w-full h-full text-left"
-                  tooltip={
-                    i === 0 ? `Hubspot page (${column.tips})` : column.tips
-                  }
-                  align="start"
-                >
-                  {i === 0 ? (
-                    <HubspotLinkButton href={rowInfos.hubspotLink}>
-                      <DupStackRowInfo
-                        value={column.value}
-                        className={column.style}
-                      />
-                    </HubspotLinkButton>
-                  ) : (
-                    <DupStackRowInfo
-                      value={column.value}
-                      className={column.style}
-                    />
-                  )}
-                </SpTooltip>
-              </div>
-            )
-          )}
-
-          {expand &&
-            Array.from(
-              { length: fillerCells },
-              (_, i) => i + rowInfos.columns.length - 1
-            ).map((i) => (
-              <div
-                key={i}
-                className={cn(" p-1 border-transparent", {
-                  // "border-gray-100": !isPotential,
-                  // "border-gray-200": isPotential,
-                  "border-t": expand && i / 4 >= 1,
-                  "border-l": expand && i % 4 !== 0,
-                  "pt-3": expand && i < firstLineUntil,
-                  "pb-3": expand && i >= lastLineAfter,
-                })}
-              ></div>
+                columnData={column}
+                isFirstLine={i < firstLineUntil}
+                isLastLine={i >= lastLineAfter}
+                isCardExpanded={expand}
+              />
             ))}
+
+            {/* {expand &&
+              Array.from(
+                { length: fillerCells },
+                (_, i) => i + rowInfos.columns.length - 1
+              ).map((i) => (
+                <DupStackCardCell
+                  key={i}
+                  isFirstLine={i < firstLineUntil}
+                  isLastLine={i >= lastLineAfter}
+                  isCardExpanded={expand}
+                />
+              ))} */}
+          </div>
         </div>
 
         <div className="flex flex-row justify-end items-center gap-1">
