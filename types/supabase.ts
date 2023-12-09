@@ -517,6 +517,31 @@ export interface Database {
           }
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -652,6 +677,7 @@ export interface Database {
         | "unlikely"
       dup_stack_contact_type: "REFERENCE" | "CONFIDENT" | "POTENTIAL"
       dup_stack_item_type: "CONTACTS" | "COMPANIES"
+      user_role: "SUPERADMIN"
       workspace_installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR"
     }
     CompositeTypes: {

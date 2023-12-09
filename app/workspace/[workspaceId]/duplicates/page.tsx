@@ -1,7 +1,7 @@
 "use client";
 
-import { companiesMerge } from "@/app/serverActions/companies_merge";
-import { contactMerge } from "@/app/serverActions/contacts_merge";
+import { companiesMerge } from "@/app/serverActions/companies-merge";
+import { contactMerge } from "@/app/serverActions/contacts-merge";
 import {
   getCompanyCardTitle,
   getCompanyRowInfos,

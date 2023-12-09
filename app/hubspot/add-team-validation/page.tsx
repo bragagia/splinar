@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceInstall } from "@/app/serverActions/workspace-install";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,9 +87,7 @@ export default function AddTeamValidationPage({
 
     setStatus("LAUNCHING");
 
-    await fetch(URLS.workspace(workspaceId).api.install, {
-      method: "POST",
-    });
+    await workspaceInstall(workspaceId);
 
     router.push(URLS.workspace(workspaceId).dashboard);
   }

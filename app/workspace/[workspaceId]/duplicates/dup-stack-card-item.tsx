@@ -217,7 +217,7 @@ function DupStackCardCell({
     >
       {columnData && (
         <SpTooltip
-          className="flex flex-row items-center justify-center w-full h-full text-left"
+          className="flex flex-col items-start justify-center w-full h-full text-left"
           tooltip={
             columnData.hubspotLink
               ? `Hubspot page (${columnData.tips})`

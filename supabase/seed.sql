@@ -23,8 +23,9 @@ INSERT INTO
         email_change,
         email_change_token_new,
         recovery_token
-    ) (
-        select
+    )
+VALUES
+    (
             '00000000-0000-0000-0000-000000000000',
             'f30a6561-31f7-4d0a-b0b8-227677374bb0',
             'authenticated',
@@ -42,8 +43,25 @@ INSERT INTO
             '',
             '',
             ''
-        FROM
-            generate_series(1, 1)
+    ),
+    (
+            '00000000-0000-0000-0000-000000000000',
+            'c3ab550a-cd69-4b6b-bac0-0d7e5ae807c0',
+            'authenticated',
+            'authenticated',
+            'mathias+superadmin@localhost.com',
+            crypt ('password123', gen_salt ('bf')),
+            current_timestamp,
+            current_timestamp,
+            current_timestamp,
+            '{"provider":"email","providers":["email"]}',
+            '{}',
+            current_timestamp,
+            current_timestamp,
+            '',
+            '',
+            '',
+            ''
     );
 
 -- test user email identities
@@ -81,14 +99,16 @@ INSERT INTO
         hub_id,
         installation_status,
         installation_fetched,
-        installation_similarity_total_batches,
-        installation_similarity_done_batches,
+        installation_contacts_similarities_total_batches,
+        installation_contacts_similarities_done_batches,
+        installation_companies_similarities_total_batches,
+        installation_companies_similarities_done_batches,
         installation_dup_total,
         installation_dup_done
     )
 VALUES
     (
-        uuid_generate_v4 (),
+        '29b370ec-3e85-47ab-b597-5caa1140c4fb',
         '2023-11-06 15:12:35.332892+00',
         'f30a6561-31f7-4d0a-b0b8-227677374bb0',
         'eu1-2fed-c00d-4633-b154-5d03726492c0',
@@ -101,10 +121,12 @@ VALUES
         0,
         0,
         0,
+        0,
+        0,
         0
     ),
     (
-        uuid_generate_v4 (),
+        '6a96d8e3-2fee-48c0-ac4d-8bcc7796f126',
         '2023-10-17 19:49:45.033466+00',
         'f30a6561-31f7-4d0a-b0b8-227677374bb0',
         'eu1-8445-b7c8-40c8-a8ff-327909b06e60',
@@ -117,5 +139,36 @@ VALUES
         0,
         0,
         0,
+        0,
+        0,
         0
+    ),
+    (
+        'ff999615-0a90-45b5-8232-6f97fa4226ad',
+        '2023-10-17 19:49:45.033466+00',
+        'c3ab550a-cd69-4b6b-bac0-0d7e5ae807c0',
+        'eu1-8445-b7c8-40c8-a8ff-327909b06e60',
+        'dummy.com',
+        'mathias@bragagia.com',
+        'Les Pipes du Superadmin',
+        143393290,
+        'FRESH',
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    );
+
+INSERT INTO
+    user_roles (
+        user_id,
+        role
+    )
+VALUES
+    (
+        'c3ab550a-cd69-4b6b-bac0-0d7e5ae807c0',
+        'SUPERADMIN'
     );

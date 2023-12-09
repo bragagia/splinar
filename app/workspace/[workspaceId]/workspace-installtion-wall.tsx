@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import {
@@ -21,58 +22,73 @@ export function WorkspaceInstallationCard({
 }) {
   const workspace = useWorkspace();
 
-  if (workspace.installation_status !== "PENDING") {
-    return <></>;
+  if (workspace.installation_status === "DONE") {
+    return null;
   }
 
-  let progressTotal =
-    1 +
-    (workspace.installation_companies_similarities_total_batches +
-      workspace.installation_contacts_similarities_total_batches >
-    0
-      ? workspace.installation_companies_similarities_total_batches +
-        workspace.installation_contacts_similarities_total_batches
-      : 50) +
-    (workspace.installation_dup_total > 0
-      ? workspace.installation_dup_total / 30
-      : 50);
+  let content: JSX.Element;
+  if (workspace.installation_status === "FRESH") {
+    content = (
+      <>
+        <div className="text-sm gap-2 flex flex-col">
+          <p>This is the only time you will have to wait, we promise.</p>
 
-  let progress = 0;
-  progress += workspace.installation_fetched ? 1 : 0;
-  progress +=
-    workspace.installation_companies_similarities_done_batches +
-    workspace.installation_contacts_similarities_done_batches;
-  progress += workspace.installation_dup_done / 30;
+          <p>
+            Future changes of your data will{" "}
+            <b>instantly be visible in Splinar</b> 🚀
+          </p>
+        </div>
 
-  let percent = (100 * progress) / progressTotal;
-
-  let explanation = "";
-  if (!workspace.installation_fetched) {
-    explanation = "Fetching your hubspot data";
-  } else if (
-    workspace.installation_contacts_similarities_done_batches === 0 ||
-    workspace.installation_contacts_similarities_done_batches <
-      workspace.installation_contacts_similarities_total_batches ||
-    workspace.installation_companies_similarities_done_batches === 0 ||
-    workspace.installation_companies_similarities_done_batches <
-      workspace.installation_companies_similarities_total_batches
-  ) {
-    explanation = "Checking for similarities in your data";
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-row items-center gap-2">
+            <Icons.spinner className="h-4 w-4 animate-spin" />
+            <p className="text-gray-500 text-xs">
+              Installation will start soon...
+            </p>{" "}
+          </div>
+        </div>
+      </>
+    );
   } else {
-    explanation = "Preparing your duplicates for display";
-  }
+    let progressTotal =
+      1 +
+      (workspace.installation_companies_similarities_total_batches +
+        workspace.installation_contacts_similarities_total_batches >
+      0
+        ? workspace.installation_companies_similarities_total_batches +
+          workspace.installation_contacts_similarities_total_batches
+        : 50) +
+      (workspace.installation_dup_total > 0
+        ? workspace.installation_dup_total / 30
+        : 50);
 
-  return (
-    <Card className={cn(className)}>
-      <CardHeader>
-        <CardTitle>Installing workspace</CardTitle>
+    let progress = 0;
+    progress += workspace.installation_fetched ? 1 : 0;
+    progress +=
+      workspace.installation_companies_similarities_done_batches +
+      workspace.installation_contacts_similarities_done_batches;
+    progress += workspace.installation_dup_done / 30;
 
-        <CardDescription>
-          We are preparing your account, time to grab a snack 🌮
-        </CardDescription>
-      </CardHeader>
+    let percent = (100 * progress) / progressTotal;
 
-      <CardContent className="flex flex-col gap-4">
+    let explanation = "";
+    if (!workspace.installation_fetched) {
+      explanation = "Fetching your hubspot data";
+    } else if (
+      workspace.installation_contacts_similarities_done_batches === 0 ||
+      workspace.installation_contacts_similarities_done_batches <
+        workspace.installation_contacts_similarities_total_batches ||
+      workspace.installation_companies_similarities_done_batches === 0 ||
+      workspace.installation_companies_similarities_done_batches <
+        workspace.installation_companies_similarities_total_batches
+    ) {
+      explanation = "Checking for similarities in your data";
+    } else {
+      explanation = "Preparing your duplicates for display";
+    }
+
+    content = (
+      <>
         <div className="text-sm gap-2 flex flex-col">
           <p>This is the only time you will have to wait, we promise.</p>
 
@@ -90,7 +106,21 @@ export function WorkspaceInstallationCard({
             <p className="text-gray-500 text-xs">{explanation}</p>{" "}
           </div>
         </div>
-      </CardContent>
+      </>
+    );
+  }
+
+  return (
+    <Card className={cn(className)}>
+      <CardHeader>
+        <CardTitle>Installing workspace</CardTitle>
+
+        <CardDescription>
+          We are preparing your account, time to grab a snack 🌮
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4">{content}</CardContent>
 
       <CardFooter className="flex flex-row gap-2 text-sm">
         <Icons.infos className="h-4 w-4" />
@@ -107,26 +137,20 @@ export function WorkspaceInstallationWall({
   children: ReactNode;
 }) {
   const workspace = useWorkspace();
+  const user = useUser();
 
-  if (process.env.NODE_ENV !== "development") {
-    if (workspace.installation_status === "FRESH") {
-      return (
-        <div>
-          <p>Not installed</p>
-        </div>
-      );
-    }
-
-    if (
-      workspace.installation_status === "PENDING" &&
-      workspace.installation_dup_done === 0
-    ) {
-      return (
-        <div className="h-screen w-screen flex justify-center items-center">
-          <WorkspaceInstallationCard className="m-8 max-w-lg w-[32rem]" />
-        </div>
-      );
-    }
+  if (
+    user.role !== "SUPERADMIN" &&
+    process.env.NODE_ENV !== "development" &&
+    (workspace.installation_status === "FRESH" ||
+      workspace.installation_status === "PENDING") &&
+    workspace.installation_dup_done === 0
+  ) {
+    return (
+      <div className="h-screen w-screen flex justify-center items-center">
+        <WorkspaceInstallationCard className="m-8 max-w-lg w-[32rem]" />
+      </div>
+    );
   }
 
   return <>{children}</>;

@@ -1,21 +1,13 @@
+"use server";
+
 import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
 import { Database } from "@/types/supabase";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 
-export const maxDuration = 60;
-
-export async function POST(
-  request: Request,
-  { params }: { params: { workspaceId: string } }
-) {
-  if (!params.workspaceId || params.workspaceId === "") {
-    return NextResponse.error();
-  }
-
+export async function workspaceInstall(workspaceId: string) {
   const cookieStore = cookies();
-  const supabase = createRouteHandlerClient<Database>({
+  const supabase = createServerActionClient<Database>({
     cookies: () => cookieStore,
   });
 
@@ -31,7 +23,7 @@ export async function POST(
   const { data: workspace, error: errorWorkspace } = await supabase
     .from("workspaces")
     .select()
-    .eq("id", params.workspaceId)
+    .eq("id", workspaceId)
     .limit(1)
     .single();
   if (errorWorkspace || workspace === null) {
@@ -39,9 +31,7 @@ export async function POST(
   }
 
   await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
-    workspaceId: params.workspaceId,
+    workspaceId: workspaceId,
     reset: null,
   });
-
-  return NextResponse.json({});
 }

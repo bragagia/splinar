@@ -1,21 +1,16 @@
+"use server";
+
 import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
 import { Database } from "@/types/supabase";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 
-export const maxDuration = 60;
-
-export async function POST(
-  request: Request,
-  { params }: { params: { workspaceId: string } }
+export async function workspaceReset(
+  workspaceId: string,
+  reset: "dup_stacks" | "full" | "similarities_and_dup"
 ) {
-  if (!params.workspaceId || params.workspaceId === "") {
-    return NextResponse.error();
-  }
-
   const cookieStore = cookies();
-  const supabase = createRouteHandlerClient<Database>({
+  const supabase = createServerActionClient<Database>({
     cookies: () => cookieStore,
   });
 
@@ -31,7 +26,7 @@ export async function POST(
   const { data: workspace, error: errorWorkspace } = await supabase
     .from("workspaces")
     .select()
-    .eq("id", params.workspaceId)
+    .eq("id", workspaceId)
     .limit(1)
     .single();
   if (errorWorkspace || workspace === null) {
@@ -41,15 +36,13 @@ export async function POST(
   const { error: errorWorkspaceUpdate } = await supabase
     .from("workspaces")
     .update({ installation_status: "FRESH" })
-    .eq("id", params.workspaceId);
+    .eq("id", workspaceId);
   if (errorWorkspaceUpdate) {
     throw errorWorkspaceUpdate;
   }
 
   await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
-    workspaceId: params.workspaceId,
-    reset: "full",
+    workspaceId: workspaceId,
+    reset: reset,
   });
-
-  return NextResponse.json({});
 }

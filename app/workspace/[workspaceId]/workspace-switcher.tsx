@@ -8,13 +8,14 @@ import {
   PlusCircledIcon,
 } from "@radix-ui/react-icons";
 
+import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   AvatarFallback,
@@ -53,7 +54,9 @@ interface WorkspaceSwitcherProps extends PopoverTriggerProps {}
 export default function WorkspaceSwitcher({
   className,
 }: WorkspaceSwitcherProps) {
+  let user = useUser();
   let currentWorkspace = useWorkspace();
+
   let router = useRouter();
   const supabase = createClientComponentClient<Database>();
 
@@ -63,13 +66,16 @@ export default function WorkspaceSwitcher({
   const [open, setOpen] = React.useState(false);
   const [showNewWorkspaceDialog, setShowNewWorkspaceDialog] =
     React.useState(false);
+  const [filterOnUser, setFilterOnUser] = React.useState<string | null>(
+    currentWorkspace.user_id
+  );
 
   useEffect(() => {
     const fn = async () => {
       const { data, error } = await supabase
         .from("workspaces")
         .select()
-        .order("created_at");
+        .order("created_at"); // Filter for superadmin case
 
       if (error) {
         // TODO:
@@ -79,7 +85,7 @@ export default function WorkspaceSwitcher({
       setAllWorkspaces(data as WorkspaceType[]);
     };
     fn();
-  }, [supabase]);
+  }, [supabase, user]);
 
   async function onAddWorkspace() {
     window.open(URLS.external.hubspotOAuth, "_blank");
@@ -91,11 +97,25 @@ export default function WorkspaceSwitcher({
     router.push(URLS.workspace(id).dashboard);
   }
 
+  const filteredWorkspaces = filterOnUser
+    ? allWorkspaces?.filter(
+        (workspace) => workspace.user_id === filterOnUser
+      ) || []
+    : allWorkspaces || [];
+
   return (
     <Dialog
       open={showNewWorkspaceDialog}
       onOpenChange={setShowNewWorkspaceDialog}
     >
+      {user.role === "SUPERADMIN" && (
+        <UserSwitcher
+          currentWorkspace={currentWorkspace}
+          allWorkspaces={allWorkspaces}
+          onFilterOnUser={setFilterOnUser}
+        />
+      )}
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -114,7 +134,9 @@ export default function WorkspaceSwitcher({
                   />
                   <AvatarFallback>SC</AvatarFallback>
                 </Avatar>
-                {currentWorkspace.display_name}
+                <p className="whitespace-nowrap overflow-hidden text-ellipsis">
+                  {currentWorkspace.display_name}
+                </p>
               </>
             ) : (
               "Select a workspace"
@@ -129,7 +151,7 @@ export default function WorkspaceSwitcher({
               <CommandEmpty>No workspace found.</CommandEmpty>
 
               <CommandGroup heading="Workspaces">
-                {allWorkspaces?.map((workspace) => (
+                {filteredWorkspaces.map((workspace) => (
                   <CommandItem
                     key={workspace.id}
                     onSelect={() => onSelectWorkspace(workspace.id)}
@@ -142,7 +164,9 @@ export default function WorkspaceSwitcher({
                       />
                       <AvatarFallback>SC</AvatarFallback>
                     </Avatar>
+
                     {workspace.display_name}
+
                     <CheckIcon
                       className={cn(
                         "ml-auto h-4 w-4",
@@ -203,5 +227,110 @@ export default function WorkspaceSwitcher({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UserSwitcher({
+  currentWorkspace,
+  allWorkspaces,
+  onFilterOnUser,
+}: {
+  currentWorkspace: WorkspaceType;
+  allWorkspaces: WorkspaceType[] | null;
+  onFilterOnUser: (user: string | null) => void;
+}) {
+  let user = useUser();
+
+  const [open, setOpen] = React.useState(false);
+
+  const [filteredOnUser, setFilteredOnUser] = useState<string | null>(
+    currentWorkspace.user_id
+  );
+
+  const allUserIds = useMemo(() => {
+    let allUsers: {
+      [key: string]: string;
+    } = {};
+
+    allWorkspaces?.forEach(
+      (workspace) => (allUsers[workspace.user_id] = workspace.user_id)
+    );
+
+    return Object.keys(allUsers);
+  }, [allWorkspaces]);
+
+  function onSelectUser(userId: string | null) {
+    setOpen(false);
+
+    setFilteredOnUser(userId);
+    onFilterOnUser(userId);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-label="Select a user"
+          className={cn("w-[200px] justify-between mr-2")}
+        >
+          {filteredOnUser ? (
+            <p className="whitespace-nowrap overflow-hidden text-ellipsis">
+              {filteredOnUser === user.id && "You : "}
+              {filteredOnUser}
+            </p>
+          ) : (
+            "All users"
+          )}
+          <CaretSortIcon className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-[400px] p-0">
+        <Command>
+          <CommandList>
+            <CommandEmpty>No user found.</CommandEmpty>
+
+            <CommandGroup heading="Filter workspaces on:">
+              <CommandItem
+                onSelect={() => onSelectUser(null)}
+                className="text-sm"
+              >
+                All users
+                <CheckIcon
+                  className={cn(
+                    "ml-auto h-4 w-4",
+                    filteredOnUser === null ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              </CommandItem>
+
+              {allUserIds
+                ?.sort((a, b) => a.localeCompare(b, "en", { numeric: true }))
+                .map((userId, i) => (
+                  <CommandItem
+                    key={i}
+                    onSelect={() => onSelectUser(userId)}
+                    className="text-sm"
+                  >
+                    {userId === user.id && "You : "}
+
+                    {userId}
+
+                    <CheckIcon
+                      className={cn(
+                        "ml-auto h-4 w-4",
+                        filteredOnUser === userId ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -10,11 +10,6 @@ export const URLS = {
     dashboard: `/workspace/${workspaceId}/dashboard`,
     duplicates: `/workspace/${workspaceId}/duplicates`,
     settings: `/workspace/${workspaceId}/settings`,
-    api: {
-      reset: `/workspace/${workspaceId}/api/reset`,
-      install: `/workspace/${workspaceId}/api/install`,
-      testAction: `/workspace/${workspaceId}/api/test-action`,
-    },
   }),
 
   workspaceIndex: `/workspace/`,
