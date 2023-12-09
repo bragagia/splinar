@@ -274,7 +274,9 @@ function UserSwitcher({
           role="combobox"
           aria-expanded={open}
           aria-label="Select a user"
-          className={cn("w-[200px] justify-between mr-2")}
+          className={cn("w-[200px] justify-between mr-2", {
+            "bg-red-500": filteredOnUser !== user.id,
+          })}
         >
           {filteredOnUser ? (
             <p className="whitespace-nowrap overflow-hidden text-ellipsis">
