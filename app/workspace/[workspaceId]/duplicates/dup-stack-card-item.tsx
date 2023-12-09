@@ -38,7 +38,7 @@ export function LinkButton({
       href={href}
       target="_blank"
       className={cn(
-        "inline-flex flex-row items-center justify-between border border-transparent rounded-md px-1 py-0.5 group/linkbutton w-full gap-1 hover:bg-opacity-10",
+        "inline-flex flex-row items-center justify-between border border-transparent rounded-md px-1 py-0.5 group/linkbutton w-full gap-1 hover:bg-opacity-10 -ml-1",
         hoverHexColor
       )}
     >
@@ -217,13 +217,15 @@ export function DupStackCardRow({
             (column, i) => (
               <div
                 key={i}
-                className={cn(" p-1", {
-                  "border-gray-100": !isPotential,
-                  "border-gray-200": isPotential,
+                className={cn("p-1 border-transparent", {
+                  // "border-gray-100": !isPotential,
+                  // "border-gray-200": isPotential,
                   "border-t": expand && i / 4 >= 1,
                   "border-l": expand && i % 4 !== 0,
                   "pt-3": expand && i < firstLineUntil,
                   "pb-3": expand && i >= lastLineAfter,
+                  "pt-2": !expand && i < firstLineUntil,
+                  "pb-2": !expand && i >= lastLineAfter,
                 })}
               >
                 <SpTooltip
@@ -258,9 +260,9 @@ export function DupStackCardRow({
             ).map((i) => (
               <div
                 key={i}
-                className={cn(" p-1", {
-                  "border-gray-100": !isPotential,
-                  "border-gray-200": isPotential,
+                className={cn(" p-1 border-transparent", {
+                  // "border-gray-100": !isPotential,
+                  // "border-gray-200": isPotential,
                   "border-t": expand && i / 4 >= 1,
                   "border-l": expand && i % 4 !== 0,
                   "pt-3": expand && i < firstLineUntil,

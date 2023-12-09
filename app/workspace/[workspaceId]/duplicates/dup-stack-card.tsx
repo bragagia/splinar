@@ -194,7 +194,7 @@ export function DupStackCard<
                       className={cn(
                         "w-full",
                         { "border-b border-gray-100": !allExpanded },
-                        { "border-b-2 border-gray-400": allExpanded }
+                        { "border-b border-gray-400": allExpanded }
                       )}
                     ></div>
                   )}
@@ -238,7 +238,7 @@ export function DupStackCard<
                         className={cn(
                           "w-full border-b",
                           { "border-b border-gray-200": !allExpanded },
-                          { "border-b-2 border-gray-400": allExpanded }
+                          { "border-b border-gray-400": allExpanded }
                         )}
                       ></div>
                     )}

@@ -21,7 +21,7 @@ async function installContactsSimilarities(
     .from("contacts")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId);
-  if (errorContactsCount || !hsContactsCount) {
+  if (errorContactsCount || hsContactsCount === null) {
     throw errorContactsCount || new Error("hsContactCount: missing");
   }
 
@@ -62,7 +62,7 @@ async function installCompaniesSimilarities(
     .from("companies")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId);
-  if (errorCompaniesCount || !hsCompaniesCount) {
+  if (errorCompaniesCount || hsCompaniesCount === null) {
     throw errorCompaniesCount || new Error("hsCompaniesCount: missing");
   }
 
