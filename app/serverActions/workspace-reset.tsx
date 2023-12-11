@@ -41,7 +41,7 @@ export async function workspaceReset(
     throw errorWorkspaceUpdate;
   }
 
-  await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
+  await workspaceInstallQueueAdd("workspaceInstallQueue", {
     workspaceId: workspaceId,
     reset: reset,
   });

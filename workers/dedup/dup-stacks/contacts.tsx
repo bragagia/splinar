@@ -44,7 +44,6 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     exact: 40,
     similar: 30,
     potential: 5,
-    unlikely: 0,
 
     notMatchingMalus: -80,
 
@@ -52,9 +51,9 @@ const contactScoring: { [key: string]: ValueScoringType } = {
   },
 
   email: {
-    exact: 90,
-    similar: 80,
-    potential: 40,
+    exact: 180,
+    similar: 140,
+    potential: 70,
     unlikely: 5,
 
     notMatchingMalus: -30,
@@ -64,9 +63,6 @@ const contactScoring: { [key: string]: ValueScoringType } = {
 
   phone: {
     exact: 70, // phones can be shared like a company, but can also be unique, not sure what to do about them
-    similar: 0,
-    potential: 0,
-    unlikely: 0,
 
     notMatchingMalus: -30,
 

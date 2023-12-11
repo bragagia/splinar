@@ -30,7 +30,7 @@ export async function workspaceInstall(workspaceId: string) {
     throw errorWorkspace || new Error("Missing workspace");
   }
 
-  await workspaceInstallQueueAdd("workspaceInstallQueueTest", {
+  await workspaceInstallQueueAdd("workspaceInstallQueue", {
     workspaceId: workspaceId,
     reset: null,
   });
