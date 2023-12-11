@@ -32,6 +32,7 @@ import {
   SupabaseClient,
   createClientComponentClient,
 } from "@supabase/auth-helpers-nextjs";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
@@ -41,8 +42,8 @@ export default function DuplicatesPage() {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
-  const [contactCount, setContactCount] = useState<number | undefined>();
-  const [companiesCount, setCompaniesCount] = useState<number | undefined>();
+  const [contactCount, setContactCount] = useState<number | null>();
+  const [companiesCount, setCompaniesCount] = useState<number | null>();
 
   useEffect(() => {
     supabase
@@ -55,7 +56,7 @@ export default function DuplicatesPage() {
           throw contactError;
         }
 
-        setContactCount(contactCount || undefined);
+        setContactCount(contactCount);
       });
 
     supabase
@@ -68,7 +69,7 @@ export default function DuplicatesPage() {
           throw companiesError;
         }
 
-        setCompaniesCount(companiesCount || undefined);
+        setCompaniesCount(companiesCount);
       });
   }, [supabase, workspace.id]);
 
@@ -213,7 +214,19 @@ function DuplicatesInfiniteList<T extends {}>({
       }
     >
       {(!dupStacks || dupStacks.length === 0) && !hasMore ? (
-        <p>{"You've got no duplicates :)"}</p>
+        <div className="min-h-[50vh] flex flex-col items-center justify-center">
+          <Image
+            src="/seagull.jpeg"
+            alt=""
+            width={1600}
+            height={1200}
+            className="w-96 grayscale"
+          />
+
+          <p className="text-lg font-medium text-gray-600">
+            {"Well done, it's very empty around here!"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-col gap-4">

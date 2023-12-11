@@ -252,11 +252,14 @@ function UserSwitcher({
       [key: string]: string;
     } = {};
 
-    allWorkspaces?.forEach(
-      (workspace) => (allUsers[workspace.user_id] = workspace.user_id)
-    );
+    allWorkspaces?.forEach((workspace) => {
+      if (workspace.user_id !== user.id)
+        allUsers[workspace.user_id] = workspace.user_id;
+    });
 
-    return Object.keys(allUsers);
+    return Object.keys(allUsers).sort((a, b) =>
+      a.localeCompare(b, "en", { numeric: true })
+    );
   }, [allWorkspaces]);
 
   function onSelectUser(userId: string | null) {
@@ -309,26 +312,40 @@ function UserSwitcher({
                 />
               </CommandItem>
 
-              {allUserIds
-                ?.sort((a, b) => a.localeCompare(b, "en", { numeric: true }))
-                .map((userId, i) => (
-                  <CommandItem
-                    key={i}
-                    onSelect={() => onSelectUser(userId)}
-                    className="text-sm"
-                  >
-                    {userId === user.id && "You : "}
+              <CommandItem
+                onSelect={() => onSelectUser(user.id)}
+                className="text-sm"
+              >
+                {"You: "}
 
-                    {userId}
+                {user.id}
 
-                    <CheckIcon
-                      className={cn(
-                        "ml-auto h-4 w-4",
-                        filteredOnUser === userId ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                  </CommandItem>
-                ))}
+                <CheckIcon
+                  className={cn(
+                    "ml-auto h-4 w-4",
+                    filteredOnUser === user.id ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              </CommandItem>
+
+              {allUserIds.map((userId, i) => (
+                <CommandItem
+                  key={i}
+                  onSelect={() => onSelectUser(userId)}
+                  className="text-sm"
+                >
+                  {userId === user.id && <b className="mr-1">You:</b>}
+
+                  {userId}
+
+                  <CheckIcon
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      filteredOnUser === userId ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>

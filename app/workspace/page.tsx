@@ -21,9 +21,16 @@ export default async function WorkspaceIndexPage() {
     cookies: () => cookieStore,
   });
 
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    throw sessionError || new Error("Missing session");
+  }
+
   const { data: workspaces, error } = await supabase
     .from("workspaces")
-    .select();
+    .select()
+    .eq("user_id", sessionData.session.user.id);
 
   if (error) {
     return <p>Something got wrong</p>;

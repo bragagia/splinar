@@ -66,6 +66,25 @@ export function contactSimilarityCheck(
     .toLowerCase()
     .replaceAll("  ", " ");
 
+  let aStrictFullName = [
+    contactB.first_name ? contactA.first_name : null,
+    contactB.last_name ? contactA.last_name : null,
+  ]
+    .filter((v) => v !== null && v !== undefined)
+    .join(" ")
+    .trim()
+    .toLowerCase()
+    .replaceAll("  ", " ");
+  let bStrictFullName = [
+    contactA.first_name ? contactB.first_name : null,
+    contactA.last_name ? contactB.last_name : null,
+  ]
+    .filter((v) => v !== null && v !== undefined)
+    .join(" ")
+    .trim()
+    .toLowerCase()
+    .replaceAll("  ", " ");
+
   if (aFullName !== "" && bFullName !== "") {
     const fullNameSimilarityBase: InsertContactSimilarityType = {
       ...similarityBase,
@@ -91,7 +110,15 @@ export function contactSimilarityCheck(
           ...fullNameSimilarityBase,
           similarity_score: "similar",
         });
-      } else if (compareScore > 0.8) {
+      } else if (compareScore > 0.85) {
+        similarities.push({
+          ...fullNameSimilarityBase,
+          similarity_score: "potential",
+        });
+      } else if (
+        stringSimilarity.compareTwoStrings(aStrictFullName, bStrictFullName) >
+        0.9
+      ) {
         similarities.push({
           ...fullNameSimilarityBase,
           similarity_score: "potential",
@@ -139,9 +166,20 @@ export function contactSimilarityCheck(
           const domainA = emailA.split("@")[1];
           const domainB = emailB.split("@")[1];
 
-          if (
+          const domainWithoutExtA = removeExt(domainA);
+          const domainWithoutExtB = removeExt(domainB);
+
+          if (idA === idB && domainA === domainB) {
+            similarities.push({
+              ...emailSimilarityBase,
+              similarity_score: "exact",
+            });
+          } else if (
             idSimScore > 0.95 &&
-            stringSimilarity.compareTwoStrings(domainA, domainB) > 0.95
+            stringSimilarity.compareTwoStrings(
+              domainWithoutExtA,
+              domainWithoutExtB
+            ) > 0.95
           ) {
             similarities.push({
               ...emailSimilarityBase,
@@ -150,8 +188,8 @@ export function contactSimilarityCheck(
           } else if (
             idSimScore > 0.9 &&
             stringSimilarity.compareTwoStrings(
-              removeExt(domainA),
-              removeExt(domainB)
+              domainWithoutExtA,
+              domainWithoutExtB
             ) > 0.9
           ) {
             similarities.push({
@@ -217,7 +255,8 @@ export function contactSimilarityCheck(
         });
       } else if (companyA.name && companyB.name) {
         if (
-          stringSimilarity.compareTwoStrings(companyA.name, companyB.name) > 0.9
+          stringSimilarity.compareTwoStrings(companyA.name, companyB.name) >
+          0.97
         ) {
           similarities.push({
             ...companySimilarityBase,
