@@ -134,62 +134,61 @@ export function areContactsDups(
         itemAFields.find((cf) => cf === field) &&
         itemBFields.find((cf) => cf === field)
       ) {
-        const notMatchingMalus = contactScoring[field]["notMatchingMalus"] || 0;
-        score += notMatchingMalus;
+        const notMatchingMalus = contactScoring[field]["notMatchingMalus"];
+        score += notMatchingMalus || 0;
 
-        if (verbose && notMatchingMalus)
-          console.log(`[${field}] notMatchingMalus: ${notMatchingMalus}`);
+        if (verbose && notMatchingMalus !== undefined)
+          console.log(`[${field}] notMatching - Malus: ${notMatchingMalus}`);
 
         const notMatchingMalusMultiplier =
-          contactScoring[field]["notMatchingMalusMultiplier"] || 1;
-        multiplier *= notMatchingMalusMultiplier;
+          contactScoring[field]["notMatchingMalusMultiplier"];
+        multiplier *= notMatchingMalusMultiplier || 1;
 
-        if (verbose && notMatchingMalusMultiplier !== 1)
+        if (verbose && notMatchingMalusMultiplier !== undefined)
           console.log(
-            `[${field}] notMatchingMalusMultiplier: ${notMatchingMalusMultiplier}`
+            `[${field}] notMatching - Malus multiplier: ${notMatchingMalusMultiplier}`
           );
       } else {
-        const emptyBonus = contactScoring[field]["emptyBonus"] || 0;
-        score += emptyBonus;
+        const emptyBonus = contactScoring[field]["emptyBonus"];
+        score += emptyBonus || 0;
 
-        if (verbose && emptyBonus)
-          console.log(`[${field}] emptyBonus: ${emptyBonus}`);
+        if (verbose && emptyBonus !== undefined)
+          console.log(`[${field}] empty - Bonus: ${emptyBonus}`);
 
         const emptyBonusMultiplier =
-          contactScoring[field]["emptyBonusMultiplier"] || 1;
-        multiplier *= emptyBonusMultiplier;
+          contactScoring[field]["emptyBonusMultiplier"];
+        multiplier *= emptyBonusMultiplier || 1;
 
-        if (verbose && emptyBonusMultiplier !== 1)
+        if (verbose && emptyBonusMultiplier !== undefined)
           console.log(
-            `[${field}] emptyBonusMultiplier: ${emptyBonusMultiplier}`
+            `[${field}] empty - Bonus multiplier: ${emptyBonusMultiplier}`
           );
       }
     } else {
       const similarityBonus =
-        contactScoring[field][similarity.similarity_score] || 0;
-      score += similarityBonus;
+        contactScoring[field][similarity.similarity_score];
+      score += similarityBonus || 0;
 
-      if (verbose && similarityBonus)
+      if (verbose && similarityBonus !== undefined)
         console.log(
-          `[${field}] similarityBonus (${similarity.similarity_score}): ${similarityBonus}`
+          `[${field}] similarity - Bonus (${similarity.similarity_score}): ${similarityBonus}`
         );
 
-      const similarityBonusMultiplier =
-        (contactScoring[field] as any)[
-          similarity.similarity_score + "Multiplier"
-        ] || 1;
-      multiplier *= similarityBonusMultiplier;
+      const similarityBonusMultiplier = (contactScoring[field] as any)[
+        similarity.similarity_score + "Multiplier"
+      ];
+      multiplier *= similarityBonusMultiplier || 1;
 
-      if (verbose && similarityBonusMultiplier !== 1)
+      if (verbose && similarityBonusMultiplier !== undefined)
         console.log(
-          `[${field}] similarityBonusMultiplier (${similarity.similarity_score}): ${similarityBonusMultiplier}`
+          `[${field}] similarity - Bonus multiplier (${similarity.similarity_score}): ${similarityBonusMultiplier}`
         );
     }
   });
 
   const finalScore = score * multiplier;
   if (verbose)
-    console.log(`finalScore = ${score} * ${multiplier} = ${finalScore}`);
+    console.log(`--- finalScore = ${score} * ${multiplier} = ${finalScore}`);
 
   if (finalScore >= 80) {
     return "CONFIDENT";

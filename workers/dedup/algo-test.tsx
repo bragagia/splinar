@@ -442,6 +442,32 @@ function AlgoTest() {
       },
       "CONFIDENT"
     ),
+
+    testContacts(
+      15,
+      "Same name and company, and empty other columns",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: ["0707070707"],
+        emails: ["mathias.bragagia@blabla.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: ["0707070707"],
+        emails: ["mbragag@gmail.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      "CONFIDENT"
+    ),
   ];
 
   const validCount = tests.filter((test) => test).length;
@@ -514,6 +540,3 @@ function testContacts(
 }
 
 AlgoTest();
-
-import stringSimilarity from "string-similarity";
-console.log(stringSimilarity.compareTwoStrings("bla", "blabla"));
