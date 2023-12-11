@@ -128,7 +128,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyB],
       },
-      false
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -220,7 +220,7 @@ function AlgoTest() {
         phones: [],
         emails: [],
         company_name: "",
-        companies: [companyA],
+        companies: [],
       },
       {
         ...baseContact,
@@ -284,7 +284,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyB],
       },
-      "POTENTIAL"
+      "CONFIDENT"
     ),
 
     testContacts(
@@ -388,7 +388,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyA],
       },
-      "POTENTIAL"
+      "CONFIDENT"
     ),
 
     testContacts(

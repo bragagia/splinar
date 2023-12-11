@@ -54,7 +54,8 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     exact: 180,
     similar: 140,
     potential: 70,
-    unlikely: 5,
+    unlikely: 10,
+    unlikelyMultiplier: 1.2,
 
     notMatchingMalus: -30,
 
@@ -70,7 +71,7 @@ const contactScoring: { [key: string]: ValueScoringType } = {
   },
 
   company: {
-    exactMultiplier: 1,
+    exactMultiplier: 1.2,
     similarMultiplier: 0.9, // TODO: in the future, when there will be deduplication of companies, this should go to zero because similar companies shouldn't be considered the same at this point
 
     notMatchingMalus: -10,
@@ -134,7 +135,7 @@ export function areContactsDups(
         score += notMatchingMalus || 0;
 
         if (verbose && notMatchingMalus !== undefined)
-          console.log(`[${field}] notMatching - Malus: ${notMatchingMalus}`);
+          console.log(`[${field}] not matching - Malus: ${notMatchingMalus}`);
 
         const notMatchingMalusMultiplier =
           contactScoring[field]["notMatchingMalusMultiplier"];
@@ -142,7 +143,7 @@ export function areContactsDups(
 
         if (verbose && notMatchingMalusMultiplier !== undefined)
           console.log(
-            `[${field}] notMatching - Malus multiplier: ${notMatchingMalusMultiplier}`
+            `[${field}] not matching - Malus multiplier: ${notMatchingMalusMultiplier}`
           );
       } else {
         const emptyBonus = contactScoring[field]["emptyBonus"];
@@ -167,7 +168,7 @@ export function areContactsDups(
 
       if (verbose && similarityBonus !== undefined)
         console.log(
-          `[${field}] similarity - Bonus (${similarity.similarity_score}): ${similarityBonus}`
+          `[${field}] ${similarity.similarity_score} - Bonus: ${similarityBonus}`
         );
 
       const similarityBonusMultiplier = (contactScoring[field] as any)[
@@ -177,7 +178,7 @@ export function areContactsDups(
 
       if (verbose && similarityBonusMultiplier !== undefined)
         console.log(
-          `[${field}] similarity - Bonus multiplier (${similarity.similarity_score}): ${similarityBonusMultiplier}`
+          `[${field}] ${similarity.similarity_score} - Bonus multiplier: ${similarityBonusMultiplier}`
         );
     }
   });
