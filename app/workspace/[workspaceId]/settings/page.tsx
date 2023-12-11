@@ -50,88 +50,79 @@ export default function WorkspaceSettingsPage() {
         </h2>
       </div>
 
-      {user.role === "SUPERADMIN" ||
-        (process.env.NODE_ENV === "development" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Superadmin zone</CardTitle>
-              <CardDescription>You got the power</CardDescription>
-            </CardHeader>
+      {(user.role === "SUPERADMIN" ||
+        process.env.NODE_ENV === "development") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Superadmin zone</CardTitle>
+            <CardDescription>You got the power</CardDescription>
+          </CardHeader>
 
-            <CardContent className="grid gap-6">
-              <div className="flex items-center justify-between space-x-2">
-                <Label
-                  htmlFor="performance"
-                  className="flex flex-col space-y-1"
-                >
-                  <span>Reset dup stacks</span>
+          <CardContent className="grid gap-6">
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="performance" className="flex flex-col space-y-1">
+                <span>Reset dup stacks</span>
 
-                  <span className="font-normal leading-snug text-muted-foreground">
-                    Any information stored like &quot;Not a duplicate&quot;
-                    flags will be lost /!\
-                  </span>
-                </Label>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  Any information stored like &quot;Not a duplicate&quot; flags
+                  will be lost /!\
+                </span>
+              </Label>
 
-                <Button
-                  onClick={() => onResetWorkspace("dup_stacks")}
-                  className="bg-red-600 shrink-0"
-                  disabled={resetWorkspaceLoading}
-                >
-                  {resetWorkspaceLoading ? (
-                    <Icons.spinner className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Reset dup stacks"
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={() => onResetWorkspace("dup_stacks")}
+                className="bg-red-600 shrink-0"
+                disabled={resetWorkspaceLoading}
+              >
+                {resetWorkspaceLoading ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Reset dup stacks"
+                )}
+              </Button>
+            </div>
 
-              <div className="flex items-center justify-between space-x-2">
-                <Label
-                  htmlFor="performance"
-                  className="flex flex-col space-y-1"
-                >
-                  <span>Reset similarities and dup stacks</span>
-                </Label>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="performance" className="flex flex-col space-y-1">
+                <span>Reset similarities and dup stacks</span>
+              </Label>
 
-                <Button
-                  onClick={() => onResetWorkspace("similarities_and_dup")}
-                  className="bg-red-600 shrink-0"
-                  disabled={resetWorkspaceLoading}
-                >
-                  {resetWorkspaceLoading ? (
-                    <Icons.spinner className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Reset similarities"
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={() => onResetWorkspace("similarities_and_dup")}
+                className="bg-red-600 shrink-0"
+                disabled={resetWorkspaceLoading}
+              >
+                {resetWorkspaceLoading ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Reset similarities"
+                )}
+              </Button>
+            </div>
 
-              <div className="flex items-center justify-between space-x-2">
-                <Label
-                  htmlFor="performance"
-                  className="flex flex-col space-y-1"
-                >
-                  <span>Reset workspace data</span>
-                  <span className="font-normal leading-snug text-muted-foreground">
-                    Note: Merged data stats will be kept{" "}
-                  </span>
-                </Label>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="performance" className="flex flex-col space-y-1">
+                <span>Reset workspace data</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  Note: Merged data stats will be kept{" "}
+                </span>
+              </Label>
 
-                <Button
-                  onClick={() => onResetWorkspace("full")}
-                  className="bg-red-600 shrink-0"
-                  disabled={resetWorkspaceLoading}
-                >
-                  {resetWorkspaceLoading ? (
-                    <Icons.spinner className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Reset all workspace datas"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              <Button
+                onClick={() => onResetWorkspace("full")}
+                className="bg-red-600 shrink-0"
+                disabled={resetWorkspaceLoading}
+              >
+                {resetWorkspaceLoading ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Reset all workspace datas"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
