@@ -46,7 +46,7 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     potential: 5,
     unlikely: 0,
 
-    notMatchingMalus: -40,
+    notMatchingMalus: -80,
 
     emptyBonusMultiplier: 1.2,
   },

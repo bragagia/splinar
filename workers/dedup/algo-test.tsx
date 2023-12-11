@@ -366,32 +366,6 @@ function AlgoTest() {
     ),
 
     testContacts(
-      121,
-      "Same company and phone, but different person",
-      {
-        ...baseContact,
-        id: uuid(),
-        first_name: "Michael",
-        last_name: "Hartig",
-        phones: ["0707070707"],
-        emails: ["michael.hartig@sevdesk.de"],
-        company_name: "",
-        companies: [companyA],
-      },
-      {
-        ...baseContact,
-        id: uuid(),
-        first_name: "Robin",
-        last_name: "Feißt",
-        phones: ["0707070707"],
-        emails: ["robin.feisst@sevdesk.de"],
-        company_name: "",
-        companies: [companyA],
-      },
-      false
-    ),
-
-    testContacts(
       13,
       "Same name and company, but unlikely emails",
       {
@@ -415,6 +389,32 @@ function AlgoTest() {
         companies: [companyA],
       },
       "POTENTIAL"
+    ),
+
+    testContacts(
+      14,
+      "Same company and phone, but different fullname",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Michael",
+        last_name: "Hartig",
+        phones: ["0707070707"],
+        emails: ["michael.hartig@sevdesk.de"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Robin",
+        last_name: "Feißt",
+        phones: ["0707070707"],
+        emails: [],
+        company_name: "",
+        companies: [companyA],
+      },
+      false
     ),
   ];
 
