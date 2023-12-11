@@ -393,28 +393,54 @@ function AlgoTest() {
 
     testContacts(
       14,
-      "Same company and phone, but different fullname",
+      "Same company and phone, but different fullname and no email",
       {
         ...baseContact,
         id: uuid(),
-        first_name: "Michael",
-        last_name: "Hartig",
+        first_name: "Mathias",
+        last_name: "Bragagia",
         phones: ["0707070707"],
-        emails: ["michael.hartig@sevdesk.de"],
+        emails: ["mathias.bragagia@gmail.com"],
         company_name: "",
         companies: [companyA],
       },
       {
         ...baseContact,
         id: uuid(),
-        first_name: "Robin",
-        last_name: "Feißt",
+        first_name: "Vincent",
+        last_name: "Abraham",
         phones: ["0707070707"],
         emails: [],
         company_name: "",
         companies: [companyA],
       },
       false
+    ),
+
+    testContacts(
+      15,
+      "Same company, phone and name, but different emails",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: ["0707070707"],
+        emails: ["mathias.bragagia@blabla.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: ["0707070707"],
+        emails: ["mbragag@gmail.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      "CONFIDENT"
     ),
   ];
 
