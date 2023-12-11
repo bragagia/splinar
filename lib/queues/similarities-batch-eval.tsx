@@ -10,7 +10,13 @@ export function similaritiesBatchEvalQueueAdd(
   data: SimilaritiesBatchEvalWorkerArgs,
   opts?: JobsOptions | undefined
 ): Promise<Job<SimilaritiesBatchEvalWorkerArgs, void, string>> {
-  const queue = new Queue<SimilaritiesBatchEvalWorkerArgs, void>(
+  const queue = similaritiesBatchEvalQueue();
+
+  return queue.add(name, data, opts);
+}
+
+export function similaritiesBatchEvalQueue() {
+  return new Queue<SimilaritiesBatchEvalWorkerArgs, void>(
     SimilaritiesBatchEvalId,
     {
       connection: newRedisClient(),
@@ -23,8 +29,6 @@ export function similaritiesBatchEvalQueueAdd(
       },
     }
   );
-
-  return queue.add(name, data, opts);
 }
 
 export function newSimilaritiesBatchEvalQueueEvents() {

@@ -10,6 +10,7 @@
     "worker:workspace-install": "npx dotenv -e .env.local -- npx tsx --watch defer/workspace-install.tsx"
   },
   "dependencies": {
+    "@bull-board/express": "^5.10.2",
     "@defer/client": "^1.13.0",
     "@hubspot/api-client": "^10.0.0",
     "@radix-ui/react-avatar": "^1.0.4",

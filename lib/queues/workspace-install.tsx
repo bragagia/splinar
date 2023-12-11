@@ -10,19 +10,20 @@ export function workspaceInstallQueueAdd(
   data: WorkspaceInstallWorkerArgs,
   opts?: JobsOptions | undefined
 ): Promise<Job<WorkspaceInstallWorkerArgs, void, string>> {
-  const queue = new Queue<WorkspaceInstallWorkerArgs, void>(
-    WorkspaceInstallId,
-    {
-      connection: newRedisClient(),
-      defaultJobOptions: {
-        attempts: 7,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
-        },
-      },
-    }
-  );
+  const queue = workspaceInstallQueue();
 
   return queue.add(name, data, opts);
+}
+
+export function workspaceInstallQueue() {
+  return new Queue<WorkspaceInstallWorkerArgs, void>(WorkspaceInstallId, {
+    connection: newRedisClient(),
+    defaultJobOptions: {
+      attempts: 7,
+      backoff: {
+        type: "exponential",
+        delay: 5000,
+      },
+    },
+  });
 }
