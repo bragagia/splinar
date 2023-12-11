@@ -169,29 +169,22 @@ export function contactSimilarityCheck(
           const domainWithoutExtA = removeExt(domainA);
           const domainWithoutExtB = removeExt(domainB);
 
+          const domainSimScore = stringSimilarity.compareTwoStrings(
+            domainWithoutExtA,
+            domainWithoutExtB
+          );
+
           if (idA === idB && domainA === domainB) {
             similarities.push({
               ...emailSimilarityBase,
               similarity_score: "exact",
             });
-          } else if (
-            idSimScore > 0.95 &&
-            stringSimilarity.compareTwoStrings(
-              domainWithoutExtA,
-              domainWithoutExtB
-            ) > 0.95
-          ) {
+          } else if (idSimScore > 0.95 && domainSimScore > 0.95) {
             similarities.push({
               ...emailSimilarityBase,
               similarity_score: "similar",
             });
-          } else if (
-            idSimScore > 0.9 &&
-            stringSimilarity.compareTwoStrings(
-              domainWithoutExtA,
-              domainWithoutExtB
-            ) > 0.9
-          ) {
+          } else if (idSimScore > 0.95 && domainSimScore > 0.9) {
             similarities.push({
               ...emailSimilarityBase,
               similarity_score: "potential",

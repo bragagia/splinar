@@ -41,14 +41,14 @@ type ValueScoringType = {
 
 const contactScoring: { [key: string]: ValueScoringType } = {
   fullname: {
-    exact: 40,
-    similar: 30,
+    exact: 50,
+    similar: 40,
     potential: 5,
     unlikely: 0,
 
     notMatchingMalus: -40,
 
-    emptyBonusMultiplier: 1.25,
+    emptyBonusMultiplier: 1.2,
   },
 
   phone: {
@@ -59,18 +59,18 @@ const contactScoring: { [key: string]: ValueScoringType } = {
 
     notMatchingMalus: -20,
 
-    emptyBonusMultiplier: 1.25,
+    emptyBonusMultiplier: 1.2,
   },
 
   email: {
     exact: 90,
     similar: 80,
     potential: 40,
-    unlikely: -5,
+    unlikely: 5,
 
-    notMatchingMalus: -20,
+    notMatchingMalus: -40,
 
-    emptyBonusMultiplier: 1.25,
+    emptyBonusMultiplier: 1.2,
   },
 
   company: {
@@ -78,9 +78,9 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     similarMultiplier: 0.9, // TODO: in the future, when there will be deduplication of companies, this should go to zero because similar companies shouldn't be considered the same at this point
 
     notMatchingMalus: -10,
-    notMatchingMalusMultiplier: 0.7,
+    notMatchingMalusMultiplier: 0.6,
 
-    emptyBonusMultiplier: 0.8,
+    emptyBonusMultiplier: 1,
   },
 };
 
@@ -193,7 +193,7 @@ export function areContactsDups(
 
   if (finalScore >= 80) {
     return "CONFIDENT";
-  } else if (finalScore >= 30) {
+  } else if (finalScore >= 35) {
     return "POTENTIAL";
   } else {
     return false;

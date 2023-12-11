@@ -159,7 +159,7 @@ function AlgoTest() {
 
     testContacts(
       5,
-      "Similar emails and same company, but not same person",
+      "Unlikely emails and same company, but not same person",
       {
         ...baseContact,
         id: uuid(),
@@ -180,7 +180,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyA],
       },
-      "POTENTIAL"
+      false
     ),
 
     testContacts(
@@ -337,6 +337,58 @@ function AlgoTest() {
         companies: [companyA],
       },
       "CONFIDENT"
+    ),
+
+    testContacts(
+      12,
+      "Same company and phone, but different person",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: ["0707070707"],
+        emails: ["mathias.bragagia@blabla.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Vincent",
+        last_name: "Abraham",
+        phones: ["0707070707"],
+        emails: ["vincent@splinar.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      false
+    ),
+
+    testContacts(
+      13,
+      "Same name and company, but unlikely emails",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: [],
+        emails: ["mathias.bragagia@blabla.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Mathias",
+        last_name: "Bragagia",
+        phones: [],
+        emails: ["mathias.bragag@gmail.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      "POTENTIAL"
     ),
   ];
 
