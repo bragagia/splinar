@@ -41,23 +41,12 @@ type ValueScoringType = {
 
 const contactScoring: { [key: string]: ValueScoringType } = {
   fullname: {
-    exact: 50,
-    similar: 40,
+    exact: 40,
+    similar: 30,
     potential: 5,
     unlikely: 0,
 
     notMatchingMalus: -40,
-
-    emptyBonusMultiplier: 1.2,
-  },
-
-  phone: {
-    exact: 90, // phones can be shared like a company, but can also be unique, not sure what to do about them
-    similar: 0,
-    potential: 0,
-    unlikely: 0,
-
-    notMatchingMalus: -20,
 
     emptyBonusMultiplier: 1.2,
   },
@@ -73,12 +62,23 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     emptyBonusMultiplier: 1.2,
   },
 
+  phone: {
+    exact: 70, // phones can be shared like a company, but can also be unique, not sure what to do about them
+    similar: 0,
+    potential: 0,
+    unlikely: 0,
+
+    notMatchingMalus: -40,
+
+    emptyBonusMultiplier: 1.2,
+  },
+
   company: {
     exactMultiplier: 1,
     similarMultiplier: 0.9, // TODO: in the future, when there will be deduplication of companies, this should go to zero because similar companies shouldn't be considered the same at this point
 
     notMatchingMalus: -10,
-    notMatchingMalusMultiplier: 0.6,
+    notMatchingMalusMultiplier: 0.7,
 
     emptyBonusMultiplier: 1,
   },

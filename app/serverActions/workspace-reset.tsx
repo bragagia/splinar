@@ -46,3 +46,51 @@ export async function workspaceReset(
     reset: reset,
   });
 }
+
+/*
+  const { error: error1 } = await supabase
+    .from("dup_stack_companies")
+    .delete()
+    .eq("workspace_id", workspaceId);
+  if (error1) throw error1;
+
+  const { error: error2 } = await supabase
+    .from("dup_stack_contacts")
+    .delete()
+    .eq("workspace_id", workspaceId);
+  if (error2) throw error2;
+
+  const { error: error3 } = await supabase
+    .from("dup_stacks")
+    .delete()
+    .eq("workspace_id", workspaceId);
+  if (error3) throw error3;
+
+  let update: Partial<ContactType> = {
+    dup_checked: false,
+  };
+
+  const { error: error9 } = await supabase
+    .from("contacts")
+    .update(update)
+    .eq("workspace_id", workspaceId);
+  if (error9) throw error9;
+
+  const { data, error: blabla } = await supabase
+    .from("contacts")
+    .select(
+      `*,
+      companies(*),
+      similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", true)
+    .eq("dup_checked", false)
+    .order("filled_score", { ascending: false })
+    .limit(1)
+    .explain();
+  console.log(blabla);
+
+  console.log(data);
+  return;
+*/

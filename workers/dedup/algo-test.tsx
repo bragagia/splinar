@@ -284,7 +284,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyB],
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -359,6 +359,32 @@ function AlgoTest() {
         last_name: "Abraham",
         phones: ["0707070707"],
         emails: ["vincent@splinar.com"],
+        company_name: "",
+        companies: [companyA],
+      },
+      false
+    ),
+
+    testContacts(
+      121,
+      "Same company and phone, but different person",
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Michael",
+        last_name: "Hartig",
+        phones: ["0707070707"],
+        emails: ["michael.hartig@sevdesk.de"],
+        company_name: "",
+        companies: [companyA],
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        first_name: "Robin",
+        last_name: "Feißt",
+        phones: ["0707070707"],
+        emails: ["robin.feisst@sevdesk.de"],
         company_name: "",
         companies: [companyA],
       },

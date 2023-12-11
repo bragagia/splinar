@@ -97,6 +97,8 @@ export async function companiesMerge(
     captureException(error);
   }
 
+  // TODO!!! : contact_companies should be merged too before deleting the merged companies
+
   if (itemIdsToMarkFalsePositive && itemIdsToMarkFalsePositive.length > 0) {
     const { error: errorUpdateDupStack } = await supabase
       .from("dup_stack_companies")
