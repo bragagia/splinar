@@ -128,7 +128,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyB],
       },
-      "POTENTIAL"
+      false
     ),
 
     testContacts(
@@ -206,7 +206,7 @@ function AlgoTest() {
         company_name: "",
         companies: [companyA],
       },
-      "POTENTIAL"
+      "CONFIDENT"
     ),
 
     testContacts(
@@ -444,7 +444,7 @@ function AlgoTest() {
     ),
 
     testContacts(
-      15,
+      16,
       "Same name and company, and empty other columns",
       {
         ...baseContact,

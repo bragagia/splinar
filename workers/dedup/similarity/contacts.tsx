@@ -246,17 +246,18 @@ export function contactSimilarityCheck(
           ...companySimilarityBase,
           similarity_score: "exact",
         });
-      } else if (companyA.name && companyB.name) {
-        if (
-          stringSimilarity.compareTwoStrings(companyA.name, companyB.name) >
-          0.97
-        ) {
-          similarities.push({
-            ...companySimilarityBase,
-            similarity_score: "similar",
-          });
-        }
       }
+      // } else if (companyA.name && companyB.name) {
+      //   if (
+      //     stringSimilarity.compareTwoStrings(companyA.name, companyB.name) >
+      //     0.97
+      //   ) {
+      //     similarities.push({
+      //       ...companySimilarityBase,
+      //       similarity_score: "similar",
+      //     });
+      //   }
+      // }
     });
   });
 

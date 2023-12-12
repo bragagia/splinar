@@ -1,4 +1,3 @@
-import { ContactType } from "@/types/contacts";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
 import {
@@ -102,8 +101,12 @@ export const workspaceInstallProcessor: Processor<
       workspaceUpdate.installation_companies_similarities_done_batches = 0;
       workspaceUpdate.installation_companies_similarities_done_batches = 0;
     } else {
-      let update: Partial<ContactType> = {
+      let update: {
+        dup_checked: boolean;
+        similarity_checked: boolean | undefined;
+      } = {
         dup_checked: false,
+        similarity_checked: undefined,
       };
 
       workspaceUpdate.installation_dup_total = 0;
@@ -123,6 +126,12 @@ export const workspaceInstallProcessor: Processor<
         .update(update)
         .eq("workspace_id", workspaceId);
       if (error9) throw error9;
+
+      const { error: error91 } = await supabaseAdmin
+        .from("companies")
+        .update(update)
+        .eq("workspace_id", workspaceId);
+      if (error91) throw error91;
     }
 
     const { error: error10 } = await supabaseAdmin

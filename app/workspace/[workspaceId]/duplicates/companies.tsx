@@ -158,6 +158,16 @@ export function getCompanyRowInfos(
         style: "text-gray-700",
         tips: "X/Twitter page",
       },
+
+      {
+        value: company.website ? (
+          <StandardLinkButton href={company.website}>
+            {company.website}
+          </StandardLinkButton>
+        ) : null,
+        style: "text-gray-700",
+        tips: "Website",
+      },
     ],
   };
 }

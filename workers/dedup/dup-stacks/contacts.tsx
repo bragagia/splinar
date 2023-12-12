@@ -10,36 +10,16 @@ import {
 } from "@/types/dupstacks";
 import { ContactSimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
+import { areItemsDups } from "@/workers/dedup/dup-stacks/are-items-dups";
 import { GenericDupStack } from "@/workers/dedup/dup-stacks/resolve-next-dup-stack";
-import {
-  ContactFieldsType,
-  listContactField,
-} from "@/workers/dedup/list-contact-fields";
+import { listContactField } from "@/workers/dedup/list-contact-fields";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /*
  * ALGO
  */
 
-type ValueScoringType = {
-  exact?: number;
-  similar?: number;
-  potential?: number;
-  unlikely?: number;
-
-  exactMultiplier?: number;
-  similarMultiplier?: number;
-  potentialMultiplier?: number;
-  unlikelyMultiplier?: number;
-
-  notMatchingMalus?: number;
-  notMatchingMalusMultiplier?: number;
-
-  emptyBonus?: number;
-  emptyBonusMultiplier?: number;
-};
-
-const contactScoring: { [key: string]: ValueScoringType } = {
+const contactScoring = {
   fullname: {
     exact: 40,
     similar: 30,
@@ -54,8 +34,8 @@ const contactScoring: { [key: string]: ValueScoringType } = {
     exact: 180,
     similar: 140,
     potential: 70,
-    unlikely: 10,
-    unlikelyMultiplier: 1.2,
+    unlikely: 5,
+    unlikelyMultiplier: 1.1,
 
     notMatchingMalus: -30,
 
@@ -63,7 +43,7 @@ const contactScoring: { [key: string]: ValueScoringType } = {
   },
 
   phone: {
-    exact: 70, // phones can be shared like a company, but can also be unique, not sure what to do about them
+    exact: 70, // phones can be shared like a company, but can also be unique
 
     notMatchingMalus: -30,
 
@@ -71,8 +51,7 @@ const contactScoring: { [key: string]: ValueScoringType } = {
   },
 
   company: {
-    exactMultiplier: 1.2,
-    similarMultiplier: 0.9, // TODO: in the future, when there will be deduplication of companies, this should go to zero because similar companies shouldn't be considered the same at this point
+    exactMultiplier: 1.4,
 
     notMatchingMalus: -10,
     notMatchingMalusMultiplier: 0.7,
@@ -81,119 +60,23 @@ const contactScoring: { [key: string]: ValueScoringType } = {
   },
 };
 
-const ContactFieldsList: ContactFieldsType[] = [
-  "fullname",
-  "email",
-  "phone",
-  "company",
-];
-
-// TODO: Same company -> Multiply the chance that they are the same, but does not increase score by itself
-
-/*
-    Score > 50 -> dup
-    Score > 10 -> potential
-    Si seulement le nom en pas exact -> Très peu de chabce
-    Si seulement l'email en exact -> quasi certain
-    Si à la fois le nom et l'email -> Probable
-    Nombre de champs remplis qui ne matchent pas : -20 par champ
-    Nombre de champs pas remplis : +10 par champ (max of contact pair)
-  */
-
 export function areContactsDups(
   itemA: ContactWithCompaniesAndSimilaritiesType,
   itemB: ContactWithCompaniesAndSimilaritiesType,
   verbose: boolean = false
-): "CONFIDENT" | "POTENTIAL" | false {
-  if (!itemA || !itemB) {
-    return false;
-  }
-
-  const similarities = itemA.contact_similarities.filter(
-    (similarity) =>
-      similarity.contact_a_id === itemB.id ||
-      similarity.contact_b_id === itemB.id
+) {
+  return areItemsDups(
+    itemA,
+    itemB,
+    verbose,
+    itemA.contact_similarities.filter(
+      (similarity) =>
+        similarity.contact_a_id === itemB.id ||
+        similarity.contact_b_id === itemB.id
+    ),
+    contactScoring,
+    listContactField
   );
-
-  const itemAFields = listContactField(itemA);
-  const itemBFields = listContactField(itemB);
-
-  let score = 0;
-  let multiplier = 1;
-
-  ContactFieldsList.forEach((field) => {
-    let similarity = similarities.find(
-      (similarity) => similarity.field_type === field
-    );
-
-    if (!similarity) {
-      if (
-        itemAFields.find((cf) => cf === field) &&
-        itemBFields.find((cf) => cf === field)
-      ) {
-        const notMatchingMalus = contactScoring[field]["notMatchingMalus"];
-        score += notMatchingMalus || 0;
-
-        if (verbose && notMatchingMalus !== undefined)
-          console.log(`[${field}] not matching - Malus: ${notMatchingMalus}`);
-
-        const notMatchingMalusMultiplier =
-          contactScoring[field]["notMatchingMalusMultiplier"];
-        multiplier *= notMatchingMalusMultiplier || 1;
-
-        if (verbose && notMatchingMalusMultiplier !== undefined)
-          console.log(
-            `[${field}] not matching - Malus multiplier: ${notMatchingMalusMultiplier}`
-          );
-      } else {
-        const emptyBonus = contactScoring[field]["emptyBonus"];
-        score += emptyBonus || 0;
-
-        if (verbose && emptyBonus !== undefined)
-          console.log(`[${field}] empty - Bonus: ${emptyBonus}`);
-
-        const emptyBonusMultiplier =
-          contactScoring[field]["emptyBonusMultiplier"];
-        multiplier *= emptyBonusMultiplier || 1;
-
-        if (verbose && emptyBonusMultiplier !== undefined)
-          console.log(
-            `[${field}] empty - Bonus multiplier: ${emptyBonusMultiplier}`
-          );
-      }
-    } else {
-      const similarityBonus =
-        contactScoring[field][similarity.similarity_score];
-      score += similarityBonus || 0;
-
-      if (verbose && similarityBonus !== undefined)
-        console.log(
-          `[${field}] ${similarity.similarity_score} - Bonus: ${similarityBonus}`
-        );
-
-      const similarityBonusMultiplier = (contactScoring[field] as any)[
-        similarity.similarity_score + "Multiplier"
-      ];
-      multiplier *= similarityBonusMultiplier || 1;
-
-      if (verbose && similarityBonusMultiplier !== undefined)
-        console.log(
-          `[${field}] ${similarity.similarity_score} - Bonus multiplier: ${similarityBonusMultiplier}`
-        );
-    }
-  });
-
-  const finalScore = score * multiplier;
-  if (verbose)
-    console.log(`--- finalScore = ${score} * ${multiplier} = ${finalScore}`);
-
-  if (finalScore >= 80) {
-    return "CONFIDENT";
-  } else if (finalScore >= 35) {
-    return "POTENTIAL";
-  } else {
-    return false;
-  }
 }
 
 /*
