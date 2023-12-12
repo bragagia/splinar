@@ -21,9 +21,9 @@ import { SupabaseClient } from "@supabase/supabase-js";
 
 const companyScoring = {
   name: {
-    exact: 70,
-    similar: 40,
-    potential: 30,
+    exact: 40,
+    similar: 30,
+    potential: 20,
     notMatchingMalus: -40,
     emptyBonus: 0,
   },

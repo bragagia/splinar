@@ -1,7 +1,9 @@
 "use client";
 
 import { companiesMerge } from "@/app/serverActions/companies-merge";
+import { companiesMergeAll } from "@/app/serverActions/companies-merge-all";
 import { contactMerge } from "@/app/serverActions/contacts-merge";
+import { contactMergeAll } from "@/app/serverActions/contacts-merge-all";
 import {
   getCompanyCardTitle,
   getCompanyRowInfos,
@@ -20,6 +22,7 @@ import {
 import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
+import { SpButton } from "@/components/sp-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DupStackCompanyItemWithCompanyType,
@@ -44,6 +47,8 @@ export default function DuplicatesPage() {
 
   const [contactCount, setContactCount] = useState<number | null>();
   const [companiesCount, setCompaniesCount] = useState<number | null>();
+  const [mergingAllContacts, setMergingAllContacts] = useState(false);
+  const [mergingAllCompanies, setMergingAllCompanies] = useState(false);
 
   useEffect(() => {
     supabase
@@ -73,6 +78,18 @@ export default function DuplicatesPage() {
       });
   }, [supabase, workspace.id]);
 
+  async function onMergeAllContacts() {
+    setMergingAllContacts(true);
+    await contactMergeAll(workspace.id);
+    setMergingAllContacts(false);
+  }
+
+  async function onMergeAllCompanies() {
+    setMergingAllCompanies(true);
+    await companiesMergeAll(workspace.id);
+    setMergingAllCompanies(false);
+  }
+
   return (
     <div className="flex-1 space-y-4 w-full">
       <div className="flex items-center justify-between space-y-2">
@@ -80,70 +97,116 @@ export default function DuplicatesPage() {
       </div>
 
       <Tabs defaultValue="companies">
-        <TabsList>
-          <TabsTrigger value="companies">
-            <span>
-              Companies
-              <span className="font-light"> ({companiesCount})</span>
-            </span>
-          </TabsTrigger>
+        <div className="flex flex-row justify-between items-center gap-2">
+          <TabsList>
+            <TabsTrigger value="companies">
+              <span>
+                Companies
+                <span className="font-light"> ({companiesCount})</span>
+              </span>
+            </TabsTrigger>
 
-          <TabsTrigger value="contacts">
-            <span>
-              Contacts
-              <span className="font-light"> ({contactCount})</span>
-            </span>
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="contacts">
+              <span>
+                Contacts
+                <span className="font-light"> ({contactCount})</span>
+              </span>
+            </TabsTrigger>
+          </TabsList>
+
+          <div>
+            <TabsContent value="companies" className="m-0">
+              <SpButton
+                variant="outline"
+                icon={Icons.merge}
+                onClick={onMergeAllCompanies}
+                disabled={contactCount === 0 || mergingAllCompanies}
+              >
+                Merge all confident companies duplicates
+              </SpButton>
+            </TabsContent>
+
+            <TabsContent value="contacts" className="m-0">
+              <SpButton
+                variant="outline"
+                icon={Icons.merge}
+                onClick={onMergeAllContacts}
+                disabled={contactCount === 0 || mergingAllContacts}
+              >
+                Merge all confident duplicates
+              </SpButton>
+            </TabsContent>
+          </div>
+        </div>
 
         <TabsContent value="companies">
-          <DuplicatesInfiniteList
-            list={[] as DupStackWithCompaniesType[]}
-            fetchNextPage={nextCompaniesPage}
-            dupStackDisplay={({
-              dupStack,
-            }: {
-              dupStack: DupStackWithCompaniesType;
-            }) => (
-              <DupStackCard
-                itemWordName={"companies"}
-                dupStack={dupStack}
-                itemMerge={companiesMerge}
-                getCardTitle={getCompanyCardTitle}
-                sortItems={sortCompaniesItems}
-                getDupstackItemId={(item: DupStackCompanyItemWithCompanyType) =>
-                  item.company_id
-                }
-                saveNewItemDupType={saveNewCompanyDupType}
-                getRowInfos={getCompanyRowInfos}
-              />
-            )}
-          />
+          {mergingAllCompanies ? (
+            <div className="w-full flex flex-row items-center justify-center h-52 gap-2">
+              <Icons.spinner className="h-6 w-6 animate-spin" />
+
+              <p className="text-md font-medium text-gray-600">
+                {"Merging all confident duplicates"}
+              </p>
+            </div>
+          ) : (
+            <DuplicatesInfiniteList
+              list={[] as DupStackWithCompaniesType[]}
+              fetchNextPage={nextCompaniesPage}
+              dupStackDisplay={({
+                dupStack,
+              }: {
+                dupStack: DupStackWithCompaniesType;
+              }) => (
+                <DupStackCard
+                  itemWordName={"companies"}
+                  dupStack={dupStack}
+                  itemMerge={companiesMerge}
+                  getCardTitle={getCompanyCardTitle}
+                  sortItems={sortCompaniesItems}
+                  getDupstackItemId={(
+                    item: DupStackCompanyItemWithCompanyType
+                  ) => item.company_id}
+                  saveNewItemDupType={saveNewCompanyDupType}
+                  getRowInfos={getCompanyRowInfos}
+                />
+              )}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="contacts">
-          <DuplicatesInfiniteList
-            list={[] as DupStackWithContactsAndCompaniesType[]}
-            fetchNextPage={nextContactsPage}
-            dupStackDisplay={({
-              dupStack,
-            }: {
-              dupStack: DupStackWithContactsAndCompaniesType;
-            }) => (
-              <DupStackCard
-                itemWordName={"contacts"}
-                dupStack={dupStack}
-                itemMerge={contactMerge}
-                getCardTitle={getContactCardTitle}
-                sortItems={sortContactsItems}
-                getDupstackItemId={(
-                  item: DupStackContactItemWithContactAndCompaniesType
-                ) => item.contact_id}
-                saveNewItemDupType={saveNewContactDupType}
-                getRowInfos={getContactRowInfos}
-              />
-            )}
-          />
+          {mergingAllContacts ? (
+            <div className="w-full flex flex-row items-center justify-center h-52 gap-2">
+              <Icons.spinner className="h-6 w-6 animate-spin" />
+
+              <p className="text-md font-medium text-gray-600">
+                {"Merging all confident duplicates"}
+              </p>
+            </div>
+          ) : (
+            <DuplicatesInfiniteList
+              list={[] as DupStackWithContactsAndCompaniesType[]}
+              fetchNextPage={nextContactsPage}
+              dupStackDisplay={({
+                dupStack,
+              }: {
+                dupStack: DupStackWithContactsAndCompaniesType;
+              }) => (
+                <DupStackCard
+                  itemWordName={"contacts"}
+                  dupStack={dupStack}
+                  itemMerge={contactMerge}
+                  getCardTitle={getContactCardTitle}
+                  sortItems={sortContactsItems}
+                  getDupstackItemId={(
+                    item: DupStackContactItemWithContactAndCompaniesType
+                  ) => item.contact_id}
+                  saveNewItemDupType={saveNewContactDupType}
+                  getRowInfos={getContactRowInfos}
+                />
+              )}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

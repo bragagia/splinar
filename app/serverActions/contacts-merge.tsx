@@ -9,13 +9,15 @@ import {
   getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
+import { Client } from "@hubspot/api-client";
 import { captureException } from "@sentry/node";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function contactMerge(
   workspaceId: string,
-  dupStack: DupStackWithContactsAndCompaniesType
+  dupStack: DupStackWithContactsAndCompaniesType,
+  hsClient?: Client
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -44,7 +46,9 @@ export async function contactMerge(
     throw new Error("Missing user session");
   }
 
-  let hsClient = await newHubspotClient(workspace.refresh_token);
+  if (!hsClient) {
+    hsClient = await newHubspotClient(workspace.refresh_token);
+  }
 
   const referenceContact = getDupstackReference(dupStack);
   const contactsToMerge = getDupstackConfidents(dupStack);
@@ -54,14 +58,15 @@ export async function contactMerge(
   }
 
   if (!referenceContact || !contactsToMerge || contactsToMerge.length === 0) {
-    throw Error("Contact fetched from db are incoherent with dup stack");
+    return;
+    // TODO: Handle the case where no contacts to merge, but some contacts to mark as false positive
   }
 
   // TODO: We should catch if there is an error, and still save the merged contacts
 
   await Promise.all(
     contactsToMerge.map(async (contactToMerge) => {
-      await hsClient.crm.contacts.publicObjectApi.merge({
+      await hsClient?.crm.contacts.publicObjectApi.merge({
         primaryObjectId: referenceContact.contact?.hs_id.toString() || "",
         objectIdToMerge: contactToMerge.contact?.hs_id.toString() || "",
       });

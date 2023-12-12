@@ -9,13 +9,15 @@ import {
   getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
+import { Client } from "@hubspot/api-client";
 import { captureException } from "@sentry/node";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function companiesMerge(
   workspaceId: string,
-  dupStack: DupStackWithCompaniesType
+  dupStack: DupStackWithCompaniesType,
+  hsClient?: Client
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -44,7 +46,9 @@ export async function companiesMerge(
     throw new Error("Missing user session");
   }
 
-  let hsClient = await newHubspotClient(workspace.refresh_token);
+  if (!hsClient) {
+    hsClient = await newHubspotClient(workspace.refresh_token);
+  }
 
   const referenceItem = getDupstackReference(dupStack);
   const itemsToMerge = getDupstackConfidents(dupStack);
@@ -61,7 +65,7 @@ export async function companiesMerge(
   await Promise.all(
     itemsToMerge.map(async (itemToMerge) => {
       // SPECIFIC v
-      await hsClient.crm.companies.publicObjectApi.merge({
+      await hsClient?.crm.companies.publicObjectApi.merge({
         primaryObjectId: referenceItem.company?.hs_id.toString() || "",
         objectIdToMerge: itemToMerge.company?.hs_id.toString() || "",
       });

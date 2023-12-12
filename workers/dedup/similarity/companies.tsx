@@ -71,9 +71,9 @@ export function companiesSimilarityCheck(
       } else {
         const compareScore = stringSimilarity.compareTwoStrings(a, b);
 
-        if (compareScore > 0.9) {
+        if (compareScore > 0.95) {
           addSimilarity("name", a, b, "similar");
-        } else if (compareScore > 0.8) {
+        } else if (compareScore > 0.9) {
           addSimilarity("name", a, b, "potential");
         }
       }
