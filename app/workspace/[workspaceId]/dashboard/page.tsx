@@ -22,8 +22,7 @@ export default async function WorkspacePage({
   const { count: dupStackCount, error: errorDupStack } = await supabase
     .from("dup_stacks")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
-    .eq("item_type", "CONTACTS");
+    .eq("workspace_id", workspaceId);
   if (errorDupStack || dupStackCount === null) {
     throw errorDupStack || new Error("Missing dupstack count");
   }
@@ -37,6 +36,15 @@ export default async function WorkspacePage({
     throw errorDupStackContacts;
   }
 
+  const { count: dupstackCompaniesCount, error: errorDupStackCompanies } =
+    await supabase
+      .from("dup_stack_companies")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId);
+  if (errorDupStackCompanies) {
+    throw errorDupStackCompanies;
+  }
+
   const { count: mergedContactsCount, error: errorMergedContactsCount } =
     await supabase
       .from("merged_contacts")
@@ -44,6 +52,15 @@ export default async function WorkspacePage({
       .eq("workspace_id", workspaceId);
   if (errorMergedContactsCount) {
     throw errorMergedContactsCount;
+  }
+
+  const { count: mergedCompaniesCount, error: errorMergedCompaniesCount } =
+    await supabase
+      .from("merged_companies")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId);
+  if (errorMergedCompaniesCount) {
+    throw errorMergedCompaniesCount;
   }
 
   const { data: mergedContactsByMonths, error: errorMergedContactsByMonths } =
@@ -76,7 +93,9 @@ export default async function WorkspacePage({
             </CardHeader>
 
             <CardContent>
-              <div className="text-2xl font-bold">{dupstackContactsCount}</div>
+              <div className="text-2xl font-bold">
+                {(dupstackContactsCount || 0) + (dupstackCompaniesCount || 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
                 could be merged as {dupStackCount} uniques items
               </p>
@@ -93,7 +112,9 @@ export default async function WorkspacePage({
             </CardHeader>
 
             <CardContent>
-              <div className="text-2xl font-bold">{mergedContactsCount}</div>
+              <div className="text-2xl font-bold">
+                {(mergedContactsCount || 0) + (mergedCompaniesCount || 0)}
+              </div>
               <p className="text-xs text-muted-foreground">duplicates so far</p>
             </CardContent>
           </Card>

@@ -52,10 +52,9 @@ export default function DuplicatesPage() {
 
   useEffect(() => {
     supabase
-      .from("dup_stacks")
+      .from("dup_stack_contacts")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspace.id)
-      .eq("item_type", "CONTACTS")
       .then(({ count: contactCount, error: contactError }) => {
         if (contactError) {
           throw contactError;
@@ -65,10 +64,9 @@ export default function DuplicatesPage() {
       });
 
     supabase
-      .from("dup_stacks")
+      .from("dup_stack_companies")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspace.id)
-      .eq("item_type", "COMPANIES")
       .then(({ count: companiesCount, error: companiesError }) => {
         if (companiesError) {
           throw companiesError;
