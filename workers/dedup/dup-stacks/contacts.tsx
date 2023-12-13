@@ -267,12 +267,14 @@ export async function markContactDupstackElementsAsDupChecked(
   workspaceId: string,
   dupstackIds: string[]
 ) {
-  const { error: errorChecked } = await supabase
-    .from("contacts")
-    .update({ dup_checked: true })
-    .in("id", dupstackIds)
-    .eq("workspace_id", workspaceId);
-  if (errorChecked) {
-    throw errorChecked;
+  for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { error: errorChecked } = await supabase
+      .from("contacts")
+      .update({ dup_checked: true })
+      .in("id", dupstackIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE))
+      .eq("workspace_id", workspaceId);
+    if (errorChecked) {
+      throw errorChecked;
+    }
   }
 }
