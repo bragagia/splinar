@@ -4,6 +4,7 @@ export const URLS = {
   absolute: (path: string) => base + path,
 
   login: "/",
+  signUp: "/sign-up",
 
   // Retuns a link to last workspace if teamId is null
   workspace: (workspaceId: string) => ({
