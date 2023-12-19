@@ -43,10 +43,7 @@ export default function Home() {
           </div>
           <div className="relative z-20 mt-auto">
             <blockquote className="space-y-2">
-              <p className="text-lg">
-                &ldquo;Your pipe has never been that smooth.&rdquo;
-              </p>
-              <footer className="text-sm">La Team Pipe</footer>
+              <p className="text-lg">Put an end to bad data in hubspot.</p>
             </blockquote>
           </div>
         </div>
