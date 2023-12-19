@@ -131,7 +131,7 @@ export default function DuplicatesPage() {
                 onClick={onMergeAllContacts}
                 disabled={contactCount === 0 || mergingAllContacts}
               >
-                Merge all confident duplicates
+                Merge all confident contacts duplicates
               </SpButton>
             </TabsContent>
           </div>
