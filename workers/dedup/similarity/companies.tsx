@@ -61,7 +61,12 @@ export function companiesSimilarityCheck(
   };
 
   // Name
-  if (companyA.name && companyB.name) {
+  if (
+    companyA.name &&
+    companyB.name &&
+    companyA.name.length > 2 &&
+    companyB.name.length > 2
+  ) {
     let a = companyA.name.trim().toLowerCase().replaceAll("  ", " ");
     let b = companyB.name.trim().toLowerCase().replaceAll("  ", " ");
 
@@ -81,7 +86,12 @@ export function companiesSimilarityCheck(
   }
 
   // Domain
-  if (companyA.domain && companyB.domain) {
+  if (
+    companyA.domain &&
+    companyB.domain &&
+    companyA.domain.length > 3 &&
+    companyB.domain.length > 3
+  ) {
     const a = companyA.domain.trim().toLowerCase();
     const b = companyB.domain.trim().toLowerCase();
 
@@ -100,7 +110,12 @@ export function companiesSimilarityCheck(
   }
 
   // website
-  if (companyA.website && companyB.website) {
+  if (
+    companyA.website &&
+    companyB.website &&
+    companyA.website.length > 3 &&
+    companyB.website.length > 3
+  ) {
     const a = companyA.website.trim().toLowerCase();
     const b = companyB.website.trim().toLowerCase();
 
@@ -119,7 +134,12 @@ export function companiesSimilarityCheck(
   }
 
   // facebook_company_page
-  if (companyA.facebook_company_page && companyB.facebook_company_page) {
+  if (
+    companyA.facebook_company_page &&
+    companyB.facebook_company_page &&
+    companyA.facebook_company_page.length > 3 &&
+    companyB.facebook_company_page.length > 3
+  ) {
     const a = companyA.facebook_company_page.trim().toLowerCase();
     const b = companyB.facebook_company_page.trim().toLowerCase();
 
@@ -131,7 +151,12 @@ export function companiesSimilarityCheck(
   }
 
   // linkedin_company_page
-  if (companyA.linkedin_company_page && companyB.linkedin_company_page) {
+  if (
+    companyA.linkedin_company_page &&
+    companyB.linkedin_company_page &&
+    companyA.linkedin_company_page.length > 3 &&
+    companyB.linkedin_company_page.length > 3
+  ) {
     const a = companyA.linkedin_company_page.trim().toLowerCase();
     const b = companyB.linkedin_company_page.trim().toLowerCase();
 
@@ -143,7 +168,12 @@ export function companiesSimilarityCheck(
   }
 
   // twitterhandle
-  if (companyA.twitterhandle && companyB.twitterhandle) {
+  if (
+    companyA.twitterhandle &&
+    companyB.twitterhandle &&
+    companyA.twitterhandle.length > 2 &&
+    companyB.twitterhandle.length > 2
+  ) {
     const a = companyA.twitterhandle.trim().toLowerCase();
     const b = companyB.twitterhandle.trim().toLowerCase();
 
@@ -155,7 +185,12 @@ export function companiesSimilarityCheck(
   }
 
   // phone
-  if (companyA.phone && companyB.phone) {
+  if (
+    companyA.phone &&
+    companyB.phone &&
+    companyA.phone.length > 4 &&
+    companyB.phone.length > 4
+  ) {
     const a = companyA.phone.trim().toLowerCase();
     const b = companyB.phone.trim().toLowerCase();
 

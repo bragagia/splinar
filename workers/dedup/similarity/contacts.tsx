@@ -85,7 +85,7 @@ export function contactSimilarityCheck(
     .toLowerCase()
     .replaceAll("  ", " ");
 
-  if (aFullName !== "" && bFullName !== "") {
+  if (aFullName.length > 2 && bFullName.length > 2) {
     const fullNameSimilarityBase: InsertContactSimilarityType = {
       ...similarityBase,
       id: uuid(),
@@ -128,8 +128,15 @@ export function contactSimilarityCheck(
   }
 
   // Emails
-  contactA.emails?.forEach((emailA) => {
-    contactB.emails?.forEach((emailB) => {
+  const emailsFilteredA = contactA.emails?.filter(
+    (email) => email.length > 4 && email.includes("@")
+  );
+  const emailsFilteredB = contactB.emails?.filter(
+    (email) => email.length > 4 && email.includes("@")
+  );
+
+  emailsFilteredA?.forEach((emailA) => {
+    emailsFilteredB?.forEach((emailB) => {
       const emailSimilarityBase: InsertContactSimilarityType = {
         ...similarityBase,
         id: uuid(),
@@ -201,8 +208,11 @@ export function contactSimilarityCheck(
   });
 
   // Phones
-  contactA.phones?.forEach((phoneA) => {
-    contactB.phones?.forEach((phoneB) => {
+  const phonesFilteredA = contactA.phones?.filter((phone) => phone.length > 4);
+  const phonesFilteredB = contactB.phones?.filter((phone) => phone.length > 4);
+
+  phonesFilteredA?.forEach((phoneA) => {
+    phonesFilteredB?.forEach((phoneB) => {
       if (phoneA === phoneB) {
         similarities.push({
           ...similarityBase,

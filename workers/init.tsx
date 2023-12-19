@@ -40,7 +40,7 @@ export function workerInit<WorkerArgs>(
       removeOnFail: {
         age: 4 * 24 * 60 * 60, // keep up to 4 days
       },
-      lockDuration: 60 * 60 * 1000, // TODO: Lock of 1 hour, this is to prevent jobs from being considered stalled while there is workers running on same vCPU. This should be set to default again when moving to fargate
+      lockDuration: 60 * 1000, // TODO: Lock of 1 minute, this is to prevent jobs from being considered stalled while there is workers running on same vCPU. This should be set to default again when moving to fargate
     }
   );
 
