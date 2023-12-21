@@ -87,6 +87,8 @@ export async function fetchNextContactReference(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
+  const startTime = performance.now();
+
   const { data, error } = await supabase
     .from("contacts")
     .select(
@@ -113,6 +115,12 @@ export async function fetchNextContactReference(
     ) as ContactSimilarityType[],
   };
 
+  console.log(
+    "### [PERF] fetchNextContactReference:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
+
   return contact;
 }
 
@@ -124,6 +132,8 @@ export async function fetchSimilarContactsSortedByFillScore(
   },
   parentContactId: string
 ) {
+  const startTime = performance.now();
+
   const parentContact = contactsCacheById[parentContactId];
 
   let res = {
@@ -172,8 +182,8 @@ export async function fetchSimilarContactsSortedByFillScore(
         .from("contacts")
         .select(
           `*,
-              companies(*),
-              similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
+          companies(*),
+          similarities_a:contact_similarities!contact_similarities_contact_a_id_fkey(*), similarities_b:contact_similarities!contact_similarities_contact_b_id_fkey(*)`
         )
         .eq("workspace_id", workspaceId)
         .in(
@@ -206,6 +216,12 @@ export async function fetchSimilarContactsSortedByFillScore(
 
   res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
 
+  console.log(
+    "### [PERF] fetchSimilarContactsSortedByFillScore:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
+
   return res;
 }
 
@@ -214,6 +230,8 @@ export async function createContactsDupstack(
   workspaceId: string,
   genericDupstack: GenericDupStack
 ) {
+  const startTime = performance.now();
+
   const dupstackId = uuid();
   const dupstack: InsertDupStackType = {
     id: dupstackId,
@@ -260,6 +278,12 @@ export async function createContactsDupstack(
   if (errorDupstackContact) {
     throw errorDupstackContact;
   }
+
+  console.log(
+    "### [PERF] createContactsDupstack:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 }
 
 export async function markContactDupstackElementsAsDupChecked(
@@ -267,6 +291,8 @@ export async function markContactDupstackElementsAsDupChecked(
   workspaceId: string,
   dupstackIds: string[]
 ) {
+  const startTime = performance.now();
+
   for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error: errorChecked } = await supabase
       .from("contacts")
@@ -277,4 +303,10 @@ export async function markContactDupstackElementsAsDupChecked(
       throw errorChecked;
     }
   }
+
+  console.log(
+    "### [PERF] markContactDupstackElementsAsDupChecked:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 }

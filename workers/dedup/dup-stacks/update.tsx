@@ -20,9 +20,10 @@ export async function updateContactsDupStacks(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   callbackOnInterval?: () => Promise<void>,
-  intervalCallback: number = 5
+  intervalCallback: number = 25,
+  intervalStop: number = 200
 ) {
-  await genericUpdateDupStacks(
+  return await genericUpdateDupStacks(
     () =>
       resolveNextDuplicatesStack(
         supabase,
@@ -34,7 +35,8 @@ export async function updateContactsDupStacks(
         markContactDupstackElementsAsDupChecked
       ),
     callbackOnInterval,
-    intervalCallback
+    intervalCallback,
+    intervalStop
   );
 }
 
@@ -42,9 +44,10 @@ export async function updateCompaniesDupStacks(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   callbackOnInterval?: () => Promise<void>,
-  intervalCallback: number = 5
+  intervalCallback: number = 25,
+  intervalStop: number = 200
 ) {
-  await genericUpdateDupStacks(
+  return await genericUpdateDupStacks(
     () =>
       resolveNextDuplicatesStack(
         supabase,
@@ -56,26 +59,33 @@ export async function updateCompaniesDupStacks(
         markCompaniesDupstackElementsAsDupChecked
       ),
     callbackOnInterval,
-    intervalCallback
+    intervalCallback,
+    intervalStop
   );
 }
 
 async function genericUpdateDupStacks(
   resolveNextDuplicatesStack: () => Promise<boolean>,
   callbackOnInterval?: () => Promise<void>,
-  intervalCallback: number = 5
+  intervalCallback: number = 25,
+  intervalStop: number = 200
 ) {
   let counter = 0;
 
   do {
     const hasFoundContact = await resolveNextDuplicatesStack();
     if (!hasFoundContact) {
-      return counter;
+      if (callbackOnInterval) await callbackOnInterval();
+
+      return false;
     }
 
     counter++;
     if (callbackOnInterval && counter % intervalCallback === 0) {
       await callbackOnInterval();
+    }
+    if (counter % intervalStop === 0) {
+      return true;
     }
   } while (true);
 }

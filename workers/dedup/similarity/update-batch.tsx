@@ -1,4 +1,4 @@
-import { captureException } from "@/lib/sentry";
+import { inngest } from "@/inngest";
 import { Database } from "@/types/supabase";
 import {
   companiesSimilarityCheck,
@@ -25,6 +25,14 @@ export async function similaritiesUpdateBatch(
       "contacts_similarities_increment_done_batches",
       fetchContactsBatch,
       contactSimilarityCheck,
+      async () => {
+        await inngest.send({
+          name: "workspace/contacts/similarities/install.finished",
+          data: {
+            workspaceId: workspaceId,
+          },
+        });
+      },
       batchAIds,
       batchBIds
     );
@@ -36,6 +44,14 @@ export async function similaritiesUpdateBatch(
       "companies_similarities_increment_done_batches",
       fetchCompaniesBatch,
       companiesSimilarityCheck,
+      async () => {
+        await inngest.send({
+          name: "workspace/companies/similarities/install.finished",
+          data: {
+            workspaceId: workspaceId,
+          },
+        });
+      },
       batchAIds,
       batchBIds
     );
@@ -55,6 +71,7 @@ async function genericSimilaritiesBatchEval<T, RT>(
     batchIds: string[]
   ) => Promise<T[]>,
   comparatorFn: (workspaceId: string, itemA: T, itemB: T) => RT[] | undefined,
+  installFinishedCallback: () => Promise<void>,
   batchAIds: string[],
   batchBIds?: string[]
 ) {
@@ -86,11 +103,18 @@ async function genericSimilaritiesBatchEval<T, RT>(
     throw errorInsert;
   }
 
-  const { error: errorIncrement } = await supabase.rpc(incrementFunc, {
-    workspace_id_arg: workspaceId,
-  });
+  const { data: isFinished, error: errorIncrement } = await supabase.rpc(
+    incrementFunc,
+    {
+      workspace_id_arg: workspaceId,
+    }
+  );
   if (errorIncrement) {
-    captureException(errorIncrement);
+    throw errorIncrement;
+  }
+
+  if (isFinished) {
+    installFinishedCallback();
   }
 }
 

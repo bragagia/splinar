@@ -1,12 +1,7 @@
-import {
-  newSimilaritiesBatchEvalQueueEvents,
-  similaritiesBatchEvalQueueAdd,
-} from "@/lib/queues/similarities-batch-eval";
+import { inngest } from "@/inngest";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
-import { SimilaritiesBatchEvalWorkerArgs } from "@/workers/similarities-batch-eval";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
-import { Job } from "bullmq";
 
 export const SIMILARITIES_BATCH_SIZE = 1000;
 
@@ -16,8 +11,6 @@ export async function updateSimilarities(
   table: "contacts" | "companies",
   afterBatchCallback?: () => Promise<void>
 ) {
-  let jobs: Job<SimilaritiesBatchEvalWorkerArgs, void, string>[] = [];
-
   let batchLength = 0;
   do {
     let query = supabase
@@ -41,62 +34,29 @@ export async function updateSimilarities(
 
     const batchIds = batch.map((o) => o.id);
 
-    const job = await similaritiesBatchEvalQueueAdd(
-      workspaceId + "-" + batchIds[0] + "-single",
-      {
+    await inngest.send({
+      name: "workspace/similarities/batch-install.start",
+      data: {
         workspaceId: workspaceId,
         table: table,
         batchAIds: batchIds,
-      }
-    );
-    jobs.push(job);
+      },
+    });
 
     if (afterBatchCallback) {
       await afterBatchCallback();
     }
 
-    const newJobs = await compareBatchWithAllInstalledBatches(
+    await compareBatchWithAllInstalledBatches(
       supabase,
       workspaceId,
       table,
       batchIds,
       afterBatchCallback
     );
-    jobs.push(...newJobs);
 
     await markBatchInstalled(supabase, table, batchIds);
   } while (batchLength === SIMILARITIES_BATCH_SIZE);
-
-  console.log("Waiting for job end");
-
-  const queueEvent = newSimilaritiesBatchEvalQueueEvents();
-  await Promise.all(jobs.map((job) => job.waitUntilFinished(queueEvent)));
-
-  switch (table) {
-    case "companies":
-      console.log("Marking contact without similarities as checked");
-
-      const { error: errorCompanies } = await supabase.rpc(
-        "mark_companies_without_similarities_as_dup_checked",
-        { workspace_id_arg: workspaceId }
-      );
-      if (errorCompanies) {
-        throw errorCompanies;
-      }
-      break;
-
-    case "contacts":
-      console.log("Marking contact without similarities as checked");
-
-      const { error: errorContacts } = await supabase.rpc(
-        "mark_contacts_without_similarities_as_dup_checked",
-        { workspace_id_arg: workspaceId }
-      );
-      if (errorContacts) {
-        throw errorContacts;
-      }
-      break;
-  }
 }
 
 async function markBatchInstalled(
@@ -122,8 +82,6 @@ async function compareBatchWithAllInstalledBatches(
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
-  let jobs: Job<SimilaritiesBatchEvalWorkerArgs, void, string>[] = [];
-
   let lastItemId: string | null = null;
   do {
     let query = supabase
@@ -149,16 +107,15 @@ async function compareBatchWithAllInstalledBatches(
 
     const installedBatchIds = installedBatch.map((o) => o.id);
 
-    const job = await similaritiesBatchEvalQueueAdd(
-      workspaceId + "-" + batchIds[0] + "-" + installedBatchIds[0],
-      {
+    await inngest.send({
+      name: "workspace/similarities/batch-install.start",
+      data: {
         workspaceId: workspaceId,
         table: table,
         batchAIds: batchIds,
         batchBIds: installedBatchIds,
-      }
-    );
-    jobs.push(job);
+      },
+    });
 
     if (afterBatchCallback) {
       await afterBatchCallback();
@@ -169,6 +126,4 @@ async function compareBatchWithAllInstalledBatches(
       lastItemId = null;
     }
   } while (lastItemId);
-
-  return jobs;
 }

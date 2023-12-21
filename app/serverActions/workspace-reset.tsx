@@ -1,6 +1,6 @@
 "use server";
 
-import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
+import { inngest } from "@/inngest";
 import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -41,10 +41,18 @@ export async function workspaceReset(
     throw errorWorkspaceUpdate;
   }
 
-  await workspaceInstallQueueAdd("workspaceInstallQueue", {
-    workspaceId: workspaceId,
-    reset: reset,
+  await inngest.send({
+    name: "workspace/install.start",
+    data: {
+      workspaceId: workspaceId,
+      reset: reset,
+    },
   });
+
+  // await workspaceInstallQueueAdd("workspaceInstallQueue", {
+  //   workspaceId: workspaceId,
+  //   reset: reset,
+  // });
 }
 
 /*

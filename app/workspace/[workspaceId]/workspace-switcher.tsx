@@ -260,7 +260,7 @@ function UserSwitcher({
     return Object.keys(allUsers).sort((a, b) =>
       a.localeCompare(b, "en", { numeric: true })
     );
-  }, [allWorkspaces]);
+  }, [allWorkspaces, user.id]);
 
   function onSelectUser(userId: string | null) {
     setOpen(false);
