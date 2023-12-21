@@ -1,5 +1,5 @@
+import { installCompaniesDupStacks } from "@/inngest/dedup/dup-stacks/install";
 import { Database } from "@/types/supabase";
-import { installCompaniesDupStacks } from "@/workers/dedup/dup-stacks/install";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -9,8 +9,7 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
 
-    logger.info("### Workspace companies dups install", workspaceId);
-    const startTime = performance.now();
+    logger.info("# Workspace companies dups install", workspaceId);
 
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,7 +17,7 @@ export default inngest.createFunction(
     );
 
     if (!event.data.secondRun) {
-      logger.info("Marking companies without similarities as checked");
+      logger.info("-> Marking companies without similarities as checked");
 
       const { error: errorCompanies } = await supabaseAdmin.rpc(
         "mark_companies_without_similarities_as_dup_checked",
@@ -28,12 +27,6 @@ export default inngest.createFunction(
         throw errorCompanies;
       }
     }
-
-    logger.info(
-      "### Install dup stacks",
-      " # Time: ",
-      Math.round((performance.now() - startTime) / 1000)
-    );
 
     const hasMore = await installCompaniesDupStacks(supabaseAdmin, workspaceId);
 
@@ -45,6 +38,15 @@ export default inngest.createFunction(
           secondRun: true,
         },
       });
+    } else {
+      await inngest.send({
+        name: "workspace/any/dups/install.finished",
+        data: {
+          workspaceId: workspaceId,
+        },
+      });
     }
+
+    logger.info("# Workspace companies dups install", workspaceId, "- END");
   }
 );

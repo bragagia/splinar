@@ -34,9 +34,17 @@ export type WorkspaceCompaniesSimilaritiesBatchInstallFinished = {
   };
 };
 
+export type WorkspaceAnyDupsInstallFinished = {
+  name: "workspace/any/dups/install.finished";
+  data: {
+    workspaceId: string;
+  };
+};
+
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
   | WorkspaceSimilaritiesBatchInstallStart
   | WorkspaceContactsSimilaritiesBatchInstallFinished
   | WorkspaceCompaniesSimilaritiesBatchInstallFinished
+  | WorkspaceAnyDupsInstallFinished
 >();

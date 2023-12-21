@@ -1,5 +1,5 @@
+import { similaritiesUpdateBatch } from "@/inngest/dedup/similarity/update-batch";
 import { Database } from "@/types/supabase";
-import { similaritiesUpdateBatch } from "@/workers/dedup/similarity/update-batch";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -22,6 +22,6 @@ export default inngest.createFunction(
       event.data.batchBIds
     );
 
-    logger.info("# End");
+    logger.info("# similaritiesBatchEval - END");
   }
 );

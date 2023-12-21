@@ -1,8 +1,8 @@
-import { Database } from "@/types/supabase";
 import {
   updateCompaniesDupStacks,
   updateContactsDupStacks,
-} from "@/workers/dedup/dup-stacks/update";
+} from "@/inngest/dedup/dup-stacks/update";
+import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function installDupStacks(
@@ -18,15 +18,9 @@ export async function installContactsDupStacks(
   workspaceId: string
 ) {
   const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
-  const startTime = performance.now();
 
   return await updateContactsDupStacks(supabase, workspaceId, async () => {
-    await updateDupStackInstallationDone(
-      supabase,
-      workspaceId,
-      startTime,
-      dupTotal
-    );
+    await updateDupStackInstallationDone(supabase, workspaceId, dupTotal);
   });
 }
 
@@ -35,15 +29,9 @@ export async function installCompaniesDupStacks(
   workspaceId: string
 ) {
   const dupTotal = await updateDupStackInstallationTotal(supabase, workspaceId);
-  const startTime = performance.now();
 
   return await updateCompaniesDupStacks(supabase, workspaceId, async () => {
-    await updateDupStackInstallationDone(
-      supabase,
-      workspaceId,
-      startTime,
-      dupTotal
-    );
+    await updateDupStackInstallationDone(supabase, workspaceId, dupTotal);
   });
 }
 
@@ -73,7 +61,6 @@ export async function updateDupStackInstallationTotal(
     .from("workspaces")
     .update({
       installation_dup_total: dupTotal,
-      installation_dup_done: 0,
     })
     .eq("id", workspaceId);
   if (errorUpdate) {
@@ -86,7 +73,6 @@ export async function updateDupStackInstallationTotal(
 async function updateDupStackInstallationDone(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  startTime: number,
   dupTotal: number
 ) {
   const { count: dupContactsDone, error: errorContacts } = await supabase
@@ -95,8 +81,7 @@ async function updateDupStackInstallationDone(
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", true);
   if (errorContacts || dupContactsDone === null) {
-    console.log(errorContacts || new Error("missing count"));
-    return;
+    throw errorContacts || new Error("missing count");
   }
 
   const { count: dupCompaniesDone, error: errorCompanies } = await supabase
@@ -105,8 +90,7 @@ async function updateDupStackInstallationDone(
     .eq("workspace_id", workspaceId)
     .eq("dup_checked", true);
   if (errorCompanies || dupCompaniesDone === null) {
-    console.log(errorCompanies || new Error("missing count"));
-    return;
+    throw errorCompanies || new Error("missing count");
   }
 
   const dupDone = dupContactsDone + dupCompaniesDone;
@@ -122,15 +106,7 @@ async function updateDupStackInstallationDone(
     return 0;
   }
 
-  console.log(
-    "Dup stack batch",
-    dupDone,
-    "/",
-    dupTotal,
-    "- time:",
-    Math.round(performance.now() - startTime),
-    "ms"
-  );
+  console.log("-> Dup stack batch", dupDone, "/", dupTotal);
 
   return dupDone;
 }

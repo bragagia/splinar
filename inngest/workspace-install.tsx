@@ -1,8 +1,8 @@
+import { updateDupStackInstallationTotal } from "@/inngest/dedup/dup-stacks/install";
+import { fullFetch } from "@/inngest/dedup/fetch/install";
+import { installSimilarities } from "@/inngest/dedup/similarity/install";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
-import { updateDupStackInstallationTotal } from "@/workers/dedup/dup-stacks/install";
-import { fullFetch } from "@/workers/dedup/fetch/install";
-import { installSimilarities } from "@/workers/dedup/similarity/install";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -13,9 +13,6 @@ export default inngest.createFunction(
     logger.info("# workspaceInstall");
     const { workspaceId, reset } = event.data;
 
-    logger.info("### Workspace Install", workspaceId);
-    const startTime = performance.now();
-
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -23,6 +20,8 @@ export default inngest.createFunction(
 
     await step.run("workspace-reset", async () => {
       if (reset) {
+        logger.info("-> reset -", reset);
+
         const { error: error1 } = await supabaseAdmin
           .from("dup_stack_companies")
           .delete()
@@ -128,7 +127,7 @@ export default inngest.createFunction(
     });
 
     await step.run("workspace-update-status", async () => {
-      logger.info("### Updating workspace status");
+      logger.info("-> Updating workspace status");
       let workspaceUpdatePending: Partial<WorkspaceType> = {
         installation_status: "PENDING",
       };
@@ -151,11 +150,7 @@ export default inngest.createFunction(
 
     await step.run("workspace-install-fetching", async () => {
       if (!workspace.installation_fetched) {
-        logger.info(
-          "### Fetching hubspot data",
-          " # Time: ",
-          Math.round((performance.now() - startTime) / 1000)
-        );
+        logger.info("-> Fetching hubspot data");
         await fullFetch(supabaseAdmin, workspaceId);
         await updateDupStackInstallationTotal(supabaseAdmin, workspaceId);
       }
@@ -168,11 +163,7 @@ export default inngest.createFunction(
         workspace.installation_companies_similarities_done_batches <
           workspace.installation_companies_similarities_total_batches
       ) {
-        logger.info(
-          "### Install similarities",
-          " # Time: ",
-          Math.round((performance.now() - startTime) / 1000)
-        );
+        logger.info("-> Launch similarities check");
 
         await installSimilarities(supabaseAdmin, workspaceId);
       } else {
@@ -184,5 +175,7 @@ export default inngest.createFunction(
         });
       }
     });
+
+    logger.info("# workspaceInstall - END");
   }
 );

@@ -1,5 +1,5 @@
+import { installContactsDupStacks } from "@/inngest/dedup/dup-stacks/install";
 import { Database } from "@/types/supabase";
-import { installContactsDupStacks } from "@/workers/dedup/dup-stacks/install";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -9,8 +9,7 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
 
-    logger.info("### Workspace contacts dups install", workspaceId);
-    const startTime = performance.now();
+    logger.info("# Workspace contacts dups install", workspaceId);
 
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,7 +17,7 @@ export default inngest.createFunction(
     );
 
     if (!event.data.secondRun) {
-      logger.info("Marking contact without similarities as checked");
+      logger.info("-> Marking contact without similarities as checked");
 
       const { error: errorContacts } = await supabaseAdmin.rpc(
         "mark_contacts_without_similarities_as_dup_checked",
@@ -28,12 +27,6 @@ export default inngest.createFunction(
         throw errorContacts;
       }
     }
-
-    logger.info(
-      "### Install dup stacks",
-      " # Time: ",
-      Math.round((performance.now() - startTime) / 1000)
-    );
 
     const hasMore = await installContactsDupStacks(supabaseAdmin, workspaceId);
 
@@ -45,22 +38,15 @@ export default inngest.createFunction(
           secondRun: true,
         },
       });
+    } else {
+      await inngest.send({
+        name: "workspace/any/dups/install.finished",
+        data: {
+          workspaceId: workspaceId,
+        },
+      });
     }
 
-    // ! TODO
-    // let workspaceUpdateEnd: Partial<WorkspaceType> = {
-    //   installation_status: "DONE",
-    // };
-    // const { error: error2 } = await supabaseAdmin
-    //   .from("workspaces")
-    //   .update(workspaceUpdateEnd)
-    //   .eq("id", workspaceId);
-    // if (error2) throw error2;
-
-    // logger.info(
-    //   "### Install done",
-    //   " # Time: ",
-    //   Math.round((performance.now() - startTime) / 1000)
-    // );
+    logger.info("# Workspace contacts dups install", workspaceId, "- END");
   }
 );

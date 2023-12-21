@@ -1,3 +1,6 @@
+import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
+import { GenericDupStack } from "@/inngest/dedup/dup-stacks/resolve-next-dup-stack";
+import { listContactField } from "@/inngest/dedup/list-contact-fields";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
 import {
@@ -10,9 +13,6 @@ import {
 } from "@/types/dupstacks";
 import { ContactSimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
-import { areItemsDups } from "@/workers/dedup/dup-stacks/are-items-dups";
-import { GenericDupStack } from "@/workers/dedup/dup-stacks/resolve-next-dup-stack";
-import { listContactField } from "@/workers/dedup/list-contact-fields";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /*
@@ -87,7 +87,7 @@ export async function fetchNextContactReference(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  const startTime = performance.now();
+  // const startTime = performance.now();
 
   const { data, error } = await supabase
     .from("contacts")
@@ -115,11 +115,11 @@ export async function fetchNextContactReference(
     ) as ContactSimilarityType[],
   };
 
-  console.log(
-    "### [PERF] fetchNextContactReference:",
-    Math.round(performance.now() - startTime),
-    "ms"
-  );
+  //console.log(
+  //  "### [PERF] fetchNextContactReference:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
 
   return contact;
 }
@@ -132,7 +132,7 @@ export async function fetchSimilarContactsSortedByFillScore(
   },
   parentContactId: string
 ) {
-  const startTime = performance.now();
+  // const startTime = performance.now();
 
   const parentContact = contactsCacheById[parentContactId];
 
@@ -216,11 +216,11 @@ export async function fetchSimilarContactsSortedByFillScore(
 
   res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
 
-  console.log(
-    "### [PERF] fetchSimilarContactsSortedByFillScore:",
-    Math.round(performance.now() - startTime),
-    "ms"
-  );
+  //console.log(
+  //  "### [PERF] fetchSimilarContactsSortedByFillScore:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
 
   return res;
 }
@@ -230,7 +230,7 @@ export async function createContactsDupstack(
   workspaceId: string,
   genericDupstack: GenericDupStack
 ) {
-  const startTime = performance.now();
+  // const startTime = performance.now();
 
   const dupstackId = uuid();
   const dupstack: InsertDupStackType = {
@@ -279,11 +279,11 @@ export async function createContactsDupstack(
     throw errorDupstackContact;
   }
 
-  console.log(
-    "### [PERF] createContactsDupstack:",
-    Math.round(performance.now() - startTime),
-    "ms"
-  );
+  //console.log(
+  //  "### [PERF] createContactsDupstack:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
 }
 
 export async function markContactDupstackElementsAsDupChecked(
@@ -291,7 +291,7 @@ export async function markContactDupstackElementsAsDupChecked(
   workspaceId: string,
   dupstackIds: string[]
 ) {
-  const startTime = performance.now();
+  // const startTime = performance.now();
 
   for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error: errorChecked } = await supabase
@@ -304,9 +304,9 @@ export async function markContactDupstackElementsAsDupChecked(
     }
   }
 
-  console.log(
-    "### [PERF] markContactDupstackElementsAsDupChecked:",
-    Math.round(performance.now() - startTime),
-    "ms"
-  );
+  //console.log(
+  //  "### [PERF] markContactDupstackElementsAsDupChecked:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
 }

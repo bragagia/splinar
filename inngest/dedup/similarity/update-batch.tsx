@@ -1,13 +1,13 @@
 import { inngest } from "@/inngest";
-import { Database } from "@/types/supabase";
 import {
   companiesSimilarityCheck,
   fetchCompaniesBatch,
-} from "@/workers/dedup/similarity/companies";
+} from "@/inngest/dedup/similarity/companies";
 import {
   contactSimilarityCheck,
   fetchContactsBatch,
-} from "@/workers/dedup/similarity/contacts";
+} from "@/inngest/dedup/similarity/contacts";
+import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function similaritiesUpdateBatch(

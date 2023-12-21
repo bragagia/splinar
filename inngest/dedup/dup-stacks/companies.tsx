@@ -1,3 +1,6 @@
+import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
+import { GenericDupStack } from "@/inngest/dedup/dup-stacks/resolve-next-dup-stack";
+import { listCompanyField } from "@/inngest/dedup/list-company-fields";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
 import {
@@ -10,9 +13,6 @@ import {
 } from "@/types/dupstacks";
 import { CompanySimilarityType } from "@/types/similarities";
 import { Database } from "@/types/supabase";
-import { areItemsDups } from "@/workers/dedup/dup-stacks/are-items-dups";
-import { GenericDupStack } from "@/workers/dedup/dup-stacks/resolve-next-dup-stack";
-import { listCompanyField } from "@/workers/dedup/list-company-fields";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /*

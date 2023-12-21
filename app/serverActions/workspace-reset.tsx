@@ -48,11 +48,6 @@ export async function workspaceReset(
       reset: reset,
     },
   });
-
-  // await workspaceInstallQueueAdd("workspaceInstallQueue", {
-  //   workspaceId: workspaceId,
-  //   reset: reset,
-  // });
 }
 
 /*

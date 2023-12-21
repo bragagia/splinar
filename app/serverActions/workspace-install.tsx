@@ -1,6 +1,6 @@
 "use server";
 
-import { workspaceInstallQueueAdd } from "@/lib/queues/workspace-install";
+import { inngest } from "@/inngest";
 import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -30,8 +30,11 @@ export async function workspaceInstall(workspaceId: string) {
     throw errorWorkspace || new Error("Missing workspace");
   }
 
-  await workspaceInstallQueueAdd("workspaceInstallQueue", {
-    workspaceId: workspaceId,
-    reset: null,
+  await inngest.send({
+    name: "workspace/install.start",
+    data: {
+      workspaceId: workspaceId,
+      reset: null,
+    },
   });
 }

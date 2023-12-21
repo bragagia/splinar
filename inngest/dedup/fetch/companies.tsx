@@ -1,7 +1,7 @@
+import { calcCompanyFilledScore } from "@/inngest/dedup/list-company-fields";
 import { uuid } from "@/lib/uuid";
 import { InsertCompanyType } from "@/types/companies";
 import { Database } from "@/types/supabase";
-import { calcCompanyFilledScore } from "@/workers/dedup/list-company-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 

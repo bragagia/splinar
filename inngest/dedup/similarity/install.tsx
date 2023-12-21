@@ -1,8 +1,8 @@
-import { Database } from "@/types/supabase";
 import {
   SIMILARITIES_BATCH_SIZE,
   updateSimilarities,
-} from "@/workers/dedup/similarity/update";
+} from "@/inngest/dedup/similarity/update";
+import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 export async function installSimilarities(

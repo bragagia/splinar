@@ -1,9 +1,9 @@
+import { areContactsDups } from "@/inngest/dedup/dup-stacks/contacts";
+import { calcContactFilledScore } from "@/inngest/dedup/list-contact-fields";
+import { contactSimilarityCheck } from "@/inngest/dedup/similarity/contacts";
 import { uuid } from "@/lib/uuid";
 import { ContactWithCompaniesType } from "@/types/contacts";
 import { ContactSimilarityType } from "@/types/similarities";
-import { areContactsDups } from "@/workers/dedup/dup-stacks/contacts";
-import { calcContactFilledScore } from "@/workers/dedup/list-contact-fields";
-import { contactSimilarityCheck } from "@/workers/dedup/similarity/contacts";
 
 function AlgoTest() {
   const baseContact = {

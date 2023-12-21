@@ -1,19 +1,19 @@
-import { Database } from "@/types/supabase";
 import {
   areCompaniesDups,
   createCompanyDupstack,
   fetchNextCompanyReference,
   fetchSimilarCompaniesSortedByFillScore,
   markCompaniesDupstackElementsAsDupChecked,
-} from "@/workers/dedup/dup-stacks/companies";
+} from "@/inngest/dedup/dup-stacks/companies";
 import {
   areContactsDups,
   createContactsDupstack,
   fetchNextContactReference,
   fetchSimilarContactsSortedByFillScore,
   markContactDupstackElementsAsDupChecked,
-} from "@/workers/dedup/dup-stacks/contacts";
-import { resolveNextDuplicatesStack } from "@/workers/dedup/dup-stacks/resolve-next-dup-stack";
+} from "@/inngest/dedup/dup-stacks/contacts";
+import { resolveNextDuplicatesStack } from "@/inngest/dedup/dup-stacks/resolve-next-dup-stack";
+import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function updateContactsDupStacks(

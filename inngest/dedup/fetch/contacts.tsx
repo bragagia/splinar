@@ -1,7 +1,7 @@
+import { calcContactFilledScore } from "@/inngest/dedup/list-contact-fields";
 import { uuid } from "@/lib/uuid";
 import { CompanyType } from "@/types/companies";
 import { Database } from "@/types/supabase";
-import { calcContactFilledScore } from "@/workers/dedup/list-contact-fields";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
