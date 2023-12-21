@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 export function WorkspaceInstallationCard({
   className,
@@ -21,6 +21,20 @@ export function WorkspaceInstallationCard({
   className?: string;
 }) {
   const workspace = useWorkspace();
+
+  useEffect(() => {
+    if (workspace.installation_status === "DONE") {
+      return;
+    }
+
+    // Force update at least every 5 seconds in case the supabase realtime hook break
+    const interval = setInterval(() => workspace.triggerUpdate(), 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace.installation_status, workspace.id]);
 
   if (workspace.installation_status === "DONE") {
     return null;

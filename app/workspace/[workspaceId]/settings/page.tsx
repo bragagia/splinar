@@ -34,6 +34,8 @@ export default function WorkspaceSettingsPage() {
 
     await workspaceReset(workspace.id, reset);
 
+    workspace.triggerUpdate();
+
     router.push(URLS.workspace(workspace.id).dashboard);
   }
 

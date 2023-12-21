@@ -6,12 +6,21 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
+import { MergeDeep } from "type-fest";
 
-export const WorkspaceContext = createContext<WorkspaceType | null>(null);
+type WorkspaceContextType = MergeDeep<
+  WorkspaceType,
+  { triggerUpdate: () => void }
+>;
+
+export const WorkspaceContext = createContext<WorkspaceContextType | null>(
+  null
+);
 
 export function useWorkspace() {
   let workspace = useContext(WorkspaceContext);
@@ -33,6 +42,20 @@ export function WorkspaceProvider({
   const supabase = createClientComponentClient<Database>();
 
   const [workspace, setWorkspace] = useState<WorkspaceType>(value);
+
+  const forceUpdate = useCallback(async () => {
+    const { data: workspaceUpdated, error } = await supabase
+      .from("workspaces")
+      .select()
+      .eq("id", workspace.id)
+      .limit(1)
+      .single();
+    if (error) {
+      throw error;
+    }
+
+    setWorkspace(workspaceUpdated);
+  }, [supabase, workspace.id]);
 
   useEffect(() => {
     setWorkspace(value);
@@ -58,8 +81,13 @@ export function WorkspaceProvider({
       .subscribe();
   }, [value, supabase]);
 
+  const workspaceWithTrigger: WorkspaceContextType = {
+    ...workspace,
+    triggerUpdate: forceUpdate,
+  };
+
   return (
-    <WorkspaceContext.Provider value={workspace}>
+    <WorkspaceContext.Provider value={workspaceWithTrigger}>
       {children}
     </WorkspaceContext.Provider>
   );

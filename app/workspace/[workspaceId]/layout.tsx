@@ -5,7 +5,7 @@ import { WorkspaceProvider } from "@/app/workspace/[workspaceId]/workspace-conte
 import {
   WorkspaceInstallationCard,
   WorkspaceInstallationWall,
-} from "@/app/workspace/[workspaceId]/workspace-installtion-wall";
+} from "@/app/workspace/[workspaceId]/workspace-installation-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
 import { URLS } from "@/lib/urls";
 import { Database } from "@/types/supabase";
