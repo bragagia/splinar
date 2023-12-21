@@ -114,10 +114,7 @@ async function genericSimilaritiesBatchEval<T, RT>(
   }
 
   if (isFinished) {
-    console.log("Calling DUP");
-    installFinishedCallback();
-  } else {
-    console.log("NOT FINISHED");
+    await installFinishedCallback();
   }
 }
 
