@@ -1,4 +1,5 @@
 import companiesMergeAll from "@/inngest/companies-merge-all";
+import contactsMergeAll from "@/inngest/contacts-merge-all";
 import workspaceCompaniesDupsInstall from "@/inngest/workspace-companies-dups-install";
 import workspaceContactDupsInstall from "@/inngest/workspace-contacts-dups-install";
 import workspaceInstall from "@/inngest/workspace-install";
@@ -12,6 +13,7 @@ export const functions = [
   workspaceCompaniesDupsInstall,
   workspaceInstallEnd,
   companiesMergeAll,
+  contactsMergeAll,
 ];
 
 export { inngest } from "./client";

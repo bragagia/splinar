@@ -2,7 +2,7 @@
 
 import { companiesMergeSA } from "@/app/serverActions/companies-merge";
 import { companiesMergeAll } from "@/app/serverActions/companies-merge-all";
-import { contactMerge } from "@/app/serverActions/contacts-merge";
+import { contactMergeSA } from "@/app/serverActions/contacts-merge";
 import { contactMergeAll } from "@/app/serverActions/contacts-merge-all";
 import {
   getCompanyCardTitle,
@@ -84,10 +84,17 @@ export default function DuplicatesPage() {
     }
   }, [workspace.companies_operation_status]);
 
+  useEffect(() => {
+    if (workspace.contacts_operation_status === "PENDING") {
+      setMergingAllContacts(true);
+    } else {
+      setMergingAllContacts(false);
+    }
+  }, [workspace.contacts_operation_status]);
+
   async function onMergeAllContacts() {
     setMergingAllContacts(true);
     await contactMergeAll(workspace.id);
-    setMergingAllContacts(false);
   }
 
   async function onMergeAllCompanies() {
@@ -200,7 +207,7 @@ export default function DuplicatesPage() {
                 <DupStackCard
                   itemWordName={"contacts"}
                   dupStack={dupStack}
-                  itemMerge={contactMerge}
+                  itemMerge={contactMergeSA}
                   getCardTitle={getContactCardTitle}
                   sortItems={sortContactsItems}
                   getDupstackItemId={(

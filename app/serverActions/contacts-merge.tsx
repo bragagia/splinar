@@ -9,12 +9,16 @@ import {
   getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/types/workspaces";
 import { Client } from "@hubspot/api-client";
 import { captureException } from "@sentry/node";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import {
+  SupabaseClient,
+  createServerActionClient,
+} from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
-export async function contactMerge(
+export async function contactMergeSA(
   workspaceId: string,
   dupStack: DupStackWithContactsAndCompaniesType,
   hsClient?: Client
@@ -50,6 +54,15 @@ export async function contactMerge(
     hsClient = await newHubspotClient(workspace.refresh_token);
   }
 
+  contactMerge(supabase, workspace, dupStack, hsClient);
+}
+
+export async function contactMerge(
+  supabase: SupabaseClient<Database>,
+  workspace: WorkspaceType,
+  dupStack: DupStackWithContactsAndCompaniesType,
+  hsClient: Client
+) {
   const referenceContact = getDupstackReference(dupStack);
   const contactsToMerge = getDupstackConfidents(dupStack);
   const contactIdsToMarkFalsePositive = getDupstackPotentials(dupStack); // TODO:
@@ -75,7 +88,7 @@ export async function contactMerge(
 
   const mergedContacts: InsertMergedContactType[] = contactsToMerge.map(
     (contact) => ({
-      workspace_id: workspaceId,
+      workspace_id: workspace.id,
       hs_id: contact.contact?.hs_id || 0,
       merged_in_hs_id: referenceContact.contact?.hs_id || 0,
 
@@ -109,7 +122,7 @@ export async function contactMerge(
         "contact_id",
         contactsToMerge.map((dupStackContact) => dupStackContact.contact?.id)
       )
-      .eq("workspace_id", workspaceId);
+      .eq("workspace_id", workspace.id);
 
     if (errorUpdateDupStack) {
       captureException(errorUpdateDupStack);
@@ -119,7 +132,7 @@ export async function contactMerge(
       .from("dup_stacks")
       .delete()
       .eq("id", dupStack.id)
-      .eq("workspace_id", workspaceId);
+      .eq("workspace_id", workspace.id);
 
     if (errorDeleteDupstack) {
       captureException(errorDeleteDupstack);
@@ -133,7 +146,7 @@ export async function contactMerge(
       "id",
       contactsToMerge.map((dupStackContact) => dupStackContact.contact?.id)
     )
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspace.id);
   if (errorDeleteContacts) {
     captureException(errorDeleteContacts);
   }
