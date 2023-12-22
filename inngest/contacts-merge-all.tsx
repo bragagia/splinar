@@ -63,7 +63,7 @@ export default inngest.createFunction(
         throw dupStacksError;
       }
       if (!dupStacks || dupStacks.length === 0) {
-        return;
+        break;
       }
 
       lastItemCreatedAt = dupStacks[dupStacks.length - 1].created_at;
@@ -73,7 +73,7 @@ export default inngest.createFunction(
           try {
             await contactMerge(supabaseAdmin, workspace, dupStack, hsClient);
           } catch (e) {
-            console.log(e);
+            console.log("Merge error:", e);
           }
         })
       );
