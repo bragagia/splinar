@@ -98,6 +98,7 @@ export function getContactRowInfos(
   ).trim();
 
   return {
+    dup_type: item.dup_type,
     columns: [
       {
         value: fullname,

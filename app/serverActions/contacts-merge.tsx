@@ -3,8 +3,10 @@
 import { newHubspotClient } from "@/lib/hubspot";
 import { InsertMergedContactType } from "@/types/contacts";
 import {
+  DupStackContactItemWithContactAndCompaniesType,
   DupStackWithContactsAndCompaniesType,
   getDupstackConfidents,
+  getDupstackFalsePositives,
   getDupstackPotentials,
   getDupstackReference,
 } from "@/types/dupstacks";
@@ -54,80 +56,72 @@ export async function contactMergeSA(
     hsClient = await newHubspotClient(workspace.refresh_token);
   }
 
-  contactMerge(supabase, workspace, dupStack, hsClient);
+  await contactMerge(supabase, workspace, dupStack, hsClient, true);
 }
 
 export async function contactMerge(
   supabase: SupabaseClient<Database>,
   workspace: WorkspaceType,
   dupStack: DupStackWithContactsAndCompaniesType,
-  hsClient: Client
+  hsClient: Client,
+  markPotentialAsFalsePositives: boolean = false
 ) {
-  const referenceContact = getDupstackReference(dupStack);
-  const contactsToMerge = getDupstackConfidents(dupStack);
-  const contactIdsToMarkFalsePositive = getDupstackPotentials(dupStack); // TODO:
-  if (!referenceContact) {
-    throw new Error("Missing reference contact");
+  // SPECIFIC v
+  const dupStackItemTable = "dup_stack_contacts";
+  const itemTable = "contacts";
+  const itemIdColumn = "contact_id";
+  const getItemId = (item: DupStackContactItemWithContactAndCompaniesType) =>
+    item.contact_id;
+
+  const referenceItem = getDupstackReference(dupStack);
+  const itemsToMerge = getDupstackConfidents(dupStack);
+  const itemIdsToMarkFalsePositive = getDupstackPotentials(dupStack);
+  const falsePositives = getDupstackFalsePositives(dupStack);
+
+  if (!referenceItem) {
+    throw new Error("Missing reference item");
   }
 
-  if (!referenceContact || !contactsToMerge || contactsToMerge.length === 0) {
-    return;
-    // TODO: Handle the case where no contacts to merge, but some contacts to mark as false positive
-  }
+  if (referenceItem && itemsToMerge && itemsToMerge.length > 0) {
+    // TODO: We should catch if there is an error, and still save the merged contacts
+    await Promise.all(
+      itemsToMerge.map(async (itemToMerge) => {
+        // SPECIFIC v
+        await hsClient?.crm.contacts.publicObjectApi.merge({
+          primaryObjectId: referenceItem.contact?.hs_id.toString() || "",
+          objectIdToMerge: itemToMerge.contact?.hs_id.toString() || "",
+        });
+      })
+    );
 
-  // TODO: We should catch if there is an error, and still save the merged contacts
+    // SPECIFIC v
+    const mergedContacts: InsertMergedContactType[] = itemsToMerge.map(
+      (contact) => ({
+        workspace_id: workspace.id,
+        hs_id: contact.contact?.hs_id || 0,
+        merged_in_hs_id: referenceItem.contact?.hs_id || 0,
 
-  await Promise.all(
-    contactsToMerge.map(async (contactToMerge) => {
-      await hsClient?.crm.contacts.publicObjectApi.merge({
-        primaryObjectId: referenceContact.contact?.hs_id.toString() || "",
-        objectIdToMerge: contactToMerge.contact?.hs_id.toString() || "",
-      });
-    })
-  );
+        first_name: contact.contact?.first_name,
+        last_name: contact.contact?.last_name,
+        emails: contact.contact?.emails,
+        phones: contact.contact?.phones,
+        companies_hs_id: contact.contact?.companies.map(
+          (company) => company.hs_id
+        ),
+        company_name: contact.contact?.company_name,
+      })
+    );
 
-  const mergedContacts: InsertMergedContactType[] = contactsToMerge.map(
-    (contact) => ({
-      workspace_id: workspace.id,
-      hs_id: contact.contact?.hs_id || 0,
-      merged_in_hs_id: referenceContact.contact?.hs_id || 0,
-
-      first_name: contact.contact?.first_name,
-      last_name: contact.contact?.last_name,
-      emails: contact.contact?.emails,
-      phones: contact.contact?.phones,
-      companies_hs_id: contact.contact?.companies.map(
-        (company) => company.hs_id
-      ),
-      company_name: contact.contact?.company_name,
-    })
-  );
-
-  const { error } = await supabase
-    .from("merged_contacts")
-    .insert(mergedContacts);
-  if (error) {
-    captureException(error);
-  }
-
-  if (
-    contactIdsToMarkFalsePositive &&
-    contactIdsToMarkFalsePositive.length > 0
-  ) {
-    const { error: errorUpdateDupStack } = await supabase
-      .from("dup_stack_contacts")
-      .delete()
-      .eq("dupstack_id", dupStack.id)
-      .in(
-        "contact_id",
-        contactsToMerge.map((dupStackContact) => dupStackContact.contact?.id)
-      )
-      .eq("workspace_id", workspace.id);
-
-    if (errorUpdateDupStack) {
-      captureException(errorUpdateDupStack);
+    const { error } = await supabase
+      .from("merged_contacts")
+      .insert(mergedContacts);
+    if (error) {
+      captureException(error);
     }
-  } else {
+  }
+
+  // TODO!!! : contact_companies should be merged too before deleting the merged companies
+  if (falsePositives.length === 0 && itemIdsToMarkFalsePositive.length === 0) {
     const { error: errorDeleteDupstack } = await supabase
       .from("dup_stacks")
       .delete()
@@ -137,17 +131,55 @@ export async function contactMerge(
     if (errorDeleteDupstack) {
       captureException(errorDeleteDupstack);
     }
+  } else {
+    if (itemsToMerge.length > 0) {
+      const { error: errorUpdateDupStack } = await supabase
+        .from(dupStackItemTable)
+        .delete()
+        .eq("dupstack_id", dupStack.id)
+        .in(
+          itemIdColumn,
+          itemsToMerge.map((dupStackItem) => getItemId(dupStackItem))
+        )
+        .eq("workspace_id", workspace.id);
+
+      if (errorUpdateDupStack) {
+        captureException(errorUpdateDupStack);
+      }
+    }
+
+    if (
+      markPotentialAsFalsePositives &&
+      itemIdsToMarkFalsePositive.length > 0
+    ) {
+      const { error } = await supabase
+        .from(dupStackItemTable)
+        .update({ dup_type: "FALSE_POSITIVE" })
+        .eq("dupstack_id", dupStack.id)
+        .in(
+          itemIdColumn,
+          itemIdsToMarkFalsePositive.map((dupStackItem) =>
+            getItemId(dupStackItem)
+          )
+        )
+        .eq("workspace_id", workspace.id);
+
+      if (error) {
+        captureException(error);
+      }
+    }
   }
 
-  const { error: errorDeleteContacts } = await supabase
-    .from("contacts")
+  const { error: errorDeleteItems } = await supabase
+    .from(itemTable)
     .delete()
     .in(
       "id",
-      contactsToMerge.map((dupStackContact) => dupStackContact.contact?.id)
+      itemsToMerge.map((dupStackItem) => getItemId(dupStackItem))
     )
     .eq("workspace_id", workspace.id);
-  if (errorDeleteContacts) {
-    captureException(errorDeleteContacts);
+
+  if (errorDeleteItems) {
+    captureException(errorDeleteItems);
   }
 }

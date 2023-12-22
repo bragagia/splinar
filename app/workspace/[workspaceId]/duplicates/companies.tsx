@@ -93,6 +93,7 @@ export function getCompanyRowInfos(
   }
 
   return {
+    dup_type: item.dup_type,
     columns: [
       {
         value: company.name,

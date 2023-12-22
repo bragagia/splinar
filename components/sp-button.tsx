@@ -10,7 +10,7 @@ const spButtonVariants = cva("border rounded-lg text-sm", {
       // destructive:
       //   "bg-destructive text-destructive-foreground hover:bg-destructive/90",
       ghost:
-        "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900",
+        "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white ",
 
       outline:
         "text-black border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white disabled:text-gray-400 disabled:border-gray-300",

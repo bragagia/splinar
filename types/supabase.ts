@@ -299,21 +299,21 @@ export interface Database {
         Row: {
           company_id: string
           created_at: string
-          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id: string
           workspace_id: string
         }
         Insert: {
           company_id: string
           created_at?: string
-          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id: string
           workspace_id: string
         }
         Update: {
           company_id?: string
           created_at?: string
-          dup_type?: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type?: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id?: string
           workspace_id?: string
         }
@@ -345,21 +345,21 @@ export interface Database {
         Row: {
           contact_id: string
           created_at: string
-          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id: string
           workspace_id: string
         }
         Insert: {
           contact_id: string
           created_at?: string
-          dup_type: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id: string
           workspace_id: string
         }
         Update: {
           contact_id?: string
           created_at?: string
-          dup_type?: Database["public"]["Enums"]["dup_stack_contact_type"]
+          dup_type?: Database["public"]["Enums"]["dup_stack_item_dup_type"]
           dupstack_id?: string
           workspace_id?: string
         }
@@ -703,7 +703,11 @@ export interface Database {
         | "similar"
         | "potential"
         | "unlikely"
-      dup_stack_contact_type: "REFERENCE" | "CONFIDENT" | "POTENTIAL"
+      dup_stack_item_dup_type:
+        | "REFERENCE"
+        | "CONFIDENT"
+        | "POTENTIAL"
+        | "FALSE_POSITIVE"
       dup_stack_item_type: "CONTACTS" | "COMPANIES"
       user_role: "SUPERADMIN"
       workspace_installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR"

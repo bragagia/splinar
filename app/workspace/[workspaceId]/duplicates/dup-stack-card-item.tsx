@@ -18,6 +18,7 @@ export type DupStackRowColumnType = {
 
 export type DupStackRowInfos = {
   columns: DupStackRowColumnType[];
+  dup_type: DupItemTypeType;
 };
 
 export function LinkButton({
@@ -246,14 +247,10 @@ function DupStackCardCell({
 
 export function DupStackCardRow({
   rowInfos,
-  isPotential = false,
-  isReference = false,
   expand = false,
   onUpdateDupType,
 }: {
   rowInfos: DupStackRowInfos;
-  isPotential?: boolean;
-  isReference?: boolean;
   onUpdateDupType: (newDupType: DupItemTypeType) => void;
   expand?: boolean;
 }) {
@@ -263,7 +260,7 @@ export function DupStackCardRow({
   //const fillerCells = (4 - (rowInfos.columns.length % 4)) % 4;
 
   return (
-    <div className="flex flex-col group">
+    <div className={cn("flex flex-col group")}>
       <div className="flex flex-row gap-3 text-sm">
         <div className={cn("grid grid-cols-4 w-full")}>
           <div
@@ -308,62 +305,80 @@ export function DupStackCardRow({
         </div>
 
         <div className="flex flex-row justify-end items-center gap-1">
-          {!isPotential && (
+          {rowInfos.dup_type === "REFERENCE" && (
             <>
-              {isReference ? (
-                <>
-                  <button className="invisible border px-1 py-1 ">
-                    <div className="w-4 h-4" />
-                  </button>
+              <button className="invisible border px-1 py-1 ">
+                <div className="w-4 h-4" />
+              </button>
 
-                  <SpTooltip
-                    tooltip="This is the reference in which all other items will be merged"
-                    icon={<Icons.infos />}
-                  >
-                    <SpIconButton
-                      variant="ghostActivated"
-                      disabled
-                      icon={Icons.arrowsPointingIn}
-                    />
-                  </SpTooltip>
-                </>
-              ) : (
-                <>
-                  <SpTooltip tooltip="Mark as false positive">
-                    <SpIconButton
-                      variant="ghost"
-                      className="invisible group-hover:visible"
-                      icon={Icons.thumbDown}
-                      onClick={() => onUpdateDupType("POTENTIAL")}
-                    />
-                  </SpTooltip>
-
-                  <SpTooltip tooltip="Set as reference in which all other items will be merged">
-                    <SpIconButton
-                      variant="ghost"
-                      className="invisible group-hover:visible"
-                      icon={Icons.arrowsPointingIn}
-                      onClick={() => onUpdateDupType("REFERENCE")}
-                    />
-                  </SpTooltip>
-                </>
-              )}
+              <SpTooltip
+                tooltip="This is the reference in which all other items will be merged"
+                icon={<Icons.infos />}
+              >
+                <SpIconButton
+                  variant="ghostActivated"
+                  disabled
+                  icon={Icons.arrowsPointingIn}
+                />
+              </SpTooltip>
             </>
           )}
 
-          {isPotential && (
+          {rowInfos.dup_type === "CONFIDENT" && (
+            <>
+              <SpTooltip tooltip="Mark as false positive">
+                <SpIconButton
+                  variant="ghost"
+                  className="invisible group-hover:visible"
+                  icon={Icons.thumbDown}
+                  onClick={() => onUpdateDupType("FALSE_POSITIVE")}
+                />
+              </SpTooltip>
+
+              <SpTooltip tooltip="Set as reference in which all other items will be merged">
+                <SpIconButton
+                  variant="ghost"
+                  className="invisible group-hover:visible"
+                  icon={Icons.arrowsPointingIn}
+                  onClick={() => onUpdateDupType("REFERENCE")}
+                />
+              </SpTooltip>
+            </>
+          )}
+
+          {rowInfos.dup_type === "POTENTIAL" && (
+            <>
+              <SpTooltip tooltip="Mark as false positive">
+                <SpIconButton
+                  variant="ghost"
+                  icon={Icons.thumbDown}
+                  onClick={() => onUpdateDupType("FALSE_POSITIVE")}
+                />
+              </SpTooltip>
+
+              <SpTooltip tooltip="Add to merge list">
+                <SpIconButton
+                  variant="ghost"
+                  icon={Icons.add}
+                  onClick={() => onUpdateDupType("CONFIDENT")}
+                />
+              </SpTooltip>
+            </>
+          )}
+
+          {rowInfos.dup_type === "FALSE_POSITIVE" && (
             <>
               <button className="invisible border px-1 py-1 ">
                 <div className="w-4 h-4" />
               </button>
 
               <SpTooltip tooltip="Add to merge list">
-                <button
+                <SpIconButton
+                  variant="ghost"
+                  className="invisible group-hover:visible"
+                  icon={Icons.add}
                   onClick={() => onUpdateDupType("CONFIDENT")}
-                  className="border border-transparent rounded-lg text-sm px-1 py-1 text-gray-500  hover:bg-white hover:text-gray-600 hover:border-gray-600 group-hover:visible"
-                >
-                  <Icons.add className="w-4 h-4" />
-                </button>
+                />
               </SpTooltip>
             </>
           )}

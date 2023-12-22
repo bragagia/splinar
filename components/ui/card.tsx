@@ -70,7 +70,7 @@ const CardGrayedContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("p-4 pt-0 border-t border-gray-200 bg-gray-100", className)}
+    className={cn("px-4 py-2 border-t border-gray-200 bg-gray-100", className)}
     {...props}
   />
 ));

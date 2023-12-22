@@ -113,3 +113,17 @@ export function getDupstackPotentials<
     (dup_stack_item) => dup_stack_item.dup_type === "POTENTIAL"
   );
 }
+
+export function getDupstackFalsePositives<
+  ItemT extends DupStackItemBase,
+  D extends MergeDeep<
+    DupStackType,
+    {
+      dup_stack_items: ItemT[];
+    }
+  >
+>(dupstack: D): D["dup_stack_items"] {
+  return dupstack.dup_stack_items.filter(
+    (dup_stack_item) => dup_stack_item.dup_type === "FALSE_POSITIVE"
+  );
+}

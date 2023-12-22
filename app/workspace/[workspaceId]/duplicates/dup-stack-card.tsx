@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils";
 import {
   DupStackItemBase,
   DupStackType,
+  DupStackWithContactsAndCompaniesType,
   getDupstackConfidentsAndReference,
+  getDupstackFalsePositives,
   getDupstackPotentials,
   getDupstackReference,
 } from "@/types/dupstacks";
@@ -30,7 +32,8 @@ import {
 import { useEffect, useState } from "react";
 import { MergeDeep } from "type-fest";
 
-export type DupItemTypeType = "REFERENCE" | "CONFIDENT" | "POTENTIAL";
+export type DupItemTypeType =
+  DupStackWithContactsAndCompaniesType["dup_stack_items"][0]["dup_type"];
 
 export function DupStackCard<
   ItemT extends DupStackItemBase,
@@ -72,6 +75,7 @@ export function DupStackCard<
   const [merged, setMerged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [allExpanded, setAllExpanded] = useState(false);
+  const [falsePositivesExpanded, setFalsePositivesExpanded] = useState(false);
 
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
 
@@ -132,6 +136,7 @@ export function DupStackCard<
   const confidentsAndReference =
     getDupstackConfidentsAndReference(cachedDupStack);
   const potentials = getDupstackPotentials(cachedDupStack);
+  const falsePositives = getDupstackFalsePositives(cachedDupStack);
 
   const isExpandable =
     getRowInfos(workspace.hub_id, reference).columns.length > 4;
@@ -204,7 +209,6 @@ export function DupStackCard<
 
                   <DupStackCardRow
                     rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                    isReference={dupStackItem.dup_type === "REFERENCE"}
                     onUpdateDupType={onUpdateDupType(
                       getDupstackItemId(dupStackItem)
                     )}
@@ -229,7 +233,7 @@ export function DupStackCard<
 
           {potentials && potentials.length > 0 && (
             <CardGrayedContent>
-              <div className="flex flex-col pt-2">
+              <div className="flex flex-col">
                 <p className="text-xs text-gray-600 py-1">
                   Potentials matches:
                 </p>
@@ -248,7 +252,6 @@ export function DupStackCard<
 
                     <DupStackCardRow
                       rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                      isPotential
                       onUpdateDupType={onUpdateDupType(
                         getDupstackItemId(dupStackItem)
                       )}
@@ -256,6 +259,54 @@ export function DupStackCard<
                     />
                   </div>
                 ))}
+              </div>
+            </CardGrayedContent>
+          )}
+
+          {falsePositives && falsePositives.length > 0 && (
+            <CardGrayedContent>
+              <div className="flex flex-col">
+                <div className="flex flex-row items-center">
+                  <SpButton
+                    variant="ghost"
+                    className="-ml-2"
+                    icon={
+                      falsePositivesExpanded
+                        ? Icons.chevronRight
+                        : Icons.chevronDown
+                    }
+                    onClick={() =>
+                      setFalsePositivesExpanded(!falsePositivesExpanded)
+                    }
+                  >
+                    <p className="text-xs text-gray-600 py-1">
+                      Marked false positives ({falsePositives.length})
+                    </p>
+                  </SpButton>
+                </div>
+
+                {falsePositivesExpanded &&
+                  sortItems(falsePositives).map((dupStackItem, i) => (
+                    <div key={i}>
+                      {i !== 0 && (
+                        <div
+                          className={cn(
+                            "w-full border-b",
+                            { "border-b border-gray-200": !allExpanded },
+                            { "border-b border-gray-400": allExpanded }
+                          )}
+                        ></div>
+                      )}
+
+                      <DupStackCardRow
+                        rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                        onUpdateDupType={onUpdateDupType(
+                          getDupstackItemId(dupStackItem)
+                        )}
+                        expand={allExpanded}
+                      />
+                    </div>
+                  ))}
               </div>
             </CardGrayedContent>
           )}
