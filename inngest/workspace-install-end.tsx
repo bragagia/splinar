@@ -1,5 +1,4 @@
 import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/types/workspaces";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -30,13 +29,11 @@ export default inngest.createFunction(
 
       // !!! Important note: there is currently no garantee that this code is not executed multiple times for a single install
 
-      let workspaceUpdateEnd: Partial<WorkspaceType> = {
-        installation_status: "DONE",
-      };
-
       const { error: error } = await supabaseAdmin
         .from("workspaces")
-        .update(workspaceUpdateEnd)
+        .update({
+          installation_status: "DONE",
+        })
         .eq("id", workspaceId);
       if (error) {
         throw error;

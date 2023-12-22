@@ -41,10 +41,18 @@ export type WorkspaceAnyDupsInstallFinished = {
   };
 };
 
+export type CompaniesMergeAllStart = {
+  name: "companies/merge-all.start";
+  data: {
+    workspaceId: string;
+  };
+};
+
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
   | WorkspaceSimilaritiesBatchInstallStart
   | WorkspaceContactsSimilaritiesBatchInstallFinished
   | WorkspaceCompaniesSimilaritiesBatchInstallFinished
   | WorkspaceAnyDupsInstallFinished
+  | CompaniesMergeAllStart
 >();

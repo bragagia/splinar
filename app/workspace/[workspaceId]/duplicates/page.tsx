@@ -1,6 +1,6 @@
 "use client";
 
-import { companiesMerge } from "@/app/serverActions/companies-merge";
+import { companiesMergeSA } from "@/app/serverActions/companies-merge";
 import { companiesMergeAll } from "@/app/serverActions/companies-merge-all";
 import { contactMerge } from "@/app/serverActions/contacts-merge";
 import { contactMergeAll } from "@/app/serverActions/contacts-merge-all";
@@ -76,6 +76,14 @@ export default function DuplicatesPage() {
       });
   }, [supabase, workspace.id]);
 
+  useEffect(() => {
+    if (workspace.companies_operation_status === "PENDING") {
+      setMergingAllCompanies(true);
+    } else {
+      setMergingAllCompanies(false);
+    }
+  }, [workspace.companies_operation_status]);
+
   async function onMergeAllContacts() {
     setMergingAllContacts(true);
     await contactMergeAll(workspace.id);
@@ -85,7 +93,6 @@ export default function DuplicatesPage() {
   async function onMergeAllCompanies() {
     setMergingAllCompanies(true);
     await companiesMergeAll(workspace.id);
-    setMergingAllCompanies(false);
   }
 
   return (
@@ -158,7 +165,7 @@ export default function DuplicatesPage() {
                 <DupStackCard
                   itemWordName={"companies"}
                   dupStack={dupStack}
-                  itemMerge={companiesMerge}
+                  itemMerge={companiesMergeSA}
                   getCardTitle={getCompanyCardTitle}
                   sortItems={sortCompaniesItems}
                   getDupstackItemId={(

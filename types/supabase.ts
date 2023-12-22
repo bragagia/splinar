@@ -565,6 +565,8 @@ export interface Database {
       }
       workspaces: {
         Row: {
+          companies_operation_status: Database["public"]["Enums"]["workspace_operation_status"]
+          contacts_operation_status: Database["public"]["Enums"]["workspace_operation_status"]
           created_at: string
           display_name: string
           domain: string
@@ -583,6 +585,8 @@ export interface Database {
           user_mail: string
         }
         Insert: {
+          companies_operation_status?: Database["public"]["Enums"]["workspace_operation_status"]
+          contacts_operation_status?: Database["public"]["Enums"]["workspace_operation_status"]
           created_at?: string
           display_name: string
           domain: string
@@ -601,6 +605,8 @@ export interface Database {
           user_mail: string
         }
         Update: {
+          companies_operation_status?: Database["public"]["Enums"]["workspace_operation_status"]
+          contacts_operation_status?: Database["public"]["Enums"]["workspace_operation_status"]
           created_at?: string
           display_name?: string
           domain?: string
@@ -701,6 +707,7 @@ export interface Database {
       dup_stack_item_type: "CONTACTS" | "COMPANIES"
       user_role: "SUPERADMIN"
       workspace_installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR"
+      workspace_operation_status: "NONE" | "PENDING"
     }
     CompositeTypes: {
       [_ in never]: never

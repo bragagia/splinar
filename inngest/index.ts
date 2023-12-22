@@ -1,8 +1,9 @@
+import companiesMergeAll from "@/inngest/companies-merge-all";
+import workspaceCompaniesDupsInstall from "@/inngest/workspace-companies-dups-install";
+import workspaceContactDupsInstall from "@/inngest/workspace-contacts-dups-install";
+import workspaceInstall from "@/inngest/workspace-install";
 import workspaceInstallEnd from "@/inngest/workspace-install-end";
-import workspaceCompaniesDupsInstall from "./workspace-companies-dups-install";
-import workspaceContactDupsInstall from "./workspace-contacts-dups-install";
-import workspaceInstall from "./workspace-install";
-import workspaceSimilaritiesBatchInstall from "./workspace-similarities-batch-install";
+import workspaceSimilaritiesBatchInstall from "@/inngest/workspace-similarities-batch-install";
 
 export const functions = [
   workspaceInstall,
@@ -10,6 +11,7 @@ export const functions = [
   workspaceContactDupsInstall,
   workspaceCompaniesDupsInstall,
   workspaceInstallEnd,
+  companiesMergeAll,
 ];
 
 export { inngest } from "./client";

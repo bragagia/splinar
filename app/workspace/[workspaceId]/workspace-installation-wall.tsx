@@ -73,7 +73,7 @@ export function WorkspaceInstallationCard({
           workspace.installation_contacts_similarities_total_batches
         : 50) +
       (workspace.installation_dup_total > 0
-        ? workspace.installation_dup_total / 30
+        ? workspace.installation_dup_total / 10
         : 50);
 
     let progress = 0;
@@ -81,7 +81,7 @@ export function WorkspaceInstallationCard({
     progress +=
       workspace.installation_companies_similarities_done_batches +
       workspace.installation_contacts_similarities_done_batches;
-    progress += workspace.installation_dup_done / 30;
+    progress += workspace.installation_dup_done / 10;
 
     let percent = (100 * progress) / progressTotal;
 

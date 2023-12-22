@@ -9,12 +9,16 @@ import {
   getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
+import { WorkspaceType } from "@/types/workspaces";
 import { Client } from "@hubspot/api-client";
 import { captureException } from "@sentry/node";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import {
+  SupabaseClient,
+  createServerActionClient,
+} from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
-export async function companiesMerge(
+export async function companiesMergeSA(
   workspaceId: string,
   dupStack: DupStackWithCompaniesType,
   hsClient?: Client
@@ -50,6 +54,15 @@ export async function companiesMerge(
     hsClient = await newHubspotClient(workspace.refresh_token);
   }
 
+  await companiesMerge(supabase, workspace, dupStack, hsClient);
+}
+
+export async function companiesMerge(
+  supabase: SupabaseClient<Database>,
+  workspace: WorkspaceType,
+  dupStack: DupStackWithCompaniesType,
+  hsClient: Client
+) {
   const referenceItem = getDupstackReference(dupStack);
   const itemsToMerge = getDupstackConfidents(dupStack);
   const itemIdsToMarkFalsePositive = getDupstackPotentials(dupStack); // TODO:
@@ -58,7 +71,8 @@ export async function companiesMerge(
     throw new Error("Missing reference item");
   }
   if (!referenceItem || !itemsToMerge || itemsToMerge.length === 0) {
-    throw Error("Items fetched from db are incoherent with dup stack"); // TODO
+    return;
+    // TODO: Handle the case where no contacts to merge, but some contacts to mark as false positive
   }
 
   // TODO: We should catch if there is an error, and still save the merged contacts
@@ -75,7 +89,7 @@ export async function companiesMerge(
   // SPECIFIC v
   const mergedCompanies: InsertMergedCompaniesType[] = itemsToMerge.map(
     (itemToMerge) => ({
-      workspace_id: workspaceId,
+      workspace_id: workspace.id,
       hs_id: itemToMerge.company?.hs_id || 0,
       merged_in_hs_id: referenceItem.company?.hs_id || 0,
 
@@ -112,7 +126,7 @@ export async function companiesMerge(
         "company_id",
         itemsToMerge.map((dupStackItem) => dupStackItem.company_id)
       )
-      .eq("workspace_id", workspaceId);
+      .eq("workspace_id", workspace.id);
 
     if (errorUpdateDupStack) {
       captureException(errorUpdateDupStack);
@@ -122,7 +136,7 @@ export async function companiesMerge(
       .from("dup_stacks")
       .delete()
       .eq("id", dupStack.id)
-      .eq("workspace_id", workspaceId);
+      .eq("workspace_id", workspace.id);
 
     if (errorDeleteDupstack) {
       captureException(errorDeleteDupstack);
@@ -136,7 +150,7 @@ export async function companiesMerge(
       "id",
       itemsToMerge.map((dupStackCompany) => dupStackCompany.company_id)
     )
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspace.id);
 
   if (errorDeleteCompanies) {
     captureException(errorDeleteCompanies);
