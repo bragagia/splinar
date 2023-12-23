@@ -4,7 +4,7 @@ import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
-const MAX_IT = 10;
+const MAX_IT = 2;
 
 export default inngest.createFunction(
   { id: "companies-merge-all" },
