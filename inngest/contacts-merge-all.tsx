@@ -4,6 +4,8 @@ import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
+const MAX_IT = 10;
+
 export default inngest.createFunction(
   { id: "contacts-merge-all" },
   { event: "contacts/merge-all.start" },
@@ -30,19 +32,27 @@ export default inngest.createFunction(
       throw new Error("Missing workspace");
     }
 
-    const { error: error } = await supabaseAdmin
-      .from("workspaces")
-      .update({
-        contacts_operation_status: "PENDING",
-      })
-      .eq("id", workspaceId);
-    if (error) {
-      throw error;
+    if (!event.data.lastItemCreatedAt) {
+      if (workspace.contacts_operation_status === "PENDING") {
+        throw new Error("Operation running on workspace");
+      }
+
+      const { error: error } = await supabaseAdmin
+        .from("workspaces")
+        .update({
+          contacts_operation_status: "PENDING",
+        })
+        .eq("id", workspaceId);
+      if (error) {
+        throw error;
+      }
     }
 
     let hsClient = await newHubspotClient(workspace.refresh_token);
 
-    let lastItemCreatedAt: string | null = null;
+    let counter = 0;
+    let finished = false;
+    let lastItemCreatedAt: string | null = event.data.lastItemCreatedAt || null;
     do {
       let query = supabaseAdmin
         .from("dup_stacks")
@@ -63,34 +73,45 @@ export default inngest.createFunction(
         throw dupStacksError;
       }
       if (!dupStacks || dupStacks.length === 0) {
+        finished = true;
         break;
       }
 
       lastItemCreatedAt = dupStacks[dupStacks.length - 1].created_at;
 
-      await Promise.all(
-        dupStacks.map(async (dupStack) => {
-          try {
-            await contactMerge(supabaseAdmin, workspace, dupStack, hsClient);
-          } catch (e) {
-            console.log("Merge error:", e);
-          }
+      for (let dupStack of dupStacks) {
+        try {
+          await contactMerge(supabaseAdmin, workspace, dupStack, hsClient);
+        } catch (e) {
+          console.log("Merge error:", e);
+        }
+      }
+
+      counter++;
+    } while (lastItemCreatedAt && counter < MAX_IT);
+
+    if (finished) {
+      const { error: errorWriteDone } = await supabaseAdmin
+        .from("workspaces")
+        .update({
+          contacts_operation_status: "NONE",
         })
-      );
-    } while (lastItemCreatedAt);
+        .eq("id", workspaceId);
+      if (errorWriteDone) {
+        throw errorWriteDone;
+      }
 
-    // TODO: cap this endpoint to 40s max and then start again with another call
+      logger.info("# Contacts merge all", workspaceId, "- END");
+    } else {
+      await inngest.send({
+        name: "contacts/merge-all.start",
+        data: {
+          workspaceId: workspaceId,
+          lastItemCreatedAt: lastItemCreatedAt || undefined,
+        },
+      });
 
-    const { error: errorWriteDone } = await supabaseAdmin
-      .from("workspaces")
-      .update({
-        contacts_operation_status: "NONE",
-      })
-      .eq("id", workspaceId);
-    if (errorWriteDone) {
-      throw errorWriteDone;
+      logger.info("# Contacts merge all", workspaceId, "- CONTINUE");
     }
-
-    logger.info("# Contacts merge all", workspaceId, "- END");
   }
 );

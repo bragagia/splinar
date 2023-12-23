@@ -45,6 +45,7 @@ export type CompaniesMergeAllStart = {
   name: "companies/merge-all.start";
   data: {
     workspaceId: string;
+    lastItemCreatedAt?: string;
   };
 };
 
@@ -52,6 +53,7 @@ export type ContactsMergeAllStart = {
   name: "contacts/merge-all.start";
   data: {
     workspaceId: string;
+    lastItemCreatedAt?: string;
   };
 };
 
