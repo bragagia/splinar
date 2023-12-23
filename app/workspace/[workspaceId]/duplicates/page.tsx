@@ -132,7 +132,7 @@ export default function DuplicatesPage() {
                 variant="outline"
                 icon={Icons.merge}
                 onClick={onMergeAllCompanies}
-                disabled={contactCount === 0 || mergingAllCompanies}
+                disabled={companiesCount === 0 || mergingAllCompanies}
               >
                 Merge all confident companies duplicates
               </SpButton>
