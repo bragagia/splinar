@@ -1,3 +1,4 @@
+import { inngest } from "@/inngest";
 import { calcCompanyFilledScore } from "@/inngest/dedup/list-company-fields";
 import { uuid } from "@/lib/uuid";
 import { InsertCompanyType } from "@/types/companies";
@@ -10,9 +11,9 @@ const UPDATE_COUNT_EVERY = 3;
 export async function fetchCompanies(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  after?: string
 ) {
-  let after: string | undefined = undefined;
   let pageId = 0;
 
   do {
@@ -20,9 +21,19 @@ export async function fetchCompanies(
 
     if (pageId % UPDATE_COUNT_EVERY === 0) {
       await updateInstallCount(supabase, workspaceId);
+
+      await inngest.send({
+        name: "workspace/companies/fetch.start",
+        data: {
+          workspaceId: workspaceId,
+          after: after,
+        },
+      });
+
+      return;
     }
 
-    console.log("Fetching companies page ", pageId);
+    console.log("Fetching companies page ", after);
 
     const res = await hsClient.crm.companies.basicApi.getPage(100, after, [
       "address",
@@ -92,6 +103,13 @@ export async function fetchCompanies(
 
   // Final update
   await updateInstallCount(supabase, workspaceId);
+
+  await inngest.send({
+    name: "workspace/contacts/fetch.start",
+    data: {
+      workspaceId: workspaceId,
+    },
+  });
 }
 
 async function updateInstallCount(

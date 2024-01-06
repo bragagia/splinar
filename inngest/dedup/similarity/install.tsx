@@ -1,4 +1,5 @@
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
+import { inngest } from "@/inngest";
 import {
   SIMILARITIES_BATCH_SIZE,
   updateSimilarities,

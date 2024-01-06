@@ -1,3 +1,4 @@
+import { inngest } from "@/inngest";
 import { calcContactFilledScore } from "@/inngest/dedup/list-contact-fields";
 import { uuid } from "@/lib/uuid";
 import { CompanyType } from "@/types/companies";
@@ -43,9 +44,9 @@ async function convertHubIdToInternalId(
 export async function fetchContacts(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  after?: string
 ) {
-  let after: string | undefined = undefined;
   let pageId = 0;
 
   do {
@@ -53,9 +54,19 @@ export async function fetchContacts(
 
     if (pageId % UPDATE_COUNT_EVERY === 0) {
       await updateInstallCount(supabase, workspaceId);
+
+      await inngest.send({
+        name: "workspace/contacts/fetch.start",
+        data: {
+          workspaceId: workspaceId,
+          after: after,
+        },
+      });
+
+      return;
     }
 
-    console.log("Fetching contact page ", pageId);
+    console.log("Fetching contact page ", after);
 
     const res = await hsClient.crm.contacts.basicApi.getPage(
       100,
@@ -142,6 +153,19 @@ export async function fetchContacts(
 
   // Final update
   await updateInstallCount(supabase, workspaceId);
+
+  // End of general fetching
+  await supabase
+    .from("workspaces")
+    .update({ installation_fetched: true })
+    .eq("id", workspaceId);
+
+  await inngest.send({
+    name: "workspace/all/fetch.finished",
+    data: {
+      workspaceId: workspaceId,
+    },
+  });
 }
 
 async function updateInstallCount(

@@ -1,5 +1,4 @@
 import { fullFetch } from "@/inngest/dedup/fetch/install";
-import { installSimilarities } from "@/inngest/dedup/similarity/install";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
 import { createClient } from "@supabase/supabase-js";
@@ -175,35 +174,43 @@ export default inngest.createFunction(
       throw error || new Error("missing workspace");
     }
 
-    await step.run("workspace-install-fetching", async () => {
-      if (!workspace.installation_fetched) {
-        logger.info("-> Fetching hubspot data");
-        await fullFetch(supabaseAdmin, workspaceId);
-      }
-    });
+    await step.run("workspace-install-launch", async () => {
+      if (!reset || reset === "full") {
+        // TODO: We check for installation fetched because the fetch function is not self aware if the data it fetch is already in db or not
+        if (!workspace.installation_fetched) {
+          logger.info("-> Fetching hubspot data");
 
-    await step.run("workspace-install-similarities", async () => {
-      if (
-        workspace.installation_contacts_similarities_total_batches === 0 ||
-        workspace.installation_contacts_similarities_done_batches <
-          workspace.installation_contacts_similarities_total_batches ||
-        workspace.installation_companies_similarities_total_batches === 0 ||
-        workspace.installation_companies_similarities_done_batches <
-          workspace.installation_companies_similarities_total_batches
-      ) {
-        logger.info("-> Launch similarities check");
+          await fullFetch(supabaseAdmin, workspaceId);
+        } else {
+          logger.info("-> Launch similarity check");
 
-        await installSimilarities(supabaseAdmin, workspaceId);
-      } else {
+          await inngest.send({
+            name: "workspace/all/fetch.finished",
+            data: {
+              workspaceId: workspaceId,
+            },
+          });
+        }
+      } else if (reset === "similarities_and_dup") {
+        logger.info("-> Launch similarity check");
+
         await inngest.send({
-          name: "workspace/contacts/similarities/install.finished",
+          name: "workspace/all/fetch.finished",
+          data: {
+            workspaceId: workspaceId,
+          },
+        });
+      } else if (reset === "dup_stacks") {
+        logger.info("-> Launch dup check");
+        await inngest.send({
+          name: "workspace/companies/similarities/install.finished",
           data: {
             workspaceId: workspaceId,
           },
         });
 
         await inngest.send({
-          name: "workspace/companies/similarities/install.finished",
+          name: "workspace/contacts/similarities/install.finished",
           data: {
             workspaceId: workspaceId,
           },

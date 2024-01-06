@@ -1,5 +1,4 @@
-import { fetchCompanies } from "@/inngest/dedup/fetch/companies";
-import { fetchContacts } from "@/inngest/dedup/fetch/contacts";
+import { inngest } from "@/inngest";
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
@@ -30,14 +29,12 @@ export async function fullFetch(
 
   await updateInstallTotals(supabase, hsClientSearchLimited, workspaceId);
 
-  await fetchCompanies(hsClient, supabase, workspaceId);
-
-  await fetchContacts(hsClient, supabase, workspaceId);
-
-  await supabase
-    .from("workspaces")
-    .update({ installation_fetched: true })
-    .eq("id", workspaceId);
+  await inngest.send({
+    name: "workspace/companies/fetch.start",
+    data: {
+      workspaceId: workspaceId,
+    },
+  });
 }
 
 export async function getHubspotStats(hsClientSearchLimited: Client) {

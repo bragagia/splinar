@@ -57,12 +57,39 @@ export type ContactsMergeAllStart = {
   };
 };
 
+export type WorkspaceFetchCompaniesStart = {
+  name: "workspace/companies/fetch.start";
+  data: {
+    workspaceId: string;
+    after?: string;
+  };
+};
+
+export type WorkspaceFetchContactsStart = {
+  name: "workspace/contacts/fetch.start";
+  data: {
+    workspaceId: string;
+    after?: string;
+  };
+};
+
+export type WorkspaceFetchFinished = {
+  name: "workspace/all/fetch.finished";
+  data: {
+    workspaceId: string;
+    after?: string;
+  };
+};
+
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
+  | WorkspaceFetchCompaniesStart
+  | WorkspaceFetchContactsStart
   | WorkspaceSimilaritiesBatchInstallStart
   | WorkspaceContactsSimilaritiesBatchInstallFinished
   | WorkspaceCompaniesSimilaritiesBatchInstallFinished
   | WorkspaceAnyDupsInstallFinished
+  | WorkspaceFetchFinished
   | CompaniesMergeAllStart
   | ContactsMergeAllStart
 >();
