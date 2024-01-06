@@ -1,6 +1,6 @@
 "use server";
 
-import { handleSubscriptionUpdatedOrCreated } from "@/app/api/stripe-hook/route";
+import { handleSubscriptionUpdatedOrCreated } from "@/app/workspace/[workspaceId]/billing/handle-subscription-update-or-created";
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { getStripe } from "@/lib/stripe";
 import { Database } from "@/types/supabase";
