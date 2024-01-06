@@ -1,3 +1,4 @@
+import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import {
   SIMILARITIES_BATCH_SIZE,
   updateSimilarities,
@@ -9,13 +10,24 @@ export async function installSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  await installContactsSimilarities(supabase, workspaceId);
-  await installCompaniesSimilarities(supabase, workspaceId);
+  const workspaceSubscription = await getWorkspaceCurrentSubscription(
+    supabase,
+    workspaceId
+  );
+
+  let isFreeTier = false;
+  if (!workspaceSubscription) {
+    isFreeTier = true;
+  }
+
+  await installContactsSimilarities(supabase, workspaceId, isFreeTier);
+  await installCompaniesSimilarities(supabase, workspaceId, isFreeTier);
 }
 
 async function installContactsSimilarities(
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  isFreeTier: boolean
 ) {
   const { count: hsContactsCount, error: errorContactsCount } = await supabase
     .from("contacts")
@@ -25,7 +37,12 @@ async function installContactsSimilarities(
     throw errorContactsCount || new Error("hsContactCount: missing");
   }
 
-  let batchTotal = Math.ceil(hsContactsCount / SIMILARITIES_BATCH_SIZE);
+  let limitedCount = hsContactsCount;
+  if (isFreeTier && limitedCount > SIMILARITIES_BATCH_SIZE) {
+    limitedCount = SIMILARITIES_BATCH_SIZE;
+  }
+
+  let batchTotal = Math.ceil(limitedCount / SIMILARITIES_BATCH_SIZE);
   let totalOperations = (batchTotal + 1) * (batchTotal / 2);
 
   const { error } = await supabase
@@ -49,6 +66,7 @@ async function installContactsSimilarities(
   await updateSimilarities(
     supabase,
     workspaceId,
+    isFreeTier,
     "contacts",
     incrementBatchStarted
   );
@@ -56,7 +74,8 @@ async function installContactsSimilarities(
 
 async function installCompaniesSimilarities(
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  isFreeTier: boolean
 ) {
   const { count: hsCompaniesCount, error: errorCompaniesCount } = await supabase
     .from("companies")
@@ -64,6 +83,11 @@ async function installCompaniesSimilarities(
     .eq("workspace_id", workspaceId);
   if (errorCompaniesCount || hsCompaniesCount === null) {
     throw errorCompaniesCount || new Error("hsCompaniesCount: missing");
+  }
+
+  let limitedCount = hsCompaniesCount;
+  if (isFreeTier && limitedCount > SIMILARITIES_BATCH_SIZE) {
+    limitedCount = SIMILARITIES_BATCH_SIZE;
   }
 
   let batchTotal = Math.ceil(hsCompaniesCount / SIMILARITIES_BATCH_SIZE);
@@ -90,6 +114,7 @@ async function installCompaniesSimilarities(
   await updateSimilarities(
     supabase,
     workspaceId,
+    isFreeTier,
     "companies",
     incrementBatchStarted
   );

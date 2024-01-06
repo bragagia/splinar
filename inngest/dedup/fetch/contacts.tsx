@@ -5,6 +5,8 @@ import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
+const UPDATE_COUNT_EVERY = 3;
+
 async function convertHubIdToInternalId(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
@@ -48,6 +50,11 @@ export async function fetchContacts(
 
   do {
     pageId++;
+
+    if (pageId % UPDATE_COUNT_EVERY === 0) {
+      await updateInstallCount(supabase, workspaceId);
+    }
+
     console.log("Fetching contact page ", pageId);
 
     const res = await hsClient.crm.contacts.basicApi.getPage(
@@ -61,6 +68,10 @@ export async function fetchContacts(
     after = res.paging?.next?.after;
 
     const contacts = res.results;
+
+    if (!contacts || contacts.length === 0) {
+      break;
+    }
 
     let contactsToCompanies: {
       company_hub_id: string;
@@ -128,4 +139,30 @@ export async function fetchContacts(
       throw errorContactCompanies;
     }
   } while (after);
+
+  // Final update
+  await updateInstallCount(supabase, workspaceId);
+}
+
+async function updateInstallCount(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const contacts = await supabase
+    .from("contacts")
+    .select("", { count: "exact" })
+    .eq("workspace_id", workspaceId);
+  if (contacts.error) {
+    throw contacts.error;
+  }
+
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      installation_contacts_count: contacts.count || 0,
+    })
+    .eq("id", workspaceId);
+  if (error) {
+    throw error;
+  }
 }

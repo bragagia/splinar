@@ -1,4 +1,4 @@
-import { companiesMerge } from "@/app/serverActions/companies-merge";
+import { companiesMerge } from "@/app/workspace/[workspaceId]/duplicates/companies-merge";
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";

@@ -1,3 +1,4 @@
+import { updateDupStackContactsInstallationTotal } from "@/inngest/dedup/dup-stacks/contacts";
 import { installContactsDupStacks } from "@/inngest/dedup/dup-stacks/install";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
@@ -26,6 +27,9 @@ export default inngest.createFunction(
       if (errorContacts) {
         throw errorContacts;
       }
+
+      logger.info("-> Updating contact installation total");
+      await updateDupStackContactsInstallationTotal(supabaseAdmin, workspaceId);
     }
 
     const hasMore = await installContactsDupStacks(supabaseAdmin, workspaceId);

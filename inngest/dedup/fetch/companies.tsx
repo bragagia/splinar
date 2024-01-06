@@ -5,6 +5,8 @@ import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
+const UPDATE_COUNT_EVERY = 3;
+
 export async function fetchCompanies(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
@@ -15,7 +17,13 @@ export async function fetchCompanies(
 
   do {
     pageId++;
+
+    if (pageId % UPDATE_COUNT_EVERY === 0) {
+      await updateInstallCount(supabase, workspaceId);
+    }
+
     console.log("Fetching companies page ", pageId);
+
     const res = await hsClient.crm.companies.basicApi.getPage(100, after, [
       "address",
       "zip",
@@ -34,12 +42,10 @@ export async function fetchCompanies(
       "twitterhandle",
     ]);
 
-    after = res.paging?.next?.after;
-
     const companies = res.results;
 
     if (!companies || companies.length === 0) {
-      return;
+      break;
     }
 
     let dbCompanies = companies.map((company) => {
@@ -80,5 +86,33 @@ export async function fetchCompanies(
     if (error) {
       throw error;
     }
+
+    after = res.paging?.next?.after;
   } while (after);
+
+  // Final update
+  await updateInstallCount(supabase, workspaceId);
+}
+
+async function updateInstallCount(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const companies = await supabase
+    .from("companies")
+    .select("", { count: "exact" })
+    .eq("workspace_id", workspaceId);
+  if (companies.error) {
+    throw companies.error;
+  }
+
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      installation_companies_count: companies.count || 0,
+    })
+    .eq("id", workspaceId);
+  if (error) {
+    throw error;
+  }
 }

@@ -102,9 +102,7 @@ INSERT INTO
         installation_contacts_similarities_total_batches,
         installation_contacts_similarities_done_batches,
         installation_companies_similarities_total_batches,
-        installation_companies_similarities_done_batches,
-        installation_dup_total,
-        installation_dup_done
+        installation_companies_similarities_done_batches
     )
 VALUES
     (
@@ -118,8 +116,6 @@ VALUES
         143540917,
         'FRESH',
         false,
-        0,
-        0,
         0,
         0,
         0,
@@ -139,8 +135,6 @@ VALUES
         0,
         0,
         0,
-        0,
-        0,
         0
     ),
     (
@@ -154,8 +148,6 @@ VALUES
         143393290,
         'FRESH',
         false,
-        0,
-        0,
         0,
         0,
         0,

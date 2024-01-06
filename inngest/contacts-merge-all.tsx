@@ -1,4 +1,4 @@
-import { contactMerge } from "@/app/serverActions/contacts-merge";
+import { contactMerge } from "@/app/workspace/[workspaceId]/duplicates/contacts-merge";
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";

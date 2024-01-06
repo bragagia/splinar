@@ -1,7 +1,31 @@
-import { Client } from "@hubspot/api-client";
+import * as hubspot from "@hubspot/api-client";
 
-export async function newHubspotClient(refreshToken: string) {
-  let tmpClient = new Client();
+export function setHubspotClientSearchLimit(client: hubspot.Client) {
+  client.config.limiterOptions = {
+    minTime: 550,
+    maxConcurrent: 3,
+    id: "search-hubspot-client-limiter",
+  };
+}
+
+export async function newHubspotClient(
+  refreshToken: string,
+  limiter: "search" | "default" = "default"
+) {
+  let tmpClient = new hubspot.Client({
+    limiterOptions:
+      limiter === "search"
+        ? {
+            minTime: 550,
+            maxConcurrent: 3,
+            id: "search-hubspot-client-limiter",
+          }
+        : {
+            minTime: 1000 / 9,
+            maxConcurrent: 6,
+            id: "hubspot-client-limiter",
+          },
+  });
 
   let client = await tmpClient.oauth.tokensApi
     .create(

@@ -1,9 +1,23 @@
+"use client";
+
+import { AnimatedBgBuy } from "@/components/animated-bg-buy";
+import { Icons } from "@/components/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
+import { Merge } from "type-fest";
 
-const spButtonVariants = cva("border rounded-lg text-sm", {
+const spButtonVariants = cva("border rounded-lg text-sm font-medium", {
   variants: {
     variant: {
       // default: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -18,13 +32,21 @@ const spButtonVariants = cva("border rounded-lg text-sm", {
       ghostActivated:
         "text-gray-600 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
 
-      full: "bg-gray-500 border-gray-500 text-gray-100 hover:bg-gray-700 hover:border-gray-700",
+      full: "bg-gray-700 border-gray-700 text-gray-100 enabled:hover:bg-gray-900 enabled:hover:border-gray-900 disabled:bg-gray-400 disabled:border-gray-400",
+
+      fullAnimated:
+        "bg-opacity-40 bg-white border-gray-700 text-black hover:bg-opacity-10 hover:border-gray-900",
+
+      fullDanger:
+        "bg-red-700 border-red-700 text-red-100 hover:bg-red-900 hover:border-red-900",
+
       // link: "text-primary underline-offset-4 hover:underline",
     },
     size: {
-      sm: "p-none",
-      md: "p-1",
-      lg: "p-2",
+      icon: "p-1",
+      sm: "py-0 px-1",
+      md: "py-1 px-2",
+      lg: "py-2 px-3",
     },
   },
   defaultVariants: {
@@ -53,7 +75,7 @@ const SpIconButton = React.forwardRef<HTMLButtonElement, SpIconButtonProps>(
 
     return (
       <Comp
-        className={cn(spButtonVariants({ variant, size, className }))}
+        className={cn(spButtonVariants({ variant, size: "icon", className }))}
         ref={ref}
         disabled={disabled}
         {...props}
@@ -81,6 +103,7 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
       icon,
       disabled,
       children,
+      onClick,
       ...props
     },
     ref
@@ -88,15 +111,25 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
     const Icon = icon;
     const Comp = asChild ? Slot : "button";
 
+    const [loading, setLoading] = useState(false);
+
     return (
       <Comp
         className={cn(spButtonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={disabled}
+        disabled={disabled || loading}
+        onClick={async (event: any) => {
+          if (onClick) {
+            setLoading(true);
+            await onClick(event);
+            setLoading(false);
+          }
+        }}
         {...props}
       >
         <div className="flex flex-row items-center justify-center gap-1">
-          {Icon && <Icon className="w-4 h-4" />}
+          {!loading && Icon && <Icon className="w-4 h-4" />}
+          {loading && <Icons.spinner className="w-4 h-4 animate-spin" />}
 
           <div>{children}</div>
         </div>
@@ -106,4 +139,63 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
 );
 SpButton.displayName = "SpButton";
 
-export { SpButton };
+export interface SpConfirmButtonProps extends SpIconButtonProps {
+  confirmTitle?: string;
+  confirmDescription?: string;
+}
+
+const SpConfirmButton = React.forwardRef<
+  Merge<HTMLButtonElement, SpButtonProps>,
+  SpConfirmButtonProps
+>(({ children, confirmTitle, confirmDescription, onClick, ...props }, ref) => {
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+
+  return (
+    <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+      <DialogTrigger asChild>
+        <SpButton {...props}>{children}</SpButton>
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{confirmTitle ? confirmTitle : children}</DialogTitle>
+
+          <DialogDescription>
+            {confirmDescription ? confirmDescription : "Are you sure?"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter>
+          <SpButton
+            type="submit"
+            {...props}
+            onClick={
+              onClick
+                ? async (event: any) => {
+                    await onClick(event);
+                    setCancelModalOpen(false);
+                  }
+                : undefined
+            }
+          >
+            {children}
+          </SpButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+});
+SpConfirmButton.displayName = "SpConfirmButton";
+
+const SpAnimatedButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
+  ({ variant = "fullAnimated", ...props }, ref) => {
+    return (
+      <AnimatedBgBuy className="rounded-md">
+        <SpButton {...props} variant={"fullAnimated"} />
+      </AnimatedBgBuy>
+    );
+  }
+);
+SpAnimatedButton.displayName = "SpAnimatedButton";
+
+export { SpAnimatedButton, SpButton, SpConfirmButton };

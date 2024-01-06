@@ -3,6 +3,7 @@
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { usePathname } from "next/navigation";
 import {
   ReactNode,
   createContext,
@@ -40,6 +41,7 @@ export function WorkspaceProvider({
   value: WorkspaceType;
 }) {
   const supabase = createClientComponentClient<Database>();
+  const pathName = usePathname();
 
   const [workspace, setWorkspace] = useState<WorkspaceType>(value);
 
@@ -56,6 +58,11 @@ export function WorkspaceProvider({
 
     setWorkspace(workspaceUpdated);
   }, [supabase, workspace.id]);
+
+  useEffect(() => {
+    // Force update whenever pathName change
+    forceUpdate();
+  }, [forceUpdate, pathName]);
 
   useEffect(() => {
     setWorkspace(value);

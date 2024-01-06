@@ -30,11 +30,19 @@ export async function workspaceInstall(workspaceId: string) {
     throw errorWorkspace || new Error("Missing workspace");
   }
 
+  const { error: errorWorkspaceUpdate } = await supabase
+    .from("workspaces")
+    .update({ installation_status: "PENDING" })
+    .eq("id", workspaceId);
+  if (errorWorkspaceUpdate) {
+    throw errorWorkspaceUpdate;
+  }
+
   await inngest.send({
     name: "workspace/install.start",
     data: {
       workspaceId: workspaceId,
-      reset: null,
+      reset: "full",
     },
   });
 }

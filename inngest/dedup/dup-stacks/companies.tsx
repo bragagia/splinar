@@ -283,3 +283,55 @@ export async function markCompaniesDupstackElementsAsDupChecked(
     }
   }
 }
+
+export async function updateDupStackCompaniesInstallationTotal(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { count: dupTotalCompanies, error: errorCompanies } = await supabase
+    .from("companies")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (errorCompanies || dupTotalCompanies === null) {
+    throw errorCompanies || new Error("missing count on companies");
+  }
+
+  const { error: errorUpdate } = await supabase
+    .from("workspaces")
+    .update({
+      installation_companies_dup_total: dupTotalCompanies,
+    })
+    .eq("id", workspaceId);
+  if (errorUpdate) {
+    throw errorUpdate;
+  }
+
+  console.log("-> Companies dup total: ", dupTotalCompanies);
+}
+
+export async function updateDupStackCompaniesInstallationDone(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { count: dupCompaniesDone, error: errorCompanies } = await supabase
+    .from("companies")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("dup_checked", true);
+  if (errorCompanies || dupCompaniesDone === null) {
+    throw errorCompanies || new Error("missing count");
+  }
+
+  const { error: errorUpdate } = await supabase
+    .from("workspaces")
+    .update({
+      installation_companies_dup_done: dupCompaniesDone,
+    })
+    .eq("id", workspaceId);
+  if (errorUpdate) {
+    console.log(errorUpdate);
+    return 0;
+  }
+
+  console.log("-> Dup stack companies batch", dupCompaniesDone);
+}

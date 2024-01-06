@@ -38,15 +38,22 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     if (error) {
       setErrorMessage(error.message);
-    } else {
-      setErrorMessage(null);
+      setIsLoading(false);
+
+      return;
     }
 
-    setIsLoading(false);
+    if (!data.user) {
+      setErrorMessage("Unkown error");
+      setIsLoading(false);
 
-    if (data.user) {
-      router.push(URLS.workspaceIndex);
+      return;
     }
+
+    // note: We let the loading until the next page load
+    // setIsLoading(false);
+    setErrorMessage(null);
+    router.push(URLS.workspaceIndex);
   }
 
   return (

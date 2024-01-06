@@ -3,11 +3,12 @@ import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-export const SIMILARITIES_BATCH_SIZE = 1000;
+export const SIMILARITIES_BATCH_SIZE = 200;
 
 export async function updateSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  isFreeTier: boolean,
   table: "contacts" | "companies",
   afterBatchCallback?: () => Promise<void>
 ) {
@@ -15,13 +16,11 @@ export async function updateSimilarities(
   do {
     let query = supabase
       .from(table)
-      .select("id")
+      .select("id, hs_id")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
-      .order("id")
+      .order("hs_id", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
-
-    // TODO: Sorting by uuid seems sketchy, i should use some combination of uuid and created at (or hs_id ?)
 
     const { data: batch, error: error } = await query;
     if (error) {
@@ -56,7 +55,7 @@ export async function updateSimilarities(
     );
 
     await markBatchInstalled(supabase, table, batchIds);
-  } while (batchLength === SIMILARITIES_BATCH_SIZE);
+  } while (batchLength === SIMILARITIES_BATCH_SIZE && !isFreeTier);
 }
 
 async function markBatchInstalled(
@@ -82,18 +81,18 @@ async function compareBatchWithAllInstalledBatches(
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
-  let lastItemId: string | null = null;
+  let lastItemId: number | null = null;
   do {
     let query = supabase
       .from(table)
-      .select("id")
+      .select("id, hs_id")
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
-      .order("id")
+      .order("hs_id", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
     if (lastItemId) {
-      query = query.gt("id", lastItemId);
+      query = query.gt("hs_id", lastItemId);
     }
 
     const { data: installedBatch, error: errorInstalledBatch } = await query;
@@ -121,7 +120,7 @@ async function compareBatchWithAllInstalledBatches(
       await afterBatchCallback();
     }
 
-    lastItemId = installedBatch[installedBatch.length - 1].id;
+    lastItemId = installedBatch[installedBatch.length - 1].hs_id;
     if (installedBatch.length !== SIMILARITIES_BATCH_SIZE) {
       lastItemId = null;
     }

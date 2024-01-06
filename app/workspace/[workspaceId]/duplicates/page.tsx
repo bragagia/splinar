@@ -1,9 +1,5 @@
 "use client";
 
-import { companiesMergeSA } from "@/app/serverActions/companies-merge";
-import { companiesMergeAll } from "@/app/serverActions/companies-merge-all";
-import { contactMergeSA } from "@/app/serverActions/contacts-merge";
-import { contactMergeAll } from "@/app/serverActions/contacts-merge-all";
 import {
   getCompanyCardTitle,
   getCompanyRowInfos,
@@ -11,6 +7,8 @@ import {
   saveNewCompanyDupType,
   sortCompaniesItems,
 } from "@/app/workspace/[workspaceId]/duplicates/companies";
+import { companiesMergeSA } from "@/app/workspace/[workspaceId]/duplicates/companies-merge";
+import { companiesMergeAll } from "@/app/workspace/[workspaceId]/duplicates/companies-merge-all";
 import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import {
   getContactCardTitle,
@@ -19,6 +17,8 @@ import {
   saveNewContactDupType,
   sortContactsItems,
 } from "@/app/workspace/[workspaceId]/duplicates/contacts";
+import { contactMergeSA } from "@/app/workspace/[workspaceId]/duplicates/contacts-merge";
+import { contactMergeAll } from "@/app/workspace/[workspaceId]/duplicates/contacts-merge-all";
 import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";

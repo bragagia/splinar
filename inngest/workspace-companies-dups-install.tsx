@@ -2,6 +2,7 @@ import { installCompaniesDupStacks } from "@/inngest/dedup/dup-stacks/install";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
+import { updateDupStackCompaniesInstallationTotal } from "@/inngest/dedup/dup-stacks/companies";
 
 export default inngest.createFunction(
   { id: "workspace-companies-dups-install" },
@@ -26,6 +27,12 @@ export default inngest.createFunction(
       if (errorCompanies) {
         throw errorCompanies;
       }
+
+      logger.info("-> Updating companies installation total");
+      await updateDupStackCompaniesInstallationTotal(
+        supabaseAdmin,
+        workspaceId
+      );
     }
 
     const hasMore = await installCompaniesDupStacks(supabaseAdmin, workspaceId);

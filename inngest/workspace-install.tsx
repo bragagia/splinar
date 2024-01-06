@@ -1,4 +1,3 @@
-import { updateDupStackInstallationTotal } from "@/inngest/dedup/dup-stacks/install";
 import { fullFetch } from "@/inngest/dedup/fetch/install";
 import { installSimilarities } from "@/inngest/dedup/similarity/install";
 import { Database } from "@/types/supabase";
@@ -17,6 +16,32 @@ export default inngest.createFunction(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    const { data: workspace0, error: error0 } = await supabaseAdmin
+      .from("workspaces")
+      .select()
+      .eq("id", workspaceId)
+      .limit(1)
+      .single();
+    if (error0 || !workspace0) {
+      throw error0 || new Error("missing workspace");
+    }
+
+    const shouldStop = await step.run("workspace-check-status", async () => {
+      if (
+        workspace0.installation_status !== "PENDING" &&
+        workspace0.installation_status !== "ERROR"
+      ) {
+        console.log("Workspace install must start on a pending state");
+        // TODO: do error case
+        // TODO: Use inngest anti-concurrency instead ?
+        // TODO: note: currently it is not conccurent safe
+        return true;
+      }
+    });
+    if (shouldStop) {
+      return;
+    }
 
     await step.run("workspace-reset", async () => {
       if (reset) {
@@ -55,7 +80,10 @@ export default inngest.createFunction(
         }
 
         let workspaceUpdate: Partial<WorkspaceType> = {
-          installation_status: "FRESH",
+          installation_companies_dup_total: 0,
+          installation_companies_dup_done: 0,
+          installation_contacts_dup_total: 0,
+          installation_contacts_dup_done: 0,
         };
 
         if (reset === "full") {
@@ -78,12 +106,14 @@ export default inngest.createFunction(
           if (error8) throw error8;
 
           workspaceUpdate.installation_fetched = false;
-          workspaceUpdate.installation_dup_total = 0;
-          workspaceUpdate.installation_dup_done = 0;
           workspaceUpdate.installation_contacts_similarities_total_batches = 0;
           workspaceUpdate.installation_contacts_similarities_done_batches = 0;
           workspaceUpdate.installation_companies_similarities_done_batches = 0;
           workspaceUpdate.installation_companies_similarities_done_batches = 0;
+          workspaceUpdate.installation_companies_total = 0;
+          workspaceUpdate.installation_companies_count = 0;
+          workspaceUpdate.installation_contacts_total = 0;
+          workspaceUpdate.installation_contacts_count = 0;
         } else {
           let update: {
             dup_checked: boolean;
@@ -92,9 +122,6 @@ export default inngest.createFunction(
             dup_checked: false,
             similarity_checked: undefined,
           };
-
-          workspaceUpdate.installation_dup_total = 0;
-          workspaceUpdate.installation_dup_done = 0;
 
           if (reset === "similarities_and_dup") {
             update.similarity_checked = false;
@@ -129,7 +156,7 @@ export default inngest.createFunction(
     await step.run("workspace-update-status", async () => {
       logger.info("-> Updating workspace status");
       let workspaceUpdatePending: Partial<WorkspaceType> = {
-        installation_status: "PENDING",
+        installation_status: "INSTALLING",
       };
       const { error: error1 } = await supabaseAdmin
         .from("workspaces")
@@ -152,14 +179,15 @@ export default inngest.createFunction(
       if (!workspace.installation_fetched) {
         logger.info("-> Fetching hubspot data");
         await fullFetch(supabaseAdmin, workspaceId);
-        await updateDupStackInstallationTotal(supabaseAdmin, workspaceId);
       }
     });
 
     await step.run("workspace-install-similarities", async () => {
       if (
+        workspace.installation_contacts_similarities_total_batches === 0 ||
         workspace.installation_contacts_similarities_done_batches <
           workspace.installation_contacts_similarities_total_batches ||
+        workspace.installation_companies_similarities_total_batches === 0 ||
         workspace.installation_companies_similarities_done_batches <
           workspace.installation_companies_similarities_total_batches
       ) {
@@ -169,6 +197,13 @@ export default inngest.createFunction(
       } else {
         await inngest.send({
           name: "workspace/contacts/similarities/install.finished",
+          data: {
+            workspaceId: workspaceId,
+          },
+        });
+
+        await inngest.send({
+          name: "workspace/companies/similarities/install.finished",
           data: {
             workspaceId: workspaceId,
           },

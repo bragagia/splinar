@@ -310,3 +310,55 @@ export async function markContactDupstackElementsAsDupChecked(
   //  "ms"
   //);
 }
+
+export async function updateDupStackContactsInstallationTotal(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { count: dupTotalContacts, error: errorContacts } = await supabase
+    .from("contacts")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (errorContacts || dupTotalContacts === null) {
+    throw errorContacts || new Error("missing count on contacts");
+  }
+
+  const { error: errorUpdate } = await supabase
+    .from("workspaces")
+    .update({
+      installation_contacts_dup_total: dupTotalContacts,
+    })
+    .eq("id", workspaceId);
+  if (errorUpdate) {
+    throw errorUpdate;
+  }
+
+  console.log("-> Contacts dup total: ", dupTotalContacts);
+}
+
+export async function updateDupStackContactsInstallationDone(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const { count: dupContactsDone, error: errorContacts } = await supabase
+    .from("contacts")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("dup_checked", true);
+  if (errorContacts || dupContactsDone === null) {
+    throw errorContacts || new Error("missing count");
+  }
+
+  const { error: errorUpdate } = await supabase
+    .from("workspaces")
+    .update({
+      installation_contacts_dup_done: dupContactsDone,
+    })
+    .eq("id", workspaceId);
+  if (errorUpdate) {
+    console.log(errorUpdate);
+    return 0;
+  }
+
+  console.log("-> Dup stack contact batch", dupContactsDone);
+}

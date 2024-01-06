@@ -1,3 +1,6 @@
+import { calcWorkspaceUsage } from "@/app/workspace/[workspaceId]/billing/calc-usage";
+import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
+import { getStripe } from "@/lib/stripe";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
@@ -24,7 +27,12 @@ export default inngest.createFunction(
       throw errorWorkspace || new Error("missing workspace");
     }
 
-    if (workspace.installation_dup_done === workspace.installation_dup_total) {
+    if (
+      workspace.installation_companies_dup_done ===
+        workspace.installation_companies_dup_total &&
+      workspace.installation_contacts_dup_done ===
+        workspace.installation_contacts_dup_total
+    ) {
       logger.info("-> Marking as done");
 
       // !!! Important note: there is currently no garantee that this code is not executed multiple times for a single install
@@ -37,6 +45,39 @@ export default inngest.createFunction(
         .eq("id", workspaceId);
       if (error) {
         throw error;
+      }
+
+      const subscription = await getWorkspaceCurrentSubscription(
+        supabaseAdmin,
+        workspaceId
+      );
+
+      if (
+        subscription &&
+        subscription.sub_type === "STRIPE" &&
+        subscription.stripe_customer_id &&
+        subscription.stripe_subscription_id &&
+        subscription.stripe_subscription_item_id
+      ) {
+        logger.info("-> Reporting usage to stripe");
+        const stripe = getStripe();
+        if (!stripe) {
+          throw new Error("Can't get stripe");
+        }
+
+        const workspaceUsage = await calcWorkspaceUsage(
+          supabaseAdmin,
+          workspaceId
+        );
+
+        await stripe.subscriptionItems.createUsageRecord(
+          subscription.stripe_subscription_item_id,
+          {
+            quantity: workspaceUsage,
+            timestamp: "now",
+            action: "set",
+          }
+        );
       }
     } else {
       logger.info("-> Skipping");

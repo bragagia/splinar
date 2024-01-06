@@ -563,6 +563,56 @@ export interface Database {
           }
         ]
       }
+      workspace_subscriptions: {
+        Row: {
+          canceled_at: string | null
+          created_at: string
+          id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          sub_custom_type:
+            | Database["public"]["Enums"]["workspace_subscriptions_custom_type"]
+            | null
+          sub_type: Database["public"]["Enums"]["workspace_subscriptions_type"]
+          workspace_id: string
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          sub_custom_type?:
+            | Database["public"]["Enums"]["workspace_subscriptions_custom_type"]
+            | null
+          sub_type: Database["public"]["Enums"]["workspace_subscriptions_type"]
+          workspace_id: string
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          sub_custom_type?:
+            | Database["public"]["Enums"]["workspace_subscriptions_custom_type"]
+            | null
+          sub_type?: Database["public"]["Enums"]["workspace_subscriptions_type"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       workspaces: {
         Row: {
           companies_operation_status: Database["public"]["Enums"]["workspace_operation_status"]
@@ -572,12 +622,18 @@ export interface Database {
           domain: string
           hub_id: string
           id: string
+          installation_companies_count: number
+          installation_companies_dup_done: number
+          installation_companies_dup_total: number
           installation_companies_similarities_done_batches: number
           installation_companies_similarities_total_batches: number
+          installation_companies_total: number
+          installation_contacts_count: number
+          installation_contacts_dup_done: number
+          installation_contacts_dup_total: number
           installation_contacts_similarities_done_batches: number
           installation_contacts_similarities_total_batches: number
-          installation_dup_done: number
-          installation_dup_total: number
+          installation_contacts_total: number
           installation_fetched: boolean
           installation_status: Database["public"]["Enums"]["workspace_installation_status"]
           refresh_token: string
@@ -592,12 +648,18 @@ export interface Database {
           domain: string
           hub_id: string
           id?: string
+          installation_companies_count?: number
+          installation_companies_dup_done?: number
+          installation_companies_dup_total?: number
           installation_companies_similarities_done_batches: number
           installation_companies_similarities_total_batches: number
+          installation_companies_total?: number
+          installation_contacts_count?: number
+          installation_contacts_dup_done?: number
+          installation_contacts_dup_total?: number
           installation_contacts_similarities_done_batches: number
           installation_contacts_similarities_total_batches: number
-          installation_dup_done: number
-          installation_dup_total: number
+          installation_contacts_total?: number
           installation_fetched: boolean
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           refresh_token: string
@@ -612,12 +674,18 @@ export interface Database {
           domain?: string
           hub_id?: string
           id?: string
+          installation_companies_count?: number
+          installation_companies_dup_done?: number
+          installation_companies_dup_total?: number
           installation_companies_similarities_done_batches?: number
           installation_companies_similarities_total_batches?: number
+          installation_companies_total?: number
+          installation_contacts_count?: number
+          installation_contacts_dup_done?: number
+          installation_contacts_dup_total?: number
           installation_contacts_similarities_done_batches?: number
           installation_contacts_similarities_total_batches?: number
-          installation_dup_done?: number
-          installation_dup_total?: number
+          installation_contacts_total?: number
           installation_fetched?: boolean
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           refresh_token?: string
@@ -710,8 +778,15 @@ export interface Database {
         | "FALSE_POSITIVE"
       dup_stack_item_type: "CONTACTS" | "COMPANIES"
       user_role: "SUPERADMIN"
-      workspace_installation_status: "FRESH" | "PENDING" | "DONE" | "ERROR"
+      workspace_installation_status:
+        | "FRESH"
+        | "PENDING"
+        | "DONE"
+        | "ERROR"
+        | "INSTALLING"
       workspace_operation_status: "NONE" | "PENDING"
+      workspace_subscriptions_custom_type: "BETA"
+      workspace_subscriptions_type: "STRIPE" | "CUSTOM"
     }
     CompositeTypes: {
       [_ in never]: never
