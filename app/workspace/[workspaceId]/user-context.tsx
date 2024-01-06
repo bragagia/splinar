@@ -43,13 +43,5 @@ export function UserProvider({
     setUser(value);
   }, [value, supabase]);
 
-  if (user.role === "SUPERADMIN") {
-    return (
-      <div className="border-8 border-red-500 min-h-screen">
-        <UserContext.Provider value={user}>{children}</UserContext.Provider>
-      </div>
-    );
-  }
-
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 }

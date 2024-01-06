@@ -80,7 +80,7 @@ export default function WorkspaceSettingsPageClient({
                     Currently on free tier
                   </CardTitle>
                   <CardDescription>
-                    Limited to your 1000 last companies
+                    Limited to your 1000 last contacts and companies
                   </CardDescription>
                 </>
               )}

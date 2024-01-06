@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { Database } from "@/types/supabase";
 import { WorkspaceType } from "@/types/workspaces";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -42,6 +43,7 @@ export function WorkspaceProvider({
 }) {
   const supabase = createClientComponentClient<Database>();
   const pathName = usePathname();
+  const user = useUser();
 
   const [workspace, setWorkspace] = useState<WorkspaceType>(value);
 
@@ -94,8 +96,14 @@ export function WorkspaceProvider({
   };
 
   return (
-    <WorkspaceContext.Provider value={workspaceWithTrigger}>
-      {children}
-    </WorkspaceContext.Provider>
+    <>
+      {user.role === "SUPERADMIN" && workspace.user_id !== user.id && (
+        <div className="border-8 border-red-500 border-blink h-screen w-screen top-0 left-0 animate-pulse-fast fixed pointer-events-none z-50"></div>
+      )}
+
+      <WorkspaceContext.Provider value={workspaceWithTrigger}>
+        {children}
+      </WorkspaceContext.Provider>
+    </>
   );
 }
