@@ -39,3 +39,10 @@
   - customer.subscription.created
   - customer.subscription.deleted
   - customer.subscription.updated
+
+### Setup stripe tax
+
+### Setup emails
+
+https://dashboard.stripe.com/settings/emails
+Send emails to clients on success paiment and refund
