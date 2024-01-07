@@ -1,6 +1,6 @@
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
-import { inngest } from "@/inngest";
 import {
+  FREE_TIER_BATCH_LIMIT,
   SIMILARITIES_BATCH_SIZE,
   updateSimilarities,
 } from "@/inngest/dedup/similarity/update";
@@ -39,8 +39,11 @@ async function installContactsSimilarities(
   }
 
   let limitedCount = hsContactsCount;
-  if (isFreeTier && limitedCount > SIMILARITIES_BATCH_SIZE) {
-    limitedCount = SIMILARITIES_BATCH_SIZE;
+  if (
+    isFreeTier &&
+    limitedCount > SIMILARITIES_BATCH_SIZE * FREE_TIER_BATCH_LIMIT
+  ) {
+    limitedCount = SIMILARITIES_BATCH_SIZE * FREE_TIER_BATCH_LIMIT;
   }
 
   let batchTotal = Math.ceil(limitedCount / SIMILARITIES_BATCH_SIZE);
@@ -87,11 +90,14 @@ async function installCompaniesSimilarities(
   }
 
   let limitedCount = hsCompaniesCount;
-  if (isFreeTier && limitedCount > SIMILARITIES_BATCH_SIZE) {
-    limitedCount = SIMILARITIES_BATCH_SIZE;
+  if (
+    isFreeTier &&
+    limitedCount > SIMILARITIES_BATCH_SIZE * FREE_TIER_BATCH_LIMIT
+  ) {
+    limitedCount = SIMILARITIES_BATCH_SIZE * FREE_TIER_BATCH_LIMIT;
   }
 
-  let batchTotal = Math.ceil(hsCompaniesCount / SIMILARITIES_BATCH_SIZE);
+  let batchTotal = Math.ceil(limitedCount / SIMILARITIES_BATCH_SIZE);
   let totalOperations = (batchTotal + 1) * (batchTotal / 2);
 
   const { error } = await supabase

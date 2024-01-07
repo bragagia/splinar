@@ -43,7 +43,7 @@ export function SubscriptionOptions({
         >
           <li className="flex flex-row gap-3">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Limited to your 1000 last contacts and companies
+            Limited to your 5000 last contacts and companies
           </li>
 
           <li className="flex flex-row gap-3">

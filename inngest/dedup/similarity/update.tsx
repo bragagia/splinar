@@ -3,7 +3,8 @@ import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-export const SIMILARITIES_BATCH_SIZE = 1000;
+export const SIMILARITIES_BATCH_SIZE = 100;
+export const FREE_TIER_BATCH_LIMIT = 5;
 
 export async function updateSimilarities(
   supabase: SupabaseClient<Database>,
@@ -13,6 +14,8 @@ export async function updateSimilarities(
   afterBatchCallback?: () => Promise<void>
 ) {
   let batchLength = 0;
+  let count = 0;
+
   do {
     let query = supabase
       .from(table)
@@ -55,7 +58,12 @@ export async function updateSimilarities(
     );
 
     await markBatchInstalled(supabase, table, batchIds);
-  } while (batchLength === SIMILARITIES_BATCH_SIZE && !isFreeTier);
+
+    count++;
+  } while (
+    batchLength === SIMILARITIES_BATCH_SIZE &&
+    (!isFreeTier || count < FREE_TIER_BATCH_LIMIT)
+  );
 }
 
 async function markBatchInstalled(

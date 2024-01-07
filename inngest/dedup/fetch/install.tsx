@@ -21,7 +21,6 @@ export async function fullFetch(
     throw new Error("Missing workspace");
   }
 
-  let hsClient = await newHubspotClient(workspace.refresh_token);
   let hsClientSearchLimited = await newHubspotClient(
     workspace.refresh_token,
     "search"
