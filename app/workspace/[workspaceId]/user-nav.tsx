@@ -12,7 +12,6 @@ import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -58,14 +57,6 @@ export function UserNav() {
             </p>
           </div>
         </DropdownMenuLabel>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuGroup>
-          <DropdownMenuItem disabled>Billing</DropdownMenuItem>
-
-          <DropdownMenuItem disabled>Settings</DropdownMenuItem>
-        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
