@@ -3,7 +3,7 @@ import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-export const SIMILARITIES_BATCH_SIZE = 100;
+export const SIMILARITIES_BATCH_SIZE = 1000;
 export const FREE_TIER_BATCH_LIMIT = 5;
 
 export async function updateSimilarities(
