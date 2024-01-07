@@ -25,40 +25,40 @@ function saveNewDemoDupType(
 
 export default function DemoStackComp() {
   return (
-    <div suppressHydrationWarning>
+    <div className="p-3">
       <UserProvider
         value={{
-          id: "f30a6561-31f7-4d0a-b0b8-227677374bb0",
-          email: "mathias@localhost.com",
+          id: "",
+          email: "",
           role: null,
         }}
       >
         <WorkspaceProvider
           value={{
-            id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
+            id: "azerty",
             created_at: "2023-10-17T19:49:45.033466+00:00",
-            user_id: "f30a6561-31f7-4d0a-b0b8-227677374bb0",
-            refresh_token: "eu1-8445-b7c8-40c8-a8ff-327909b06e60",
+            user_id: "",
+            refresh_token: "",
             domain: "dummy.com",
-            user_mail: "mathias@bragagia.com",
-            display_name: "Les Pipes",
-            hub_id: "143393290",
+            user_mail: "",
+            display_name: "Demo workspace",
+            hub_id: "",
             installation_status: "DONE",
             installation_fetched: true,
-            installation_contacts_similarities_total_batches: 15,
-            installation_contacts_similarities_done_batches: 15,
-            installation_companies_similarities_total_batches: 15,
-            installation_companies_similarities_done_batches: 15,
+            installation_contacts_similarities_total_batches: 0,
+            installation_contacts_similarities_done_batches: 0,
+            installation_companies_similarities_total_batches: 0,
+            installation_companies_similarities_done_batches: 0,
             contacts_operation_status: "NONE",
             companies_operation_status: "NONE",
-            installation_companies_count: 810,
-            installation_contacts_count: 707,
-            installation_companies_total: 810,
-            installation_contacts_total: 707,
-            installation_companies_dup_total: 810,
-            installation_contacts_dup_total: 707,
-            installation_companies_dup_done: 810,
-            installation_contacts_dup_done: 707,
+            installation_companies_count: 0,
+            installation_contacts_count: 0,
+            installation_companies_total: 0,
+            installation_contacts_total: 0,
+            installation_companies_dup_total: 0,
+            installation_contacts_dup_total: 0,
+            installation_companies_dup_done: 0,
+            installation_contacts_dup_done: 0,
           }}
         >
           <DupStackCard
@@ -104,7 +104,7 @@ export default function DemoStackComp() {
                   company_id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
+                  dup_type: "CONFIDENT",
                   company: {
                     id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
                     created_at: "2024-01-07T16:28:38.933315+00:00",
@@ -133,7 +133,7 @@ export default function DemoStackComp() {
                   company_id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
+                  dup_type: "CONFIDENT",
                   company: {
                     id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
                     created_at: "2024-01-07T16:28:38.933315+00:00",
@@ -215,125 +215,11 @@ export default function DemoStackComp() {
                     filled_score: 1,
                   },
                 },
-                {
-                  dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "0730d4c3-561f-4b0a-9e56-6aeaa82713fe",
-                  created_at: "2024-01-07T16:31:35.034925+00:00",
-                  workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
-                  company: {
-                    id: "0730d4c3-561f-4b0a-9e56-6aeaa82713fe",
-                    created_at: "2024-01-07T16:28:39.125803+00:00",
-                    workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630971862,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
-                    similarity_checked: true,
-                    dup_checked: true,
-                    filled_score: 1,
-                  },
-                },
-                {
-                  dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "6c2de344-8b38-4323-b9df-f85ce5de7ef2",
-                  created_at: "2024-01-07T16:31:35.034925+00:00",
-                  workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
-                  company: {
-                    id: "6c2de344-8b38-4323-b9df-f85ce5de7ef2",
-                    created_at: "2024-01-07T16:28:39.652806+00:00",
-                    workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8631021018,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
-                    similarity_checked: true,
-                    dup_checked: true,
-                    filled_score: 1,
-                  },
-                },
-                {
-                  dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "fabc25d6-b96c-4455-980f-7028c84d1d01",
-                  created_at: "2024-01-07T16:31:35.034925+00:00",
-                  workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
-                  company: {
-                    id: "fabc25d6-b96c-4455-980f-7028c84d1d01",
-                    created_at: "2024-01-07T16:28:40.445078+00:00",
-                    workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8631378375,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
-                    similarity_checked: true,
-                    dup_checked: true,
-                    filled_score: 1,
-                  },
-                },
-                {
-                  dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "4b5076ce-94d9-4f24-b094-aa71c9bee6d3",
-                  created_at: "2024-01-07T16:31:35.034925+00:00",
-                  workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                  dup_type: "POTENTIAL",
-                  company: {
-                    id: "4b5076ce-94d9-4f24-b094-aa71c9bee6d3",
-                    created_at: "2024-01-07T16:28:40.445078+00:00",
-                    workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8631378374,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
-                    similarity_checked: true,
-                    dup_checked: true,
-                    filled_score: 1,
-                  },
-                },
               ],
             }}
-            itemMerge={async () => {}}
+            itemMerge={async () => {
+              await delay(1000);
+            }}
             getCardTitle={getCompanyCardTitle}
             sortItems={sortCompaniesItems}
             getDupstackItemId={(item: DupStackCompanyItemWithCompanyType) =>
@@ -346,4 +232,8 @@ export default function DemoStackComp() {
       </UserProvider>
     </div>
   );
+}
+
+function delay(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time));
 }

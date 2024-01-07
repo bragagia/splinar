@@ -32,9 +32,12 @@ export const URLS = {
       "/record/0-1/" +
       hsId,
     hubspotCompany: (workspaceHubId: string, hsId: number) =>
-      "https://app.hubspot.com/contacts/" +
-      workspaceHubId +
-      "/record/0-2/" +
-      hsId,
+      // This condition is for the demo component to link to base hubspot account
+      workspaceHubId
+        ? "https://app.hubspot.com/contacts/" +
+          workspaceHubId +
+          "/record/0-2/" +
+          hsId
+        : "https://app.hubspot.com/contacts/",
   },
 };

@@ -144,8 +144,8 @@ export function DupStackCard<
   return (
     <Card className="grow shadow-lg group/card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg flex flex-row items-center gap-2 justify-between w-full">
-          <div>
+        <CardTitle className="flex flex-row justify-between w-full">
+          <div className="text-lg flex flex-row items-center gap-2">
             {cardTitle}
 
             {loading && (
@@ -178,7 +178,7 @@ export function DupStackCard<
             )}
           </div>
 
-          {isExpandable && (
+          {!merged && isExpandable && (
             <SpIconButton
               variant={allExpanded ? "ghostActivated" : "ghost"}
               className={
