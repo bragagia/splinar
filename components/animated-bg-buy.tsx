@@ -32,8 +32,8 @@ export function AnimatedBgBuy({
               values="0%;3%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(255, 0, 255, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(255, 0, 255, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(255, 0, 255, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(255, 0, 255, 0)"></stop>
           </radialGradient>
           <radialGradient
             id="Gradient2"
@@ -49,8 +49,8 @@ export function AnimatedBgBuy({
               values="0%;3%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(255, 255, 0, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(255, 255, 0, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(255, 255, 0, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(255, 255, 0, 0)"></stop>
           </radialGradient>
           <radialGradient
             id="Gradient3"
@@ -66,8 +66,8 @@ export function AnimatedBgBuy({
               values="0%;3%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(0, 255, 255, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(0, 255, 255, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(0, 255, 255, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(0, 255, 255, 0)"></stop>
           </radialGradient>
           <radialGradient
             id="Gradient4"
@@ -83,8 +83,8 @@ export function AnimatedBgBuy({
               values="0%;5%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(0, 255, 0, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(0, 255, 0, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(0, 255, 0, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(0, 255, 0, 0)"></stop>
           </radialGradient>
           <radialGradient
             id="Gradient5"
@@ -100,8 +100,8 @@ export function AnimatedBgBuy({
               values="0%;5%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(0,0,255, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(0,0,255, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(0,0,255, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(0,0,255, 0)"></stop>
           </radialGradient>
           <radialGradient
             id="Gradient6"
@@ -117,8 +117,8 @@ export function AnimatedBgBuy({
               values="0%;5%;0%"
               repeatCount="indefinite"
             ></animate>
-            <stop offset="0%" stop-color="rgba(255,0,0, 1)"></stop>
-            <stop offset="100%" stop-color="rgba(255,0,0, 0)"></stop>
+            <stop offset="0%" stopColor="rgba(255,0,0, 1)"></stop>
+            <stop offset="100%" stopColor="rgba(255,0,0, 0)"></stop>
           </radialGradient>
         </defs>
         <rect

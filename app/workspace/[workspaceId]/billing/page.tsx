@@ -1,4 +1,4 @@
-import { calcWorkspaceUsageDetailed } from "@/app/workspace/[workspaceId]/billing/calc-usage";
+import { calcWorkspaceDistantUsageDetailedAction } from "@/app/workspace/[workspaceId]/billing/calc-usage-action";
 import { SubscriptionOptions } from "@/app/workspace/[workspaceId]/billing/subscription-options";
 import { Database } from "@/types/supabase";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -14,8 +14,7 @@ export default async function StripeBillingPage({
     cookies: () => cookieStore,
   });
 
-  const workspaceUsage = await calcWorkspaceUsageDetailed(
-    supabase,
+  const workspaceUsage = await calcWorkspaceDistantUsageDetailedAction(
     params.workspaceId
   );
 
