@@ -22,7 +22,7 @@ import { contactMergeAll } from "@/app/workspace/[workspaceId]/duplicates/contac
 import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
-import { SpButton } from "@/components/sp-button";
+import { SpConfirmButton } from "@/components/sp-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DupStackCompanyItemWithCompanyType,
@@ -128,25 +128,25 @@ export default function DuplicatesPage() {
 
           <div>
             <TabsContent value="companies" className="m-0">
-              <SpButton
+              <SpConfirmButton
                 variant="outline"
                 icon={Icons.merge}
                 onClick={onMergeAllCompanies}
                 disabled={companiesCount === 0 || mergingAllCompanies}
               >
                 Merge all confident companies duplicates
-              </SpButton>
+              </SpConfirmButton>
             </TabsContent>
 
             <TabsContent value="contacts" className="m-0">
-              <SpButton
+              <SpConfirmButton
                 variant="outline"
                 icon={Icons.merge}
                 onClick={onMergeAllContacts}
                 disabled={contactCount === 0 || mergingAllContacts}
               >
                 Merge all confident contacts duplicates
-              </SpButton>
+              </SpConfirmButton>
             </TabsContent>
           </div>
         </div>
