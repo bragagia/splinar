@@ -7,7 +7,7 @@ import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const UPDATE_COUNT_EVERY = 3;
-const WORKER_LIMIT = 15 * UPDATE_COUNT_EVERY;
+const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
 
 export async function fetchCompanies(
   hsClient: Client,
