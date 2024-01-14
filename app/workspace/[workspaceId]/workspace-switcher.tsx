@@ -11,8 +11,7 @@ import {
 import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { URLS } from "@/lib/urls";
-import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/types/workspaces";
+import { Database, Tables } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
@@ -60,9 +59,9 @@ export default function WorkspaceSwitcher({
   let router = useRouter();
   const supabase = createClientComponentClient<Database>();
 
-  const [allWorkspaces, setAllWorkspaces] = useState<WorkspaceType[] | null>(
-    null
-  );
+  const [allWorkspaces, setAllWorkspaces] = useState<
+    Tables<"workspaces">[] | null
+  >(null);
   const [open, setOpen] = React.useState(false);
   const [showNewWorkspaceDialog, setShowNewWorkspaceDialog] =
     React.useState(false);
@@ -82,7 +81,7 @@ export default function WorkspaceSwitcher({
         return;
       }
 
-      setAllWorkspaces(data as WorkspaceType[]);
+      setAllWorkspaces(data as Tables<"workspaces">[]);
     };
     fn();
   }, [supabase, user]);
@@ -235,8 +234,8 @@ function UserSwitcher({
   allWorkspaces,
   onFilterOnUser,
 }: {
-  currentWorkspace: WorkspaceType;
-  allWorkspaces: WorkspaceType[] | null;
+  currentWorkspace: Tables<"workspaces">;
+  allWorkspaces: Tables<"workspaces">[] | null;
   onFilterOnUser: (user: string | null) => void;
 }) {
   let user = useUser();

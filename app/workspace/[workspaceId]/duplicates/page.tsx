@@ -1,35 +1,14 @@
 "use client";
 
-import {
-  getCompanyCardTitle,
-  getCompanyRowInfos,
-  nextCompaniesPage,
-  saveNewCompanyDupType,
-  sortCompaniesItems,
-} from "@/app/workspace/[workspaceId]/duplicates/companies";
-import { companiesMergeSA } from "@/app/workspace/[workspaceId]/duplicates/companies-merge";
-import { companiesMergeAll } from "@/app/workspace/[workspaceId]/duplicates/companies-merge-all";
 import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
-import {
-  getContactCardTitle,
-  getContactRowInfos,
-  nextContactsPage,
-  saveNewContactDupType,
-  sortContactsItems,
-} from "@/app/workspace/[workspaceId]/duplicates/contacts";
-import { contactMergeSA } from "@/app/workspace/[workspaceId]/duplicates/contacts-merge";
-import { contactMergeAll } from "@/app/workspace/[workspaceId]/duplicates/contacts-merge-all";
 import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
+import { itemsMergeAllSA } from "@/app/workspace/[workspaceId]/duplicates/items-merge-all";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpConfirmButton } from "@/components/sp-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DupStackCompanyItemWithCompanyType,
-  DupStackContactItemWithContactAndCompaniesType,
-  DupStackWithCompaniesType,
-  DupStackWithContactsAndCompaniesType,
-} from "@/types/dupstacks";
+import { getItemType, getItemTypesList, itemTypeT } from "@/lib/items_common";
+import { DupStackWithItemsT } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import {
   SupabaseClient,
@@ -41,65 +20,139 @@ import InfiniteScroll from "react-infinite-scroll-component";
 
 export const dynamic = "force-dynamic";
 
+type TypeStateT = {
+  count: number | null;
+  isMerging: boolean;
+  word: string;
+};
+
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
-  const [contactCount, setContactCount] = useState<number | null>();
-  const [companiesCount, setCompaniesCount] = useState<number | null>();
-  const [mergingAllContacts, setMergingAllContacts] = useState(false);
-  const [mergingAllCompanies, setMergingAllCompanies] = useState(false);
+  const [typesList, setTypesList] = useState<itemTypeT[]>([]);
+  const [typeStates, setTypeStates] = useState<{
+    [key: string]: TypeStateT;
+  }>();
 
   useEffect(() => {
-    supabase
-      .from("dup_stack_contacts")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspace.id)
-      .then(({ count: contactCount, error: contactError }) => {
-        if (contactError) {
-          throw contactError;
-        }
+    let typeStates: {
+      [key: string]: TypeStateT;
+    } = {};
 
-        setContactCount(contactCount);
-      });
+    getItemTypesList().forEach((itemType) => {
+      typeStates[itemType] = {
+        count: null,
+        isMerging: false,
+        word: getItemType(itemType).word,
+      };
+    });
 
-    supabase
-      .from("dup_stack_companies")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspace.id)
-      .then(({ count: companiesCount, error: companiesError }) => {
-        if (companiesError) {
-          throw companiesError;
-        }
-
-        setCompaniesCount(companiesCount);
-      });
-  }, [supabase, workspace.id]);
+    setTypeStates(typeStates);
+    setTypesList(Object.keys(typeStates) as itemTypeT[]);
+  }, [supabase]);
 
   useEffect(() => {
+    typesList.forEach((itemType) => {
+      supabase
+        .from("dup_stacks")
+        .select(undefined, { count: "exact", head: true })
+        .eq("item_type", itemType)
+        .eq("workspace_id", workspace.id)
+        .then(({ count, error }) => {
+          if (error) {
+            throw error;
+          }
+
+          setTypeStates((cur) => {
+            if (!cur) {
+              return {};
+            }
+
+            cur[itemType].count = count;
+
+            return { ...cur };
+          });
+        });
+    });
+  }, [supabase, typesList]);
+
+  useEffect(() => {
+    if (typesList.length === 0) {
+      return;
+    }
+
     if (workspace.companies_operation_status === "PENDING") {
-      setMergingAllCompanies(true);
+      setTypeStates((cur) => {
+        if (!cur) {
+          return {};
+        }
+
+        cur.COMPANIES.isMerging = true;
+
+        return { ...cur };
+      });
     } else {
-      setMergingAllCompanies(false);
+      setTypeStates((cur) => {
+        if (!cur) {
+          return {};
+        }
+
+        cur.COMPANIES.isMerging = false;
+
+        return { ...cur };
+      });
     }
-  }, [workspace.companies_operation_status]);
+  }, [typesList, workspace.companies_operation_status]);
 
   useEffect(() => {
-    if (workspace.contacts_operation_status === "PENDING") {
-      setMergingAllContacts(true);
-    } else {
-      setMergingAllContacts(false);
+    if (typesList.length === 0) {
+      return;
     }
-  }, [workspace.contacts_operation_status]);
 
-  async function onMergeAllContacts() {
-    setMergingAllContacts(true);
-    await contactMergeAll(workspace.id);
+    if (workspace.contacts_operation_status === "PENDING") {
+      setTypeStates((cur) => {
+        if (!cur) {
+          return {};
+        }
+
+        cur.CONTACTS.isMerging = true;
+
+        return { ...cur };
+      });
+    } else {
+      setTypeStates((cur) => {
+        if (!cur) {
+          return {};
+        }
+
+        cur.CONTACTS.isMerging = false;
+
+        return { ...cur };
+      });
+    }
+  }, [typesList, workspace.contacts_operation_status]);
+
+  if (!typeStates) {
+    return (
+      <div className="w-full flex items-center justify-center h-52">
+        <Icons.spinner className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
 
-  async function onMergeAllCompanies() {
-    setMergingAllCompanies(true);
-    await companiesMergeAll(workspace.id);
+  async function onMergeAll(itemType: itemTypeT) {
+    setTypeStates((cur) => {
+      if (!cur) {
+        return {};
+      }
+
+      cur[itemType].isMerging = true;
+
+      return { ...cur };
+    });
+
+    await itemsMergeAllSA(workspace.id, itemType);
   }
 
   return (
@@ -108,142 +161,104 @@ export default function DuplicatesPage() {
         <h2 className="text-3xl font-bold tracking-tight">Duplicates</h2>
       </div>
 
-      <Tabs defaultValue="companies">
+      <Tabs defaultValue={Object.keys(typeStates)[0]}>
         <div className="flex flex-row justify-between items-center gap-2">
           <TabsList>
-            <TabsTrigger value="companies">
-              <span>
-                Companies
-                <span className="font-light"> ({companiesCount})</span>
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger value="contacts">
-              <span>
-                Contacts
-                <span className="font-light"> ({contactCount})</span>
-              </span>
-            </TabsTrigger>
+            {Object.keys(typeStates).map((typeStateKey, i) => (
+              <TabsTrigger key={i} value={typeStateKey}>
+                <span>
+                  {typeStates[typeStateKey].word}
+                  <span className="font-light">
+                    {" "}
+                    (
+                    {typeStates[typeStateKey].count !== null ? (
+                      typeStates[typeStateKey].count
+                    ) : (
+                      <Icons.spinner className="inline-flex h-3 w-3 animate-spin" />
+                    )}
+                    )
+                  </span>
+                </span>
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           <div>
-            <TabsContent value="companies" className="m-0">
-              <SpConfirmButton
-                variant="outline"
-                icon={Icons.merge}
-                onClick={onMergeAllCompanies}
-                disabled={companiesCount === 0 || mergingAllCompanies}
-              >
-                Merge all confident companies duplicates
-              </SpConfirmButton>
-            </TabsContent>
+            {Object.keys(typeStates).map((typeStateKey, i) => {
+              const typeState = typeStates[typeStateKey];
 
-            <TabsContent value="contacts" className="m-0">
-              <SpConfirmButton
-                variant="outline"
-                icon={Icons.merge}
-                onClick={onMergeAllContacts}
-                disabled={contactCount === 0 || mergingAllContacts}
-              >
-                Merge all confident contacts duplicates
-              </SpConfirmButton>
-            </TabsContent>
+              return (
+                <TabsContent key={i} value={typeStateKey} className="m-0">
+                  <SpConfirmButton
+                    variant="outline"
+                    icon={Icons.merge}
+                    onClick={() => onMergeAll(typeStateKey as itemTypeT)}
+                    disabled={typeState.count === 0 || typeState.isMerging}
+                  >
+                    Merge all confident {typeState.word} duplicates
+                  </SpConfirmButton>
+                </TabsContent>
+              );
+            })}
           </div>
         </div>
 
-        <TabsContent value="companies">
-          {mergingAllCompanies ? (
-            <div className="w-full flex flex-row items-center justify-center h-52 gap-2">
-              <Icons.spinner className="h-6 w-6 animate-spin" />
+        {Object.keys(typeStates).map((typeStateKey, i) => {
+          const typeState = typeStates[typeStateKey];
 
-              <p className="text-md font-medium text-gray-600">
-                {"Merging all confident duplicates"}
-              </p>
-            </div>
-          ) : (
-            <DuplicatesInfiniteList
-              list={[] as DupStackWithCompaniesType[]}
-              fetchNextPage={nextCompaniesPage}
-              dupStackDisplay={({
-                dupStack,
-              }: {
-                dupStack: DupStackWithCompaniesType;
-              }) => (
-                <DupStackCard
-                  itemWordName={"companies"}
-                  dupStack={dupStack}
-                  itemMerge={companiesMergeSA}
-                  getCardTitle={getCompanyCardTitle}
-                  sortItems={sortCompaniesItems}
-                  getDupstackItemId={(
-                    item: DupStackCompanyItemWithCompanyType
-                  ) => item.company_id}
-                  saveNewItemDupType={saveNewCompanyDupType}
-                  getRowInfos={getCompanyRowInfos}
+          return (
+            <TabsContent key={i} value={typeStateKey}>
+              {typeState.isMerging ? (
+                <div className="w-full flex flex-row items-center justify-center h-52 gap-2">
+                  <Icons.spinner className="h-6 w-6 animate-spin" />
+
+                  <p className="text-md font-medium text-gray-600">
+                    {"Merging all confident duplicates"}
+                  </p>
+                </div>
+              ) : (
+                <DuplicatesInfiniteList
+                  itemsType={typeStateKey as itemTypeT}
+                  dupStackDisplay={({
+                    dupStack,
+                  }: {
+                    dupStack: DupStackWithItemsT;
+                  }) => (
+                    <DupStackCard
+                      itemWordName={typeState.word}
+                      dupStack={dupStack}
+                      getRowInfos={
+                        getItemType(typeStateKey as itemTypeT).getRowInfos
+                      }
+                    />
+                  )}
                 />
               )}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="contacts">
-          {mergingAllContacts ? (
-            <div className="w-full flex flex-row items-center justify-center h-52 gap-2">
-              <Icons.spinner className="h-6 w-6 animate-spin" />
-
-              <p className="text-md font-medium text-gray-600">
-                {"Merging all confident duplicates"}
-              </p>
-            </div>
-          ) : (
-            <DuplicatesInfiniteList
-              list={[] as DupStackWithContactsAndCompaniesType[]}
-              fetchNextPage={nextContactsPage}
-              dupStackDisplay={({
-                dupStack,
-              }: {
-                dupStack: DupStackWithContactsAndCompaniesType;
-              }) => (
-                <DupStackCard
-                  itemWordName={"contacts"}
-                  dupStack={dupStack}
-                  itemMerge={contactMergeSA}
-                  getCardTitle={getContactCardTitle}
-                  sortItems={sortContactsItems}
-                  getDupstackItemId={(
-                    item: DupStackContactItemWithContactAndCompaniesType
-                  ) => item.contact_id}
-                  saveNewItemDupType={saveNewContactDupType}
-                  getRowInfos={getContactRowInfos}
-                />
-              )}
-            />
-          )}
-        </TabsContent>
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );
 }
 
-function DuplicatesInfiniteList<T extends {}>({
-  list,
-  fetchNextPage,
+function DuplicatesInfiniteList({
   dupStackDisplay,
+  itemsType,
 }: {
-  list: T[] | null;
-  fetchNextPage: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string,
-    nextCursor: string | undefined
-  ) => Promise<{ newDupStacks: T[]; newNextCursor: string | undefined }>;
-  dupStackDisplay: ({ dupStack }: { dupStack: T }) => React.ReactNode;
+  dupStackDisplay: ({
+    dupStack,
+  }: {
+    dupStack: DupStackWithItemsT;
+  }) => React.ReactNode;
+  itemsType: itemTypeT;
 }) {
   const DupStackDisplay = dupStackDisplay;
 
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
-  const [dupStacks, setDupStacks] = useState<T[] | null>(list);
+  const [dupStacks, setDupStacks] = useState<DupStackWithItemsT[] | null>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState<boolean>(true);
 
@@ -255,6 +270,7 @@ function DuplicatesInfiniteList<T extends {}>({
     const { newDupStacks, newNextCursor } = await fetchNextPage(
       supabase,
       workspace.id,
+      itemsType,
       nextCursor
     );
 
@@ -313,4 +329,36 @@ function DuplicatesInfiniteList<T extends {}>({
       )}
     </InfiniteScroll>
   );
+}
+
+async function fetchNextPage(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  itemsType: itemTypeT,
+  nextCursor: string | undefined
+) {
+  let query = supabase
+    .from("dup_stacks")
+    .select("*, dup_stack_items(*, item:items(*))")
+    .limit(PAGE_SIZE)
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", itemsType)
+    .order("created_at", { ascending: true });
+
+  if (nextCursor) {
+    query = query.gt("created_at", nextCursor);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  let newNextCursor: string | undefined = undefined;
+  if (data.length > 0) {
+    newNextCursor = data[data.length - 1].created_at;
+  }
+
+  return { newDupStacks: data, newNextCursor: newNextCursor };
 }

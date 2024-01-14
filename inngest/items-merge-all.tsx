@@ -1,5 +1,6 @@
-import { companiesMerge } from "@/app/workspace/[workspaceId]/duplicates/companies-merge";
+import { itemsMerge } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { newHubspotClient } from "@/lib/hubspot";
+import { getItemType } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
@@ -7,12 +8,12 @@ import { inngest } from "./client";
 const MAX_IT = 2;
 
 export default inngest.createFunction(
-  { id: "companies-merge-all" },
-  { event: "companies/merge-all.start" },
+  { id: "items-merge-all" },
+  { event: "items/merge-all.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
 
-    logger.info("# Companies merge all", workspaceId);
+    logger.info("# Items merge all", workspaceId);
 
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,15 +34,18 @@ export default inngest.createFunction(
     }
 
     if (!event.data.lastItemCreatedAt) {
-      if (workspace.companies_operation_status === "PENDING") {
+      if (
+        getItemType(event.data.itemType).getWorkspaceOperation(workspace) ===
+        "PENDING"
+      ) {
         throw new Error("Operation running on workspace");
       }
 
       const { error: error } = await supabaseAdmin
         .from("workspaces")
-        .update({
-          companies_operation_status: "PENDING",
-        })
+        .update(
+          getItemType(event.data.itemType).setWorkspaceOperation("PENDING")
+        )
         .eq("id", workspaceId);
       if (error) {
         throw error;
@@ -56,11 +60,9 @@ export default inngest.createFunction(
     do {
       let query = supabaseAdmin
         .from("dup_stacks")
-        .select(
-          "*, dup_stack_items:dup_stack_companies(*, company:companies(*))"
-        )
+        .select("*, dup_stack_items(*, item:items(*))")
         .eq("workspace_id", workspaceId)
-        .eq("item_type", "COMPANIES")
+        .eq("item_type", event.data.itemType)
         .order("created_at", { ascending: true })
         .limit(50);
 
@@ -81,7 +83,7 @@ export default inngest.createFunction(
 
       for (let dupStack of dupStacks) {
         try {
-          await companiesMerge(supabaseAdmin, workspace, dupStack, hsClient);
+          await itemsMerge(supabaseAdmin, workspace, dupStack, hsClient);
         } catch (e) {
           console.log("Merge error:", e);
         }
@@ -93,25 +95,24 @@ export default inngest.createFunction(
     if (finished) {
       const { error: errorWriteDone } = await supabaseAdmin
         .from("workspaces")
-        .update({
-          companies_operation_status: "NONE",
-        })
+        .update(getItemType(event.data.itemType).setWorkspaceOperation("NONE"))
         .eq("id", workspaceId);
       if (errorWriteDone) {
         throw errorWriteDone;
       }
 
-      logger.info("# Companies merge all", workspaceId, "- END");
+      logger.info("# Items merge all", workspaceId, "- END");
     } else {
       await inngest.send({
-        name: "companies/merge-all.start",
+        name: "items/merge-all.start",
         data: {
           workspaceId: workspaceId,
+          itemType: event.data.itemType,
           lastItemCreatedAt: lastItemCreatedAt || undefined,
         },
       });
 
-      logger.info("# Companies merge all", workspaceId, "- CONTINUE");
+      logger.info("# Items merge all", workspaceId, "- CONTINUE");
     }
   }
 );

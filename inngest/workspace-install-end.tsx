@@ -28,14 +28,9 @@ export default inngest.createFunction(
     }
 
     if (
-      workspace.installation_companies_similarities_done_batches ===
-        workspace.installation_companies_similarities_total_batches &&
-      workspace.installation_contacts_similarities_done_batches ===
-        workspace.installation_contacts_similarities_total_batches &&
-      workspace.installation_companies_dup_done ===
-        workspace.installation_companies_dup_total &&
-      workspace.installation_contacts_dup_done ===
-        workspace.installation_contacts_dup_total
+      workspace.installation_similarities_done_batches ===
+        workspace.installation_similarities_total_batches &&
+      workspace.installation_dup_done === workspace.installation_dup_total
     ) {
       logger.info("-> Marking as done");
 

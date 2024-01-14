@@ -1,17 +1,12 @@
 "use client";
 
 import {
-  getCompanyCardTitle,
-  getCompanyRowInfos,
-  sortCompaniesItems,
-} from "@/app/workspace/[workspaceId]/duplicates/companies";
-import {
   DupItemTypeType,
   DupStackCard,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { UserProvider } from "@/app/workspace/[workspaceId]/user-context";
 import { WorkspaceProvider } from "@/app/workspace/[workspaceId]/workspace-context";
-import { DupStackCompanyItemWithCompanyType } from "@/types/dupstacks";
+import { getCompanyRowInfos } from "@/lib/companies";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -45,20 +40,14 @@ export default function DemoStackComp() {
             hub_id: "",
             installation_status: "DONE",
             installation_fetched: true,
-            installation_contacts_similarities_total_batches: 0,
-            installation_contacts_similarities_done_batches: 0,
-            installation_companies_similarities_total_batches: 0,
-            installation_companies_similarities_done_batches: 0,
+            installation_similarities_total_batches: 0,
+            installation_similarities_done_batches: 0,
             contacts_operation_status: "NONE",
             companies_operation_status: "NONE",
-            installation_companies_count: 0,
-            installation_contacts_count: 0,
-            installation_companies_total: 0,
-            installation_contacts_total: 0,
-            installation_companies_dup_total: 0,
-            installation_contacts_dup_total: 0,
-            installation_companies_dup_done: 0,
-            installation_contacts_dup_done: 0,
+            installation_items_count: 0,
+            installation_items_total: 0,
+            installation_dup_total: 0,
+            installation_dup_done: 0,
           }}
         >
           <DupStackCard
@@ -71,29 +60,34 @@ export default function DemoStackComp() {
               dup_stack_items: [
                 {
                   dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "66aca5b5-cc68-4628-aaff-2ec4da39120c",
+                  item_id: "66aca5b5-cc68-4628-aaff-2ec4da39120c",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
                   dup_type: "REFERENCE",
-                  company: {
+                  item: {
                     id: "66aca5b5-cc68-4628-aaff-2ec4da39120c",
                     created_at: "2024-01-07T16:28:38.933315+00:00",
                     workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630894037,
-                    name: "Yakidoo",
-                    address: "544 Lien Crossing",
-                    zip: "12247",
-                    city: "Albany",
-                    state: "New York",
-                    country: "United States",
-                    domain: "yakidoo.com",
-                    website: "yakidoo.io",
-                    owner_hs_id: 1372250310,
-                    phone: "(518) 7171695",
-                    facebook_company_page: "https://facebook.com/yakidoo",
-                    linkedin_company_page:
-                      "https://www.linkedin.com/company/yakidoo",
-                    twitterhandle: "YakidooTeam",
+                    distant_id: "8630894037",
+                    item_type: "COMPANIES",
+                    merged_in_distant_id: null,
+                    merged_at: null,
+                    value: {
+                      name: "Yakidoo",
+                      address: "544 Lien Crossing",
+                      zip: "12247",
+                      city: "Albany",
+                      state: "New York",
+                      country: "United States",
+                      domain: "yakidoo.com",
+                      website: "yakidoo.io",
+                      owner_hs_id: 1372250310,
+                      phone: "(518) 7171695",
+                      facebook_company_page: "https://facebook.com/yakidoo",
+                      linkedin_company_page:
+                        "https://www.linkedin.com/company/yakidoo",
+                      twitterhandle: "YakidooTeam",
+                    },
                     similarity_checked: true,
                     dup_checked: true,
                     filled_score: 7,
@@ -101,28 +95,33 @@ export default function DemoStackComp() {
                 },
                 {
                   dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
+                  item_id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
                   dup_type: "CONFIDENT",
-                  company: {
+                  item: {
                     id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
                     created_at: "2024-01-07T16:28:38.933315+00:00",
                     workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630923485,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
+                    distant_id: "8630923485",
+                    item_type: "COMPANIES",
+                    merged_in_distant_id: null,
+                    merged_at: null,
+                    value: {
+                      name: "Yakidoo",
+                      address: null,
+                      zip: null,
+                      city: null,
+                      state: null,
+                      country: null,
+                      domain: null,
+                      website: null,
+                      owner_hs_id: null,
+                      phone: null,
+                      facebook_company_page: null,
+                      linkedin_company_page: null,
+                      twitterhandle: null,
+                    },
                     similarity_checked: true,
                     dup_checked: true,
                     filled_score: 1,
@@ -130,28 +129,33 @@ export default function DemoStackComp() {
                 },
                 {
                   dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
+                  item_id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
                   dup_type: "CONFIDENT",
-                  company: {
+                  item: {
                     id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
                     created_at: "2024-01-07T16:28:38.933315+00:00",
                     workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630936292,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
+                    distant_id: "8630936292",
+                    item_type: "COMPANIES",
+                    merged_in_distant_id: null,
+                    merged_at: null,
+                    value: {
+                      name: "Yakidoo",
+                      address: null,
+                      zip: null,
+                      city: null,
+                      state: null,
+                      country: null,
+                      domain: null,
+                      website: null,
+                      owner_hs_id: null,
+                      phone: null,
+                      facebook_company_page: null,
+                      linkedin_company_page: null,
+                      twitterhandle: null,
+                    },
                     similarity_checked: true,
                     dup_checked: true,
                     filled_score: 1,
@@ -159,28 +163,33 @@ export default function DemoStackComp() {
                 },
                 {
                   dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "c39169ac-60cd-402e-aed4-71bbdc6d8797",
+                  item_id: "c39169ac-60cd-402e-aed4-71bbdc6d8797",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
                   dup_type: "POTENTIAL",
-                  company: {
+                  item: {
                     id: "c39169ac-60cd-402e-aed4-71bbdc6d8797",
                     created_at: "2024-01-07T16:28:39.125803+00:00",
                     workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630947803,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
+                    distant_id: "8630947803",
+                    item_type: "COMPANIES",
+                    merged_in_distant_id: null,
+                    merged_at: null,
+                    value: {
+                      name: "Yakidoo",
+                      address: null,
+                      zip: null,
+                      city: null,
+                      state: null,
+                      country: null,
+                      domain: null,
+                      website: null,
+                      owner_hs_id: null,
+                      phone: null,
+                      facebook_company_page: null,
+                      linkedin_company_page: null,
+                      twitterhandle: null,
+                    },
                     similarity_checked: true,
                     dup_checked: true,
                     filled_score: 1,
@@ -188,28 +197,33 @@ export default function DemoStackComp() {
                 },
                 {
                   dupstack_id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
-                  company_id: "da7d198d-1f4c-490f-86f1-0fb98cf38110",
+                  item_id: "da7d198d-1f4c-490f-86f1-0fb98cf38110",
                   created_at: "2024-01-07T16:31:35.034925+00:00",
                   workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
                   dup_type: "POTENTIAL",
-                  company: {
+                  item: {
                     id: "da7d198d-1f4c-490f-86f1-0fb98cf38110",
                     created_at: "2024-01-07T16:28:39.125803+00:00",
                     workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
-                    hs_id: 8630947812,
-                    name: "Yakidoo",
-                    address: null,
-                    zip: null,
-                    city: null,
-                    state: null,
-                    country: null,
-                    domain: null,
-                    website: null,
-                    owner_hs_id: null,
-                    phone: null,
-                    facebook_company_page: null,
-                    linkedin_company_page: null,
-                    twitterhandle: null,
+                    distant_id: "8630947812",
+                    item_type: "COMPANIES",
+                    merged_in_distant_id: null,
+                    merged_at: null,
+                    value: {
+                      name: "Yakidoo",
+                      address: null,
+                      zip: null,
+                      city: null,
+                      state: null,
+                      country: null,
+                      domain: null,
+                      website: null,
+                      owner_hs_id: null,
+                      phone: null,
+                      facebook_company_page: null,
+                      linkedin_company_page: null,
+                      twitterhandle: null,
+                    },
                     similarity_checked: true,
                     dup_checked: true,
                     filled_score: 1,
@@ -217,23 +231,11 @@ export default function DemoStackComp() {
                 },
               ],
             }}
-            itemMerge={async () => {
-              await delay(1000);
-            }}
-            getCardTitle={getCompanyCardTitle}
-            sortItems={sortCompaniesItems}
-            getDupstackItemId={(item: DupStackCompanyItemWithCompanyType) =>
-              item.company_id
-            }
-            saveNewItemDupType={saveNewDemoDupType}
             getRowInfos={getCompanyRowInfos}
+            isDemo={true}
           />
         </WorkspaceProvider>
       </UserProvider>
     </div>
   );
-}
-
-function delay(time: number) {
-  return new Promise((resolve) => setTimeout(resolve, time));
 }

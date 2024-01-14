@@ -98,11 +98,7 @@ INSERT INTO
         display_name,
         hub_id,
         installation_status,
-        installation_fetched,
-        installation_contacts_similarities_total_batches,
-        installation_contacts_similarities_done_batches,
-        installation_companies_similarities_total_batches,
-        installation_companies_similarities_done_batches
+        installation_fetched
     )
 VALUES
     (
@@ -115,11 +111,7 @@ VALUES
         'Las Thunas',
         143540917,
         'FRESH',
-        false,
-        0,
-        0,
-        0,
-        0
+        false
     ),
     (
         '6a96d8e3-2fee-48c0-ac4d-8bcc7796f126',
@@ -131,11 +123,7 @@ VALUES
         'Les Pipes',
         143393290,
         'FRESH',
-        false,
-        0,
-        0,
-        0,
-        0
+        false
     ),
     (
         'ff999615-0a90-45b5-8232-6f97fa4226ad',
@@ -147,11 +135,7 @@ VALUES
         'Les Pipes du Superadmin',
         143393290,
         'FRESH',
-        false,
-        0,
-        0,
-        0,
-        0
+        false
     );
 
 INSERT INTO

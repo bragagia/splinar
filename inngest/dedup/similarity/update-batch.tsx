@@ -1,83 +1,41 @@
 import { inngest } from "@/inngest";
-import {
-  companiesSimilarityCheck,
-  fetchCompaniesBatch,
-} from "@/inngest/dedup/similarity/companies";
-import {
-  contactSimilarityCheck,
-  fetchContactsBatch,
-} from "@/inngest/dedup/similarity/contacts";
-import { Database } from "@/types/supabase";
+import { getItemType, itemTypeT } from "@/lib/items_common";
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function similaritiesUpdateBatch(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  table: "contacts" | "companies",
+  table: itemTypeT,
   batchAIds: string[],
   batchBIds?: string[]
 ) {
-  if (table === "contacts") {
-    await genericSimilaritiesBatchEval(
-      supabase,
-      workspaceId,
-      "contact_similarities",
-      "contacts_similarities_increment_done_batches",
-      fetchContactsBatch,
-      contactSimilarityCheck,
-      async () => {
-        await inngest.send({
-          name: "workspace/contacts/similarities/install.finished",
-          data: {
-            workspaceId: workspaceId,
-          },
-        });
-      },
-      batchAIds,
-      batchBIds
-    );
-  } else if (table === "companies") {
-    await genericSimilaritiesBatchEval(
-      supabase,
-      workspaceId,
-      "company_similarities",
-      "companies_similarities_increment_done_batches",
-      fetchCompaniesBatch,
-      companiesSimilarityCheck,
-      async () => {
-        await inngest.send({
-          name: "workspace/companies/similarities/install.finished",
-          data: {
-            workspaceId: workspaceId,
-          },
-        });
-      },
-      batchAIds,
-      batchBIds
-    );
-  }
+  const itemType = getItemType(table);
+
+  await genericSimilaritiesBatchEval(
+    supabase,
+    workspaceId,
+    itemType.similarityCheck,
+    batchAIds,
+    batchBIds
+  );
 }
 
-async function genericSimilaritiesBatchEval<T, RT>(
+async function genericSimilaritiesBatchEval(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  similarityTable: "contact_similarities" | "company_similarities",
-  incrementFunc:
-    | "contacts_similarities_increment_done_batches"
-    | "companies_similarities_increment_done_batches",
-  fetcher: (
-    supabase: SupabaseClient<Database>,
+  comparatorFn: (
     workspaceId: string,
-    batchIds: string[]
-  ) => Promise<T[]>,
-  comparatorFn: (workspaceId: string, itemA: T, itemB: T) => RT[] | undefined,
-  installFinishedCallback: () => Promise<void>,
+    itemA: Tables<"items">,
+    itemB: Tables<"items">
+  ) => TablesInsert<"similarities">[] | undefined,
   batchAIds: string[],
   batchBIds?: string[]
 ) {
-  const batchA = await fetcher(supabase, workspaceId, batchAIds);
+  const batchA = await fetchBatchItems(supabase, workspaceId, batchAIds);
 
-  let similarities: RT[] | undefined;
+  let similarities: TablesInsert<"similarities">[] | undefined;
 
   if (!batchBIds) {
     similarities = await compareBatchWithItself(
@@ -86,7 +44,7 @@ async function genericSimilaritiesBatchEval<T, RT>(
       batchA
     );
   } else {
-    const batchB = await fetcher(supabase, workspaceId, batchBIds);
+    const batchB = await fetchBatchItems(supabase, workspaceId, batchBIds);
 
     similarities = await compareBatchesPair(
       workspaceId,
@@ -97,14 +55,14 @@ async function genericSimilaritiesBatchEval<T, RT>(
   }
 
   let { error: errorInsert } = await supabase
-    .from(similarityTable)
+    .from("similarities")
     .insert(similarities as any);
   if (errorInsert) {
     throw errorInsert;
   }
 
   const { data: isFinished, error: errorIncrement } = await supabase.rpc(
-    incrementFunc,
+    "similarities_increment_done_batches",
     {
       workspace_id_arg: workspaceId,
     }
@@ -114,16 +72,25 @@ async function genericSimilaritiesBatchEval<T, RT>(
   }
 
   if (isFinished) {
-    await installFinishedCallback();
+    await inngest.send({
+      name: "workspace/any/similarities/install.finished",
+      data: {
+        workspaceId: workspaceId,
+      },
+    });
   }
 }
 
-async function compareBatchWithItself<T, RT>(
+async function compareBatchWithItself(
   workspaceId: string,
-  comparatorFn: (workspaceId: string, itemA: T, itemB: T) => RT[] | undefined,
-  batch: T[]
+  comparatorFn: (
+    workspaceId: string,
+    itemA: Tables<"items">,
+    itemB: Tables<"items">
+  ) => TablesInsert<"similarities">[] | undefined,
+  batch: Tables<"items">[]
 ) {
-  let similarities: RT[] = [];
+  let similarities: TablesInsert<"similarities">[] = [];
 
   batch.forEach((contactA, i) => {
     batch.slice(0, i).forEach((contactB) => {
@@ -138,13 +105,17 @@ async function compareBatchWithItself<T, RT>(
   return similarities;
 }
 
-async function compareBatchesPair<T, RT>(
+async function compareBatchesPair(
   workspaceId: string,
-  comparatorFn: (workspaceId: string, itemA: T, itemB: T) => RT[] | undefined,
-  batchA: T[],
-  batchB: T[]
+  comparatorFn: (
+    workspaceId: string,
+    itemA: Tables<"items">,
+    itemB: Tables<"items">
+  ) => TablesInsert<"similarities">[] | undefined,
+  batchA: Tables<"items">[],
+  batchB: Tables<"items">[]
 ) {
-  let similarities: RT[] = [];
+  let similarities: TablesInsert<"similarities">[] = [];
 
   batchA.forEach((contactA) => {
     batchB.forEach((contactB) => {
@@ -157,4 +128,27 @@ async function compareBatchesPair<T, RT>(
   });
 
   return similarities;
+}
+
+export async function fetchBatchItems(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  batchIds: string[]
+) {
+  let batch: Tables<"items">[] = [];
+
+  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { data: batchSlice, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
+    if (error || !batchSlice) {
+      throw error;
+    }
+
+    batch.push(...batchSlice);
+  }
+
+  return batch;
 }

@@ -7,7 +7,12 @@ import { SpTooltip } from "@/components/sp-tooltip";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
-export type DupStackRowColumnValueType = null | string | string[] | ReactNode;
+export type DupStackRowColumnValueType =
+  | null
+  | string
+  | string[]
+  | ReactNode
+  | (() => JSX.Element);
 
 export type DupStackRowColumnType = {
   value: DupStackRowColumnValueType;
@@ -186,10 +191,22 @@ function DupStackRowInfo({
     );
   }
 
+  if (isJSXFunction(value)) {
+    return (
+      <p className={cn("break-words w-full max-w-full", className)}>
+        {value()}
+      </p>
+    );
+  }
+
   // Is ReactNode or string
   return (
     <p className={cn("break-words w-full max-w-full", className)}>{value}</p>
   );
+}
+
+function isJSXFunction(value: any): value is () => JSX.Element {
+  return typeof value === "function" && value.length === 0;
 }
 
 function DupStackCardCell({

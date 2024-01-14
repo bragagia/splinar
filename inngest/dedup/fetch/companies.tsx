@@ -1,12 +1,13 @@
 import { inngest } from "@/inngest";
-import { calcCompanyFilledScore } from "@/inngest/dedup/list-company-fields";
+import { updateInstallItemsCount } from "@/inngest/dedup/fetch/contacts";
+import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
-import { InsertCompanyType } from "@/types/companies";
-import { Database } from "@/types/supabase";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const UPDATE_COUNT_EVERY = 3;
+const WORKER_LIMIT = 15 * UPDATE_COUNT_EVERY;
 
 export async function fetchCompanies(
   hsClient: Client,
@@ -16,12 +17,17 @@ export async function fetchCompanies(
 ) {
   let pageId = 0;
 
+  const propertiesRes = await hsClient.crm.properties.coreApi.getAll("company");
+  const propertiesList = propertiesRes.results.map((property) => property.name);
+
   do {
     pageId++;
 
     if (pageId % UPDATE_COUNT_EVERY === 0) {
-      await updateInstallCount(supabase, workspaceId);
+      await updateInstallItemsCount(supabase, workspaceId);
+    }
 
+    if (pageId % WORKER_LIMIT === 0) {
       await inngest.send({
         name: "workspace/companies/fetch.start",
         data: {
@@ -35,23 +41,11 @@ export async function fetchCompanies(
 
     console.log("Fetching companies page ", after);
 
-    const res = await hsClient.crm.companies.basicApi.getPage(100, after, [
-      "address",
-      "zip",
-      "city",
-      "state",
-      "country",
-
-      "domain",
-      "website",
-      "hubspot_owner_id",
-      "name",
-      "phone",
-
-      "facebook_company_page",
-      "linkedin_company_page",
-      "twitterhandle",
-    ]);
+    const res = await hsClient.crm.companies.basicApi.getPage(
+      100,
+      after,
+      propertiesList
+    );
 
     const companies = res.results;
 
@@ -60,40 +54,25 @@ export async function fetchCompanies(
     }
 
     let dbCompanies = companies.map((company) => {
-      let dbCompany: InsertCompanyType = {
+      let dbCompany: TablesInsert<"items"> = {
         id: uuid(),
         workspace_id: workspaceId,
-        hs_id: parseInt(company.id),
-
-        address: company.properties.address,
-        zip: company.properties.zip,
-        city: company.properties.city,
-        state: company.properties.state,
-        country: company.properties.country,
-
-        domain: company.properties.domain,
-        website: company.properties.website,
-        owner_hs_id: company.properties.hubspot_owner_id
-          ? parseInt(company.properties.hubspot_owner_id)
-          : null,
-        name: company.properties.name,
-        phone: company.properties.phone,
-
-        facebook_company_page: company.properties.facebook_company_page,
-        linkedin_company_page: company.properties.linkedin_company_page,
-        twitterhandle: company.properties.twitterhandle,
-
+        distant_id: company.id,
+        item_type: "COMPANIES",
+        value: company.properties,
         dup_checked: false,
         similarity_checked: false,
         filled_score: 0,
       };
 
-      dbCompany.filled_score = calcCompanyFilledScore(dbCompany);
+      dbCompany.filled_score = listItemFields(
+        dbCompany as Tables<"items">
+      ).length;
 
       return dbCompany;
     });
 
-    let { error } = await supabase.from("companies").insert(dbCompanies);
+    let { error } = await supabase.from("items").insert(dbCompanies);
     if (error) {
       throw error;
     }
@@ -102,7 +81,7 @@ export async function fetchCompanies(
   } while (after);
 
   // Final update
-  await updateInstallCount(supabase, workspaceId);
+  await updateInstallItemsCount(supabase, workspaceId);
 
   await inngest.send({
     name: "workspace/contacts/fetch.start",
@@ -110,27 +89,4 @@ export async function fetchCompanies(
       workspaceId: workspaceId,
     },
   });
-}
-
-async function updateInstallCount(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string
-) {
-  const companies = await supabase
-    .from("companies")
-    .select("", { count: "exact" })
-    .eq("workspace_id", workspaceId);
-  if (companies.error) {
-    throw companies.error;
-  }
-
-  const { error } = await supabase
-    .from("workspaces")
-    .update({
-      installation_companies_count: companies.count || 0,
-    })
-    .eq("id", workspaceId);
-  if (error) {
-    throw error;
-  }
 }

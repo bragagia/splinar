@@ -4,6 +4,7 @@ import {
   DupStackCardRow,
   DupStackRowInfos,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
+import { itemsMergeSA } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpButton, SpIconButton } from "@/components/sp-button";
@@ -14,64 +15,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { delay } from "@/lib/delay";
 import { cn } from "@/lib/utils";
 import {
-  DupStackItemBase,
-  DupStackType,
-  DupStackWithContactsAndCompaniesType,
+  DupStackItemWithItemT,
+  DupStackWithItemsT,
   getDupstackConfidentsAndReference,
   getDupstackFalsePositives,
   getDupstackPotentials,
   getDupstackReference,
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
-import {
-  SupabaseClient,
-  createClientComponentClient,
-} from "@supabase/auth-helpers-nextjs";
-import { useEffect, useState } from "react";
-import { MergeDeep } from "type-fest";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect, useMemo, useState } from "react";
 
-export type DupItemTypeType =
-  DupStackWithContactsAndCompaniesType["dup_stack_items"][0]["dup_type"];
+export type DupItemTypeType = DupStackItemWithItemT["dup_type"];
 
-export function DupStackCard<
-  ItemT extends DupStackItemBase,
-  DupstackT extends MergeDeep<
-    DupStackType,
-    {
-      dup_stack_items: ItemT[];
-    }
-  >
->({
+export function DupStackCard({
   dupStack,
-  itemMerge,
-  getCardTitle,
-  sortItems,
-  getDupstackItemId,
-  saveNewItemDupType,
   getRowInfos,
   itemWordName,
+  isDemo = false,
 }: {
-  dupStack: DupstackT;
-  itemMerge: (workspaceId: string, dupStack: DupstackT) => Promise<void>;
-  getCardTitle: (items: ItemT[]) => string;
-  sortItems: (items: ItemT[]) => ItemT[];
-  getDupstackItemId: (item: ItemT) => string;
-  saveNewItemDupType: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string,
-    dupstackId: string,
-    itemId: string,
-    newDupType: DupItemTypeType
-  ) => void;
-  getRowInfos(workspaceHubId: string, item: ItemT): DupStackRowInfos;
+  dupStack: DupStackWithItemsT;
+  getRowInfos(
+    workspaceHubId: string,
+    item: DupStackItemWithItemT
+  ): DupStackRowInfos;
   itemWordName: string;
+  isDemo?: boolean;
 }) {
   const workspace = useWorkspace();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = isDemo ? null : createClientComponentClient<Database>();
 
-  const [cachedDupStack, setCachedDupStack] = useState<DupstackT>(dupStack);
+  const [cachedDupStack, setCachedDupStack] =
+    useState<DupStackWithItemsT>(dupStack);
   const [merged, setMerged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [allExpanded, setAllExpanded] = useState(false);
@@ -83,18 +61,24 @@ export function DupStackCard<
     setCachedDupStack({
       ...cachedDupStack,
       dup_stack_items: cachedDupStack.dup_stack_items.map((dupStackItem) => {
-        if (getDupstackItemId(dupStackItem) !== id) {
+        if (dupStackItem.item_id !== id) {
           if (
             newDupType === "REFERENCE" &&
             dupStackItem.dup_type === "REFERENCE"
           ) {
-            saveNewItemDupType(
-              supabase,
-              workspace.id,
-              dupStackItem.dupstack_id,
-              getDupstackItemId(dupStackItem),
-              "CONFIDENT"
-            );
+            if (supabase) {
+              supabase
+                .from("dup_stack_items")
+                .update({ dup_type: "CONFIDENT" })
+                .eq("workspace_id", workspace.id)
+                .eq("item_id", dupStackItem.item_id)
+                .eq("dupstack_id", dupStackItem.dupstack_id)
+                .then(({ error }) => {
+                  if (error) {
+                    console.log(error);
+                  }
+                });
+            }
 
             return {
               ...dupStackItem,
@@ -104,13 +88,19 @@ export function DupStackCard<
             return dupStackItem;
           }
         } else {
-          saveNewItemDupType(
-            supabase,
-            workspace.id,
-            dupStackItem.dupstack_id,
-            getDupstackItemId(dupStackItem),
-            newDupType
-          );
+          if (supabase) {
+            supabase
+              .from("dup_stack_items")
+              .update({ dup_type: newDupType })
+              .eq("workspace_id", workspace.id)
+              .eq("item_id", dupStackItem.item_id)
+              .eq("dupstack_id", dupStackItem.dupstack_id)
+              .then(({ error }) => {
+                if (error) {
+                  console.log(error);
+                }
+              });
+          }
 
           return {
             ...dupStackItem,
@@ -123,20 +113,45 @@ export function DupStackCard<
 
   const onMerge = async () => {
     setLoading(true);
-    await itemMerge(workspace.id, cachedDupStack);
+
+    if (isDemo) {
+      await delay(1500);
+    } else {
+      await itemsMergeSA(workspace.id, cachedDupStack);
+    }
+
     setLoading(false);
     setMerged(true);
   };
 
-  let cardTitle = getCardTitle(
-    getDupstackConfidentsAndReference(cachedDupStack)
+  const reference = useMemo(
+    () => getDupstackReference(cachedDupStack),
+    [cachedDupStack]
   );
 
-  const reference = getDupstackReference(cachedDupStack);
-  const confidentsAndReference =
-    getDupstackConfidentsAndReference(cachedDupStack);
-  const potentials = getDupstackPotentials(cachedDupStack);
-  const falsePositives = getDupstackFalsePositives(cachedDupStack);
+  const confidentsAndReference = useMemo(
+    () => getDupstackConfidentsAndReference(cachedDupStack),
+    [cachedDupStack]
+  );
+
+  const potentials = useMemo(
+    () => getDupstackPotentials(cachedDupStack),
+    [cachedDupStack]
+  );
+
+  const falsePositives = useMemo(
+    () => getDupstackFalsePositives(cachedDupStack),
+    [cachedDupStack]
+  );
+
+  let cardTitle = useMemo(() => {
+    return confidentsAndReference.reduce((acc, dupStackItem) => {
+      const rowInfos = getRowInfos(workspace.hub_id, dupStackItem);
+      const column = rowInfos.columns[0].value as string | null;
+
+      return column && column.length > acc.length ? column : acc;
+    }, "");
+  }, [confidentsAndReference]);
 
   const isExpandable =
     getRowInfos(workspace.hub_id, reference).columns.length > 4;
@@ -195,27 +210,27 @@ export function DupStackCard<
         <>
           <CardContent>
             <div className="flex flex-col">
-              {sortItems(confidentsAndReference).map((dupStackItem, i) => (
-                <div key={i}>
-                  {i !== 0 && (
-                    <div
-                      className={cn(
-                        "w-full",
-                        { "border-b border-gray-100": !allExpanded },
-                        { "border-b border-gray-400": allExpanded }
-                      )}
-                    ></div>
-                  )}
-
-                  <DupStackCardRow
-                    rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                    onUpdateDupType={onUpdateDupType(
-                      getDupstackItemId(dupStackItem)
+              {sortDupStackItems(confidentsAndReference).map(
+                (dupStackItem, i) => (
+                  <div key={i}>
+                    {i !== 0 && (
+                      <div
+                        className={cn(
+                          "w-full",
+                          { "border-b border-gray-100": !allExpanded },
+                          { "border-b border-gray-400": allExpanded }
+                        )}
+                      ></div>
                     )}
-                    expand={allExpanded}
-                  />
-                </div>
-              ))}
+
+                    <DupStackCardRow
+                      rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                      onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
+                      expand={allExpanded}
+                    />
+                  </div>
+                )
+              )}
 
               <SpButton
                 variant="outline"
@@ -238,7 +253,7 @@ export function DupStackCard<
                   Potentials matches:
                 </p>
 
-                {sortItems(potentials).map((dupStackItem, i) => (
+                {sortDupStackItems(potentials).map((dupStackItem, i) => (
                   <div key={i}>
                     {i !== 0 && (
                       <div
@@ -252,9 +267,7 @@ export function DupStackCard<
 
                     <DupStackCardRow
                       rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                      onUpdateDupType={onUpdateDupType(
-                        getDupstackItemId(dupStackItem)
-                      )}
+                      onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
                       expand={allExpanded}
                     />
                   </div>
@@ -286,7 +299,7 @@ export function DupStackCard<
                 </div>
 
                 {falsePositivesExpanded &&
-                  sortItems(falsePositives).map((dupStackItem, i) => (
+                  sortDupStackItems(falsePositives).map((dupStackItem, i) => (
                     <div key={i}>
                       {i !== 0 && (
                         <div
@@ -300,9 +313,7 @@ export function DupStackCard<
 
                       <DupStackCardRow
                         rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
-                        onUpdateDupType={onUpdateDupType(
-                          getDupstackItemId(dupStackItem)
-                        )}
+                        onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
                         expand={allExpanded}
                       />
                     </div>
@@ -314,4 +325,15 @@ export function DupStackCard<
       )}
     </Card>
   );
+}
+
+function sortDupStackItems(items: DupStackItemWithItemT[]) {
+  return items.sort((a, b) => {
+    if (!a.item || !b.item) return 0;
+
+    if (a.item?.filled_score !== b.item?.filled_score)
+      return b.item.filled_score - a.item.filled_score;
+
+    return parseInt(b.item.distant_id) - parseInt(a.item.distant_id);
+  });
 }

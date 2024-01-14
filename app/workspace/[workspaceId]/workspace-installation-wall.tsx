@@ -37,12 +37,11 @@ export function WorkspaceInstallationWall({
     user.role !== "SUPERADMIN" &&
     process.env.NODE_ENV !== "development" &&
     workspace.installation_status !== "DONE" &&
-    workspace.installation_contacts_dup_done === 0 &&
-    workspace.installation_companies_dup_done === 0
+    workspace.installation_dup_done === 0
   ) {
     return (
       <div className="h-screen w-screen flex justify-center items-center">
-        <WorkspaceInstallationCard className="m-8 max-w-lg w-[32rem]" />
+        <WorkspaceInstallationCard inApp={false} />
       </div>
     );
   }
@@ -50,19 +49,11 @@ export function WorkspaceInstallationWall({
   return <>{children}</>;
 }
 
-export function WorkspaceInstallationCard({
-  className,
-}: {
-  className?: string;
-}) {
+export function WorkspaceInstallationCard({ inApp }: { inApp: boolean }) {
   const workspace = useWorkspace();
 
   if (workspace.installation_status === "FRESH") {
-    return (
-      <Card className={cn(className)}>
-        <WorkspaceInstallationCardFresh />
-      </Card>
-    );
+    return <WorkspaceInstallationCardFresh inApp={inApp} />;
   }
 
   if (
@@ -70,14 +61,18 @@ export function WorkspaceInstallationCard({
     workspace.installation_status === "INSTALLING"
   ) {
     return (
-      <Card className={cn(className)}>
+      <Card
+        className={cn(
+          inApp ? "m-4 self-stretch bg-gray-50" : "m-8 max-w-lg w-[32rem]"
+        )}
+      >
         <WorkspaceInstallationCardPendingInstalling />
       </Card>
     );
   }
 }
 
-export function WorkspaceInstallationCardFresh() {
+export function WorkspaceInstallationCardFresh({ inApp }: { inApp: boolean }) {
   let router = useRouter();
   const workspace = useWorkspace();
 
@@ -135,7 +130,11 @@ export function WorkspaceInstallationCardFresh() {
 
   if (selectNameStep) {
     return (
-      <>
+      <Card
+        className={cn(
+          inApp ? "m-4 self-stretch bg-gray-50" : "m-8 max-w-lg w-[32rem]"
+        )}
+      >
         <CardHeader>
           <CardTitle>New workspace</CardTitle>
 
@@ -167,14 +166,16 @@ export function WorkspaceInstallationCardFresh() {
 
           <Button onClick={onValidate}>Add workspace</Button>
         </CardFooter>
-      </>
+      </Card>
     );
   }
 
   //
 
   return (
-    <>
+    <Card
+      className={cn(inApp ? "m-4 self-stretch bg-gray-50" : "m-8 w-[56rem]")}
+    >
       <CardHeader>
         <CardTitle>New workspace</CardTitle>
 
@@ -192,7 +193,7 @@ export function WorkspaceInstallationCardFresh() {
           <Icons.spinner className="h-4 w-4 animate-spin" />
         )}
       </CardContent>
-    </>
+    </Card>
   );
 }
 
@@ -220,17 +221,10 @@ export function WorkspaceInstallationCardPendingInstalling() {
   if (workspace.installation_fetched) {
     fetchProgress = 1;
   } else {
-    if (
-      workspace.installation_companies_total > 0 ||
-      workspace.installation_contacts_total > 0
-    ) {
-      const total =
-        workspace.installation_companies_total +
-        workspace.installation_contacts_total;
+    if (workspace.installation_items_total > 0) {
+      const total = workspace.installation_items_total;
 
-      const count =
-        workspace.installation_companies_count +
-        workspace.installation_contacts_count;
+      const count = workspace.installation_items_count;
 
       fetchProgress = count / total;
     }
@@ -239,43 +233,25 @@ export function WorkspaceInstallationCardPendingInstalling() {
   // Similarities progress
   let similaritiesProgress = 0;
 
-  let similaritiesTotal =
-    workspace.installation_contacts_similarities_total_batches +
-    workspace.installation_companies_similarities_total_batches;
+  let similaritiesTotal = workspace.installation_similarities_total_batches;
 
-  let similaritiesDone =
-    workspace.installation_companies_similarities_done_batches +
-    workspace.installation_contacts_similarities_done_batches;
+  let similaritiesDone = workspace.installation_similarities_done_batches;
 
   if (similaritiesTotal > 0) {
     similaritiesProgress = similaritiesDone / similaritiesTotal;
   }
 
   // Dup stack progress
-  let dupStackCompaniesProgress = 0;
-  if (workspace.installation_companies_dup_total > 0) {
-    dupStackCompaniesProgress =
-      workspace.installation_companies_dup_done /
-      workspace.installation_companies_dup_total;
+  let dupStackProgress = 0;
+  if (workspace.installation_dup_total > 0) {
+    dupStackProgress =
+      workspace.installation_dup_done / workspace.installation_dup_total;
   }
-
-  let dupStackContactsProgress = 0;
-  if (workspace.installation_contacts_dup_total > 0) {
-    dupStackContactsProgress =
-      workspace.installation_contacts_dup_done /
-      workspace.installation_contacts_dup_total;
-  }
-
-  let dupStackProgress =
-    (dupStackCompaniesProgress + dupStackContactsProgress) / 2;
 
   // Dup Stack have started and explanation
 
-  const dupStackCompaniesTextProgress =
-    Math.round(dupStackCompaniesProgress * 100).toString() + "%";
-
-  const dupStackContactsTextProgress =
-    Math.round(dupStackContactsProgress * 100).toString() + "%";
+  const dupStackTextProgress =
+    Math.round(dupStackProgress * 100).toString() + "%";
 
   // aggregate progress
   let aggregateProgress =
@@ -289,7 +265,7 @@ export function WorkspaceInstallationCardPendingInstalling() {
   }
 
   if (similaritiesProgress === 1) {
-    explanation = `(3/3) Preparing your duplicates for display (companies: ${dupStackCompaniesTextProgress}, contacts: ${dupStackContactsTextProgress})`;
+    explanation = `(3/3) Preparing your duplicates for display (${dupStackTextProgress})`;
   }
 
   // Install is pending case

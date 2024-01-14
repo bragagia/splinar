@@ -8,8 +8,7 @@ import {
 } from "@/app/workspace/[workspaceId]/workspace-installation-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
 import { URLS } from "@/lib/urls";
-import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/types/workspaces";
+import { Database, Tables } from "@/types/supabase";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -68,7 +67,7 @@ export default async function WorkspaceLayout({
         role: userRole.length > 0 ? userRole[0].role : null,
       }}
     >
-      <WorkspaceProvider value={workspace as WorkspaceType}>
+      <WorkspaceProvider value={workspace as Tables<"workspaces">}>
         <WorkspaceInstallationWall>
           <div className="flex-col flex">
             <div className="border-b">
@@ -84,7 +83,7 @@ export default async function WorkspaceLayout({
             </div>
             <div className="page-container w-full">
               <div className="flex flex-col">
-                <WorkspaceInstallationCard className="m-4 self-stretch bg-gray-50" />
+                <WorkspaceInstallationCard inApp={true} />
               </div>
             </div>
 

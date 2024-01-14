@@ -1,16 +1,18 @@
-import { installCompaniesDupStacks } from "@/inngest/dedup/dup-stacks/install";
+import {
+  installDupStacks,
+  updateDupStackInstallationTotal,
+} from "@/inngest/dedup/dup-stacks/install";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
-import { updateDupStackCompaniesInstallationTotal } from "@/inngest/dedup/dup-stacks/companies";
 
 export default inngest.createFunction(
-  { id: "workspace-companies-dups-install" },
-  { event: "workspace/companies/similarities/install.finished" },
+  { id: "workspace-dups-install" },
+  { event: "workspace/any/similarities/install.finished" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
 
-    logger.info("# Workspace companies dups install", workspaceId);
+    logger.info("# Workspace dups install", workspaceId);
 
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,28 +20,25 @@ export default inngest.createFunction(
     );
 
     if (!event.data.secondRun) {
-      logger.info("-> Marking companies without similarities as checked");
+      logger.info("-> Marking items without similarities as checked");
 
       const { error: errorCompanies } = await supabaseAdmin.rpc(
-        "mark_companies_without_similarities_as_dup_checked",
+        "mark_items_without_similarities_as_dup_checked",
         { workspace_id_arg: workspaceId }
       );
       if (errorCompanies) {
         throw errorCompanies;
       }
 
-      logger.info("-> Updating companies installation total");
-      await updateDupStackCompaniesInstallationTotal(
-        supabaseAdmin,
-        workspaceId
-      );
+      logger.info("-> Updating installation total");
+      await updateDupStackInstallationTotal(supabaseAdmin, workspaceId);
     }
 
-    const hasMore = await installCompaniesDupStacks(supabaseAdmin, workspaceId);
+    const hasMore = await installDupStacks(supabaseAdmin, workspaceId);
 
     if (hasMore) {
       await inngest.send({
-        name: "workspace/companies/similarities/install.finished",
+        name: "workspace/any/similarities/install.finished",
         data: {
           workspaceId: workspaceId,
           secondRun: true,
@@ -54,6 +53,6 @@ export default inngest.createFunction(
       });
     }
 
-    logger.info("# Workspace companies dups install", workspaceId, "- END");
+    logger.info("# Workspace dups install", workspaceId, "- END");
   }
 );

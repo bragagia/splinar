@@ -1,45 +1,13 @@
 import { inngest } from "@/inngest";
-import { calcContactFilledScore } from "@/inngest/dedup/list-contact-fields";
+import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
-import { CompanyType } from "@/types/companies";
-import { Database } from "@/types/supabase";
+import { ItemLink } from "@/types/items";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const UPDATE_COUNT_EVERY = 3;
-
-async function convertHubIdToInternalId(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string,
-  contactsToCompanies: {
-    company_hub_id: string;
-    contact_id: string;
-    workspace_id: string;
-  }[]
-) {
-  const { data: companies, error } = await supabase
-    .from("companies")
-    .select()
-    .eq("workspace_id", workspaceId)
-    .in(
-      "hs_id",
-      contactsToCompanies.map((cTc) => cTc.company_hub_id)
-    );
-  if (error) {
-    throw error;
-  }
-
-  let companiesByHsId: { [key: string]: CompanyType } = {};
-  companies.forEach((c) => {
-    companiesByHsId[c.hs_id] = c;
-  });
-
-  return contactsToCompanies.map((cTc) => ({
-    workspace_id: workspaceId,
-    contact_id: cTc.contact_id,
-    company_id: companiesByHsId[cTc.company_hub_id].id,
-  }));
-}
+const WORKER_LIMIT = 15 * UPDATE_COUNT_EVERY;
 
 export async function fetchContacts(
   hsClient: Client,
@@ -49,12 +17,17 @@ export async function fetchContacts(
 ) {
   let pageId = 0;
 
+  const propertiesRes = await hsClient.crm.properties.coreApi.getAll("contact");
+  const propertiesList = propertiesRes.results.map((property) => property.name);
+
   do {
     pageId++;
 
     if (pageId % UPDATE_COUNT_EVERY === 0) {
-      await updateInstallCount(supabase, workspaceId);
+      await updateInstallItemsCount(supabase, workspaceId);
+    }
 
+    if (pageId % WORKER_LIMIT === 0) {
       await inngest.send({
         name: "workspace/contacts/fetch.start",
         data: {
@@ -71,7 +44,7 @@ export async function fetchContacts(
     const res = await hsClient.crm.contacts.basicApi.getPage(
       100,
       after,
-      ["email", "firstname", "lastname", "phone", "mobilephone"],
+      propertiesList,
       undefined,
       ["companies"]
     );
@@ -84,75 +57,42 @@ export async function fetchContacts(
       break;
     }
 
-    let contactsToCompanies: {
-      company_hub_id: string;
-      contact_id: string;
-      workspace_id: string;
-    }[] = [];
     let dbContacts = contacts.map((contact) => {
-      let dbContact = {
+      let contactCompanies: ItemLink[] | undefined =
+        contact.associations?.companies?.results
+          ?.filter((company) => company.type == "contact_to_company_unlabeled")
+          .map((company) => ({
+            id: company.id,
+          }));
+
+      let dbContact: TablesInsert<"items"> = {
         id: uuid(),
         workspace_id: workspaceId,
-        hs_id: parseInt(contact.id),
-
-        first_name: contact.properties.firstname,
-        last_name: contact.properties.lastname,
-        phones: [
-          contact.properties.mobilephone,
-          contact.properties.phone,
-        ].filter((v) => v !== null && v !== undefined) as string[],
-        emails: [contact.properties.email].filter(
-          (v) => v !== null && v !== undefined
-        ) as string[],
+        distant_id: contact.id,
+        item_type: "CONTACTS",
+        value: { ...contact.properties, companies: contactCompanies },
         similarity_checked: false,
         dup_checked: false,
         filled_score: 0, // Calculated below
-        // TODO: company_name: contact.properties.???,
       };
 
-      let contactCompanies = contact.associations?.companies?.results
-        ?.filter((company) => company.type == "contact_to_company_unlabeled")
-        .map((company) => ({
-          workspace_id: workspaceId,
-          contact_id: dbContact.id,
-          company_hub_id: company.id,
-        }));
-
-      if (contactCompanies) {
-        contactsToCompanies.push(...contactCompanies);
-      }
-
-      dbContact.filled_score = calcContactFilledScore(
-        dbContact,
-        contactCompanies && contactCompanies?.length > 0 ? true : false
-      );
+      dbContact.filled_score = listItemFields(
+        dbContact as Tables<"items">
+      ).length;
 
       return dbContact;
     });
 
     let { error: errorContact } = await supabase
-      .from("contacts")
+      .from("items")
       .insert(dbContacts);
     if (errorContact) {
       throw errorContact;
     }
-
-    const dbContactToCompanies = await convertHubIdToInternalId(
-      supabase,
-      workspaceId,
-      contactsToCompanies
-    );
-
-    let { error: errorContactCompanies } = await supabase
-      .from("contact_companies")
-      .insert(dbContactToCompanies);
-    if (errorContactCompanies) {
-      throw errorContactCompanies;
-    }
   } while (after);
 
   // Final update
-  await updateInstallCount(supabase, workspaceId);
+  await updateInstallItemsCount(supabase, workspaceId);
 
   // End of general fetching
   await supabase
@@ -168,22 +108,23 @@ export async function fetchContacts(
   });
 }
 
-async function updateInstallCount(
+export async function updateInstallItemsCount(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  const contacts = await supabase
-    .from("contacts")
-    .select("", { count: "exact" })
+  const items = await supabase
+    .from("items")
+    .select(undefined, { count: "exact" })
+    .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId);
-  if (contacts.error) {
-    throw contacts.error;
+  if (items.error) {
+    throw items.error;
   }
 
   const { error } = await supabase
     .from("workspaces")
     .update({
-      installation_contacts_count: contacts.count || 0,
+      installation_items_count: items.count || 0,
     })
     .eq("id", workspaceId);
   if (error) {

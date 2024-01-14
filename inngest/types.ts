@@ -1,3 +1,4 @@
+import { itemTypeT } from "@/lib/items_common";
 import { EventSchemas } from "inngest";
 
 type WorkspaceInstallStart = {
@@ -12,22 +13,14 @@ export type WorkspaceSimilaritiesBatchInstallStart = {
   name: "workspace/similarities/batch-install.start";
   data: {
     workspaceId: string;
-    table: "contacts" | "companies";
+    table: itemTypeT;
     batchAIds: string[];
     batchBIds?: string[];
   };
 };
 
-export type WorkspaceContactsSimilaritiesBatchInstallFinished = {
-  name: "workspace/contacts/similarities/install.finished";
-  data: {
-    workspaceId: string;
-    secondRun?: boolean;
-  };
-};
-
-export type WorkspaceCompaniesSimilaritiesBatchInstallFinished = {
-  name: "workspace/companies/similarities/install.finished";
+export type WorkspaceSimilaritiesBatchInstallFinished = {
+  name: "workspace/any/similarities/install.finished";
   data: {
     workspaceId: string;
     secondRun?: boolean;
@@ -41,18 +34,11 @@ export type WorkspaceAnyDupsInstallFinished = {
   };
 };
 
-export type CompaniesMergeAllStart = {
-  name: "companies/merge-all.start";
+export type ItemsMergeAllStart = {
+  name: "items/merge-all.start";
   data: {
     workspaceId: string;
-    lastItemCreatedAt?: string;
-  };
-};
-
-export type ContactsMergeAllStart = {
-  name: "contacts/merge-all.start";
-  data: {
-    workspaceId: string;
+    itemType: itemTypeT;
     lastItemCreatedAt?: string;
   };
 };
@@ -86,10 +72,8 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceFetchCompaniesStart
   | WorkspaceFetchContactsStart
   | WorkspaceSimilaritiesBatchInstallStart
-  | WorkspaceContactsSimilaritiesBatchInstallFinished
-  | WorkspaceCompaniesSimilaritiesBatchInstallFinished
+  | WorkspaceSimilaritiesBatchInstallFinished
   | WorkspaceAnyDupsInstallFinished
   | WorkspaceFetchFinished
-  | CompaniesMergeAllStart
-  | ContactsMergeAllStart
+  | ItemsMergeAllStart
 >();

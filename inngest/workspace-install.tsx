@@ -1,6 +1,5 @@
 import { fullFetch } from "@/inngest/dedup/fetch/install";
-import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/types/workspaces";
+import { Database, Tables } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
@@ -47,16 +46,10 @@ export default inngest.createFunction(
         logger.info("-> reset -", reset);
 
         const { error: error1 } = await supabaseAdmin
-          .from("dup_stack_companies")
+          .from("dup_stack_items")
           .delete()
           .eq("workspace_id", workspaceId);
         if (error1) throw error1;
-
-        const { error: error2 } = await supabaseAdmin
-          .from("dup_stack_contacts")
-          .delete()
-          .eq("workspace_id", workspaceId);
-        if (error2) throw error2;
 
         const { error: error3 } = await supabaseAdmin
           .from("dup_stacks")
@@ -66,53 +59,30 @@ export default inngest.createFunction(
 
         if (reset === "full" || reset === "similarities_and_dup") {
           const { error: error4 } = await supabaseAdmin
-            .from("company_similarities")
+            .from("similarities")
             .delete()
             .eq("workspace_id", workspaceId);
           if (error4) throw error4;
-
-          const { error: error5 } = await supabaseAdmin
-            .from("contact_similarities")
-            .delete()
-            .eq("workspace_id", workspaceId);
-          if (error5) throw error5;
         }
 
-        let workspaceUpdate: Partial<WorkspaceType> = {
-          installation_companies_dup_total: 0,
-          installation_companies_dup_done: 0,
-          installation_contacts_dup_total: 0,
-          installation_contacts_dup_done: 0,
+        let workspaceUpdate: Partial<Tables<"workspaces">> = {
+          installation_dup_total: 0,
+          installation_dup_done: 0,
         };
 
         if (reset === "full") {
-          const { error: error6 } = await supabaseAdmin
-            .from("contact_companies")
-            .delete()
-            .eq("workspace_id", workspaceId);
-          if (error6) throw error6;
-
           const { error: error7 } = await supabaseAdmin
-            .from("contacts")
+            .from("items")
             .delete()
+            .is("merged_in_distant_id", null)
             .eq("workspace_id", workspaceId);
           if (error7) throw error7;
 
-          const { error: error8 } = await supabaseAdmin
-            .from("companies")
-            .delete()
-            .eq("workspace_id", workspaceId);
-          if (error8) throw error8;
-
           workspaceUpdate.installation_fetched = false;
-          workspaceUpdate.installation_contacts_similarities_total_batches = 0;
-          workspaceUpdate.installation_contacts_similarities_done_batches = 0;
-          workspaceUpdate.installation_companies_similarities_done_batches = 0;
-          workspaceUpdate.installation_companies_similarities_done_batches = 0;
-          workspaceUpdate.installation_companies_total = 0;
-          workspaceUpdate.installation_companies_count = 0;
-          workspaceUpdate.installation_contacts_total = 0;
-          workspaceUpdate.installation_contacts_count = 0;
+          workspaceUpdate.installation_similarities_total_batches = 0;
+          workspaceUpdate.installation_similarities_done_batches = 0;
+          workspaceUpdate.installation_items_total = 0;
+          workspaceUpdate.installation_items_count = 0;
         } else {
           let update: {
             dup_checked: boolean;
@@ -125,23 +95,16 @@ export default inngest.createFunction(
           if (reset === "similarities_and_dup") {
             update.similarity_checked = false;
 
-            workspaceUpdate.installation_contacts_similarities_total_batches = 0;
-            workspaceUpdate.installation_contacts_similarities_done_batches = 0;
-            workspaceUpdate.installation_companies_similarities_done_batches = 0;
-            workspaceUpdate.installation_companies_similarities_done_batches = 0;
+            workspaceUpdate.installation_similarities_total_batches = 0;
+            workspaceUpdate.installation_similarities_done_batches = 0;
           }
 
           const { error: error9 } = await supabaseAdmin
-            .from("contacts")
+            .from("items")
             .update(update)
+            .is("merged_in_distant_id", null)
             .eq("workspace_id", workspaceId);
           if (error9) throw error9;
-
-          const { error: error91 } = await supabaseAdmin
-            .from("companies")
-            .update(update)
-            .eq("workspace_id", workspaceId);
-          if (error91) throw error91;
         }
 
         const { error: error10 } = await supabaseAdmin
@@ -154,7 +117,7 @@ export default inngest.createFunction(
 
     await step.run("workspace-update-status", async () => {
       logger.info("-> Updating workspace status");
-      let workspaceUpdatePending: Partial<WorkspaceType> = {
+      let workspaceUpdatePending: Partial<Tables<"workspaces">> = {
         installation_status: "INSTALLING",
       };
       const { error: error1 } = await supabaseAdmin
@@ -203,14 +166,7 @@ export default inngest.createFunction(
       } else if (reset === "dup_stacks") {
         logger.info("-> Launch dup check");
         await inngest.send({
-          name: "workspace/companies/similarities/install.finished",
-          data: {
-            workspaceId: workspaceId,
-          },
-        });
-
-        await inngest.send({
-          name: "workspace/contacts/similarities/install.finished",
+          name: "workspace/any/similarities/install.finished",
           data: {
             workspaceId: workspaceId,
           },

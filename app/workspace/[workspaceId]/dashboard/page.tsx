@@ -27,48 +27,29 @@ export default async function WorkspacePage({
     throw errorDupStack || new Error("Missing dupstack count");
   }
 
-  const { count: dupstackContactsCount, error: errorDupStackContacts } =
-    await supabase
-      .from("dup_stack_contacts")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId);
-  if (errorDupStackContacts) {
-    throw errorDupStackContacts;
+  const { count: dupstackCount, error: errorDupStackCount } = await supabase
+    .from("dup_stack_items")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (errorDupStackCount) {
+    throw errorDupStackCount;
   }
 
-  const { count: dupstackCompaniesCount, error: errorDupStackCompanies } =
-    await supabase
-      .from("dup_stack_companies")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId);
-  if (errorDupStackCompanies) {
-    throw errorDupStackCompanies;
-  }
-
-  const { count: mergedContactsCount, error: errorMergedContactsCount } =
-    await supabase
-      .from("merged_contacts")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId);
+  const { count: mergedCount, error: errorMergedContactsCount } = await supabase
+    .from("items")
+    .select("*", { count: "exact", head: true })
+    .not("merged_in_distant_id", "is", null)
+    .eq("workspace_id", workspaceId);
   if (errorMergedContactsCount) {
     throw errorMergedContactsCount;
   }
 
-  const { count: mergedCompaniesCount, error: errorMergedCompaniesCount } =
-    await supabase
-      .from("merged_companies")
-      .select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId);
-  if (errorMergedCompaniesCount) {
-    throw errorMergedCompaniesCount;
-  }
-
-  const { data: mergedContactsByMonths, error: errorMergedContactsByMonths } =
-    await supabase.rpc("get_merged_contacts_by_months", {
+  const { data: mergedItemsByMonths, error: errorMergedItemsByMonths } =
+    await supabase.rpc("get_merged_items_by_months", {
       workspace_id_arg: workspaceId,
     });
-  if (errorMergedContactsByMonths) {
-    throw errorMergedContactsByMonths;
+  if (errorMergedItemsByMonths) {
+    throw errorMergedItemsByMonths;
   }
 
   return (
@@ -93,9 +74,7 @@ export default async function WorkspacePage({
             </CardHeader>
 
             <CardContent>
-              <div className="text-2xl font-bold">
-                {(dupstackContactsCount || 0) + (dupstackCompaniesCount || 0)}
-              </div>
+              <div className="text-2xl font-bold">{dupstackCount || 0}</div>
               <p className="text-xs text-muted-foreground">
                 could be merged as {dupStackCount} uniques items
               </p>
@@ -112,9 +91,7 @@ export default async function WorkspacePage({
             </CardHeader>
 
             <CardContent>
-              <div className="text-2xl font-bold">
-                {(mergedContactsCount || 0) + (mergedCompaniesCount || 0)}
-              </div>
+              <div className="text-2xl font-bold">{mergedCount || 0}</div>
               <p className="text-xs text-muted-foreground">duplicates so far</p>
             </CardContent>
           </Card>
@@ -155,8 +132,8 @@ export default async function WorkspacePage({
             </CardHeader>
 
             <CardContent className="pl-2">
-              {mergedContactsByMonths && (
-                <Overview mergedContactsByMonths={mergedContactsByMonths} />
+              {mergedItemsByMonths && (
+                <Overview mergedItemsByMonths={mergedItemsByMonths} />
               )}
             </CardContent>
           </Card>

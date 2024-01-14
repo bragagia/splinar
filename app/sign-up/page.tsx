@@ -40,10 +40,12 @@ export default function SignUpPage({}) {
 
     if (error) {
       setErrorMessage(error.message);
-    } else {
-      setErrorMessage(null);
+      setIsLoading(false);
+
+      return;
     }
 
+    setErrorMessage(null);
     setIsLoading(false);
 
     if (data.session) {

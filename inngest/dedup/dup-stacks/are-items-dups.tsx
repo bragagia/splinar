@@ -1,3 +1,6 @@
+import { getItemType, listItemFields } from "@/lib/items_common";
+import { ItemWithSimilaritiesType } from "@/types/items";
+
 export type ValueScoringType = {
   exact?: number;
   similar?: number;
@@ -16,22 +19,25 @@ export type ValueScoringType = {
   emptyBonusMultiplier?: number;
 };
 
-export function areItemsDups<FT extends string, T>(
-  itemA: T,
-  itemB: T,
-  verbose: boolean = false,
-  similarities: {
-    field_type: FT;
-    similarity_score: "exact" | "similar" | "potential" | "unlikely";
-  }[],
-  scoring: { [key in FT]: ValueScoringType },
-  listItemFields: (item: T) => FT[]
+export function areItemsDups(
+  itemA: ItemWithSimilaritiesType,
+  itemB: ItemWithSimilaritiesType,
+  verbose: boolean = false
 ): "CONFIDENT" | "POTENTIAL" | false {
   if (!itemA || !itemB) {
     return false;
   }
 
-  const fieldList = Object.keys(scoring) as FT[];
+  let scoring: { [key in string]: ValueScoringType };
+  let itemType = getItemType(itemA.item_type);
+  scoring = itemType.dupScoring;
+
+  const similarities = itemA.similarities.filter(
+    (similarity) =>
+      similarity.item_a_id === itemB.id || similarity.item_b_id === itemB.id
+  );
+
+  const fieldList = Object.keys(scoring) as string[];
 
   const itemAFields = listItemFields(itemA);
   const itemBFields = listItemFields(itemB);

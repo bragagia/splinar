@@ -1,8 +1,7 @@
 "use client";
 
 import { useUser } from "@/app/workspace/[workspaceId]/user-context";
-import { Database } from "@/types/supabase";
-import { WorkspaceType } from "@/types/workspaces";
+import { Database, Tables } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { usePathname } from "next/navigation";
 import {
@@ -16,7 +15,7 @@ import {
 import { MergeDeep } from "type-fest";
 
 type WorkspaceContextType = MergeDeep<
-  WorkspaceType,
+  Tables<"workspaces">,
   { triggerUpdate: () => void }
 >;
 
@@ -39,13 +38,13 @@ export function WorkspaceProvider({
   value,
 }: {
   children: ReactNode;
-  value: WorkspaceType;
+  value: Tables<"workspaces">;
 }) {
   const supabase = createClientComponentClient<Database>();
   const pathName = usePathname();
   const user = useUser();
 
-  const [workspace, setWorkspace] = useState<WorkspaceType>(value);
+  const [workspace, setWorkspace] = useState<Tables<"workspaces">>(value);
 
   const forceUpdate = useCallback(async () => {
     const { data: workspaceUpdated, error } = await supabase

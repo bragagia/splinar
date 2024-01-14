@@ -1,4 +1,12 @@
-import { Database } from "@/types/supabase";
+import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
+import { itemTypeT } from "@/lib/items_common";
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
+import { uuid } from "@/lib/uuid";
+import {
+  ItemWithRawSimilaritiesType,
+  ItemWithSimilaritiesType,
+} from "@/types/items";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export type GenericDupStack = {
@@ -7,45 +15,17 @@ export type GenericDupStack = {
   potential_ids: string[];
 };
 
-export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
+export async function resolveNextDuplicatesStack(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
 
-  areItemsDups: (itemA: T, itemB: T) => "CONFIDENT" | "POTENTIAL" | false,
-
-  fetchNextReference: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string
-  ) => Promise<T | undefined>,
-
-  fetchSortedSimilar: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string,
-    itemsCacheById: {
-      [key: string]: T;
-    },
-    parentId: string
-  ) => Promise<{ parentItem: T; similarItems: T[] }>,
-
-  createDupstack: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string,
-    genericDupstack: GenericDupStack
-  ) => Promise<void>,
-
-  markDupstackElementsAsDupChecked: (
-    supabase: SupabaseClient<Database>,
-    workspaceId: string,
-    dupstackIds: string[]
-  ) => Promise<void>,
-
   itemsCacheById: {
-    [key: string]: T;
+    [key: string]: ItemWithSimilaritiesType;
   } = {},
 
-  startWithItem?: T
+  startWithItem?: ItemWithSimilaritiesType
 ): Promise<boolean> {
-  let referenceItem: T;
+  let referenceItem: ItemWithSimilaritiesType;
 
   if (startWithItem) {
     referenceItem = startWithItem;
@@ -137,7 +117,7 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
     );
   }
 
-  function isAT(obj: any): obj is T {
+  function isAT(obj: any): obj is ItemWithSimilaritiesType {
     if (!obj) return false;
     return "id" in obj;
   }
@@ -149,11 +129,6 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
       return await resolveNextDuplicatesStack(
         supabase,
         workspaceId,
-        areItemsDups,
-        fetchNextReference,
-        fetchSortedSimilar,
-        createDupstack,
-        markDupstackElementsAsDupChecked,
         itemsCacheById,
         newReferenceItem
       );
@@ -177,7 +152,12 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
     //   allDupsId
     // );
 
-    await createDupstack(supabase, workspaceId, dupStack);
+    await createDupstack(
+      supabase,
+      workspaceId,
+      dupStack,
+      referenceItem.item_type
+    );
   }
 
   // Mark dupstack elements as dup_checked, at least the contact that was analysed
@@ -256,3 +236,226 @@ export async function resolveNextDuplicatesStack<T extends { id: string }, ST>(
 //     contactsById[id].dup_checked = false;
 //   });
 // }
+
+async function fetchNextReference(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  // const startTime = performance.now();
+  const { data, error } = await supabase
+    .from("items")
+    .select(
+      `*,
+      similarities_a:similarities!similarities_item_a_id_fkey(*), similarities_b:similarities!similarities_item_b_id_fkey(*)`
+    )
+    .is("merged_in_distant_id", null)
+    .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", true)
+    .eq("dup_checked", false)
+    .order("filled_score", { ascending: false })
+    .limit(1);
+  if (error) {
+    throw error;
+  }
+  if (!data || data.length === 0) {
+    return undefined;
+  }
+
+  const { similarities_a, similarities_b, ...contact } = {
+    ...data[0],
+    similarities: data[0].similarities_a.concat(
+      data[0].similarities_b
+    ) as Tables<"similarities">[],
+  };
+
+  //console.log(
+  //  "### [PERF] fetchNextContactReference:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
+
+  return contact;
+}
+
+export async function fetchSortedSimilar(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  contactsCacheById: {
+    [key: string]: ItemWithSimilaritiesType;
+  },
+  parentContactId: string
+) {
+  // const startTime = performance.now();
+
+  const parentContact = contactsCacheById[parentContactId];
+
+  let res = {
+    parentItem: contactsCacheById[parentContactId],
+    similarItems: [] as ItemWithSimilaritiesType[],
+  };
+
+  const similarContactsIds = parentContact.similarities.reduce((acc, item) => {
+    const similarID =
+      item.item_a_id === parentContactId ? item.item_b_id : item.item_a_id;
+
+    if (acc.find((v) => v === similarID)) {
+      return acc;
+    }
+
+    acc.push(similarID);
+    return acc;
+  }, [] as string[]);
+
+  let similarContactsIdsToFetch: string[] = [];
+
+  similarContactsIds.forEach((id, i) => {
+    const cachedContact = contactsCacheById[id];
+
+    if (cachedContact) {
+      res.similarItems.push(cachedContact);
+    } else {
+      similarContactsIdsToFetch.push(id);
+    }
+  });
+
+  if (similarContactsIdsToFetch.length > 0) {
+    let fetchedContactsRaw: ItemWithRawSimilaritiesType[] = [];
+
+    for (
+      let i = 0;
+      i < similarContactsIdsToFetch.length;
+      i += SUPABASE_FILTER_MAX_SIZE
+    ) {
+      const { data, error } = await supabase
+        .from("items")
+        .select(
+          `*,
+          similarities_a:similarities!similarities_item_a_id_fkey(*), similarities_b:similarities!similarities_item_b_id_fkey(*)`
+        )
+        .is("merged_in_distant_id", null)
+        .eq("workspace_id", workspaceId)
+        .in(
+          "id",
+          similarContactsIdsToFetch.slice(i, i + SUPABASE_FILTER_MAX_SIZE)
+        );
+      if (error) {
+        throw error;
+      }
+
+      fetchedContactsRaw.push(...data);
+    }
+
+    const fetchedContacts = fetchedContactsRaw.map((raw_contact) => {
+      const { similarities_a, similarities_b, ...contact } = {
+        ...raw_contact,
+        similarities: raw_contact.similarities_a.concat(
+          raw_contact.similarities_b
+        ) as Tables<"similarities">[],
+      };
+
+      return contact;
+    });
+
+    fetchedContacts.forEach((contact) => {
+      res.similarItems.push(contact);
+      contactsCacheById[contact.id] = contact;
+    });
+  }
+
+  res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
+
+  //console.log(
+  //  "### [PERF] fetchSimilarContactsSortedByFillScore:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
+
+  return res;
+}
+
+async function createDupstack(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  genericDupstack: GenericDupStack,
+  itemType: itemTypeT
+) {
+  // const startTime = performance.now();
+
+  const dupstackId = uuid();
+  const dupstack: TablesInsert<"dup_stacks"> = {
+    id: dupstackId,
+    workspace_id: workspaceId,
+    item_type: itemType,
+  };
+
+  const dupstackContacts: TablesInsert<"dup_stack_items">[] = [];
+
+  dupstackContacts.push(
+    ...genericDupstack.confident_ids.map((id, i) => {
+      const ret: TablesInsert<"dup_stack_items"> = {
+        item_id: id,
+        dup_type: i === 0 ? "REFERENCE" : "CONFIDENT",
+        dupstack_id: dupstackId,
+        workspace_id: dupstack.workspace_id,
+      };
+      return ret;
+    })
+  );
+
+  dupstackContacts.push(
+    ...genericDupstack.potential_ids.map((id, i) => {
+      const ret: TablesInsert<"dup_stack_items"> = {
+        item_id: id,
+        dup_type: "POTENTIAL",
+        dupstack_id: dupstackId,
+        workspace_id: dupstack.workspace_id,
+      };
+      return ret;
+    })
+  );
+
+  const { error: errorDupstack } = await supabase
+    .from("dup_stacks")
+    .insert(dupstack);
+  if (errorDupstack) {
+    throw errorDupstack;
+  }
+
+  const { error: errorDupstackContact } = await supabase
+    .from("dup_stack_items")
+    .insert(dupstackContacts);
+  if (errorDupstackContact) {
+    throw errorDupstackContact;
+  }
+
+  //console.log(
+  //  "### [PERF] createContactsDupstack:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
+}
+
+async function markDupstackElementsAsDupChecked(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  dupstackIds: string[]
+) {
+  // const startTime = performance.now();
+
+  for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { error: errorChecked } = await supabase
+      .from("items")
+      .update({ dup_checked: true })
+      .in("id", dupstackIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE))
+      .eq("workspace_id", workspaceId);
+    if (errorChecked) {
+      throw errorChecked;
+    }
+  }
+
+  //console.log(
+  //  "### [PERF] markContactDupstackElementsAsDupChecked:",
+  //  Math.round(performance.now() - startTime),
+  //  "ms"
+  //);
+}

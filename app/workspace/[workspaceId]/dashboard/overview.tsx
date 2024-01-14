@@ -4,15 +4,15 @@ import dayjs from "dayjs";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 export function Overview({
-  mergedContactsByMonths,
+  mergedItemsByMonths,
 }: {
-  mergedContactsByMonths:
+  mergedItemsByMonths:
     | {
         month: string;
         count: number;
       }[];
 }) {
-  const dataWithDate = mergedContactsByMonths.map((m) => ({
+  const dataWithDate = mergedItemsByMonths.map((m) => ({
     date: dayjs(m.month).startOf("month"),
     count: m.count,
   }));

@@ -1,4 +1,5 @@
 import { inngest } from "@/inngest";
+import { itemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
@@ -10,7 +11,7 @@ export async function updateSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   isFreeTier: boolean,
-  table: "contacts" | "companies",
+  table: itemTypeT,
   afterBatchCallback?: () => Promise<void>
 ) {
   let batchLength = 0;
@@ -18,11 +19,13 @@ export async function updateSimilarities(
 
   do {
     let query = supabase
-      .from(table)
-      .select("id, hs_id")
+      .from("items")
+      .select("id, distant_id")
+      .is("merged_in_distant_id", null)
+      .eq("item_type", table)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
-      .order("hs_id", { ascending: true })
+      .order("distant_id", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
     const { data: batch, error: error } = await query;
@@ -57,7 +60,7 @@ export async function updateSimilarities(
       afterBatchCallback
     );
 
-    await markBatchInstalled(supabase, table, batchIds);
+    await markBatchInstalled(supabase, batchIds);
 
     count++;
   } while (
@@ -68,12 +71,11 @@ export async function updateSimilarities(
 
 async function markBatchInstalled(
   supabase: SupabaseClient<Database>,
-  table: "contacts" | "companies",
   batchIds: string[]
 ) {
   for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error } = await supabase
-      .from(table)
+      .from("items")
       .update({ similarity_checked: true, dup_checked: false })
       .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
     if (error) {
@@ -85,22 +87,24 @@ async function markBatchInstalled(
 async function compareBatchWithAllInstalledBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  table: "contacts" | "companies",
+  table: itemTypeT,
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
-  let lastItemId: number | null = null;
+  let lastItemId: string | null = null;
   do {
     let query = supabase
-      .from(table)
-      .select("id, hs_id")
+      .from("items")
+      .select("id, distant_id")
+      .is("merged_in_distant_id", null)
+      .eq("item_type", table)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
-      .order("hs_id", { ascending: true })
+      .order("distant_id", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
     if (lastItemId) {
-      query = query.gt("hs_id", lastItemId);
+      query = query.gt("distant_id", lastItemId);
     }
 
     const { data: installedBatch, error: errorInstalledBatch } = await query;
@@ -128,7 +132,7 @@ async function compareBatchWithAllInstalledBatches(
       await afterBatchCallback();
     }
 
-    lastItemId = installedBatch[installedBatch.length - 1].hs_id;
+    lastItemId = installedBatch[installedBatch.length - 1].distant_id;
     if (installedBatch.length !== SIMILARITIES_BATCH_SIZE) {
       lastItemId = null;
     }

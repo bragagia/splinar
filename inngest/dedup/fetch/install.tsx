@@ -78,8 +78,7 @@ async function updateInstallTotals(
   const { error } = await supabase
     .from("workspaces")
     .update({
-      installation_companies_total: stats.companiesTotal,
-      installation_contacts_total: stats.contactsTotal,
+      installation_items_total: stats.companiesTotal + stats.contactsTotal,
     })
     .eq("id", workspaceId);
   if (error) {
