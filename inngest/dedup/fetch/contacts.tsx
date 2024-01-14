@@ -21,22 +21,6 @@ export async function fetchContacts(
   const propertiesList = propertiesRes.results.map((property) => property.name);
 
   do {
-    if (pageId % UPDATE_COUNT_EVERY === 0) {
-      await updateInstallItemsCount(supabase, workspaceId);
-    }
-
-    if (pageId % WORKER_LIMIT === 0) {
-      await inngest.send({
-        name: "workspace/contacts/fetch.start",
-        data: {
-          workspaceId: workspaceId,
-          after: after,
-        },
-      });
-
-      return;
-    }
-
     console.log("Fetching contact page ", after);
 
     const res = await hsClient.crm.contacts.basicApi.getPage(
@@ -89,6 +73,22 @@ export async function fetchContacts(
     }
 
     pageId++;
+
+    if (pageId % UPDATE_COUNT_EVERY === 0) {
+      await updateInstallItemsCount(supabase, workspaceId);
+    }
+
+    if (pageId % WORKER_LIMIT === 0) {
+      await inngest.send({
+        name: "workspace/contacts/fetch.start",
+        data: {
+          workspaceId: workspaceId,
+          after: after,
+        },
+      });
+
+      return;
+    }
   } while (after);
 
   // Final update

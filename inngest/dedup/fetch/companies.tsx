@@ -21,22 +21,6 @@ export async function fetchCompanies(
   const propertiesList = propertiesRes.results.map((property) => property.name);
 
   do {
-    if (pageId % UPDATE_COUNT_EVERY === 0) {
-      await updateInstallItemsCount(supabase, workspaceId);
-    }
-
-    if (pageId % WORKER_LIMIT === 0) {
-      await inngest.send({
-        name: "workspace/companies/fetch.start",
-        data: {
-          workspaceId: workspaceId,
-          after: after,
-        },
-      });
-
-      return;
-    }
-
     console.log("Fetching companies page ", after);
 
     const res = await hsClient.crm.companies.basicApi.getPage(
@@ -76,7 +60,23 @@ export async function fetchCompanies(
     }
 
     after = res.paging?.next?.after;
+
     pageId++;
+    if (pageId % UPDATE_COUNT_EVERY === 0) {
+      await updateInstallItemsCount(supabase, workspaceId);
+    }
+
+    if (pageId % WORKER_LIMIT === 0) {
+      await inngest.send({
+        name: "workspace/companies/fetch.start",
+        data: {
+          workspaceId: workspaceId,
+          after: after,
+        },
+      });
+
+      return;
+    }
   } while (after);
 
   // Final update
