@@ -6,8 +6,8 @@ import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const UPDATE_COUNT_EVERY = 3;
-const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
+const UPDATE_COUNT_EVERY = 1;
+const WORKER_LIMIT = 1;
 
 export async function fetchCompanies(
   hsClient: Client,
@@ -21,8 +21,6 @@ export async function fetchCompanies(
   const propertiesList = propertiesRes.results.map((property) => property.name);
 
   do {
-    pageId++;
-
     if (pageId % UPDATE_COUNT_EVERY === 0) {
       await updateInstallItemsCount(supabase, workspaceId);
     }
@@ -78,6 +76,7 @@ export async function fetchCompanies(
     }
 
     after = res.paging?.next?.after;
+    pageId++;
   } while (after);
 
   // Final update
