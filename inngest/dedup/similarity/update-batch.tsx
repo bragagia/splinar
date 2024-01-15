@@ -61,7 +61,8 @@ async function genericSimilaritiesBatchEval(
     throw errorInsert;
   }
 
-  const { data: isFinished, error: errorIncrement } = await supabase.rpc(
+  console.log("# Increment done batches");
+  const { data: remainingBatches, error: errorIncrement } = await supabase.rpc(
     "similarities_increment_done_batches",
     {
       workspace_id_arg: workspaceId,
@@ -70,8 +71,12 @@ async function genericSimilaritiesBatchEval(
   if (errorIncrement) {
     throw errorIncrement;
   }
+  if (remainingBatches == null) {
+    throw new Error("remainingBatches is null");
+  }
+  console.log("####### remainingBatches:", remainingBatches);
 
-  if (isFinished) {
+  if (remainingBatches === 0) {
     await inngest.send({
       name: "workspace/any/similarities/install.finished",
       data: {

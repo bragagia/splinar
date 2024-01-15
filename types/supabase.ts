@@ -363,7 +363,7 @@ export interface Database {
         Args: {
           workspace_id_arg: string
         }
-        Returns: boolean
+        Returns: number
       }
     }
     Enums: {
