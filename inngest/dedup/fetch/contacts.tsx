@@ -1,4 +1,5 @@
 import { inngest } from "@/inngest";
+import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { ItemLink } from "@/types/items";
@@ -6,8 +7,8 @@ import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const UPDATE_COUNT_EVERY = 1;
-const WORKER_LIMIT = 1 * UPDATE_COUNT_EVERY;
+const UPDATE_COUNT_EVERY = 3;
+const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
 
 export async function fetchContacts(
   hsClient: Client,
@@ -67,7 +68,7 @@ export async function fetchContacts(
 
     let { error: errorContact } = await supabase
       .from("items")
-      .insert(dbContacts);
+      .upsert(dbContacts, { onConflict: "workspace_id,item_type,distant_id" });
     if (errorContact) {
       throw errorContact;
     }
@@ -106,28 +107,4 @@ export async function fetchContacts(
       workspaceId: workspaceId,
     },
   });
-}
-
-export async function updateInstallItemsCount(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string
-) {
-  const items = await supabase
-    .from("items")
-    .select("*", { count: "exact", head: true })
-    .is("merged_in_distant_id", null)
-    .eq("workspace_id", workspaceId);
-  if (items.error) {
-    throw items.error;
-  }
-
-  const { error } = await supabase
-    .from("workspaces")
-    .update({
-      installation_items_count: items.count || 0,
-    })
-    .eq("id", workspaceId);
-  if (error) {
-    throw error;
-  }
 }

@@ -85,3 +85,27 @@ async function updateInstallTotals(
     throw error;
   }
 }
+
+export async function updateInstallItemsCount(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string
+) {
+  const items = await supabase
+    .from("items")
+    .select("*", { count: "exact", head: true })
+    .is("merged_in_distant_id", null)
+    .eq("workspace_id", workspaceId);
+  if (items.error) {
+    throw items.error;
+  }
+
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      installation_items_count: items.count || 0,
+    })
+    .eq("id", workspaceId);
+  if (error) {
+    throw error;
+  }
+}

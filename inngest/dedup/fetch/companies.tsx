@@ -1,13 +1,13 @@
 import { inngest } from "@/inngest";
-import { updateInstallItemsCount } from "@/inngest/dedup/fetch/contacts";
+import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const UPDATE_COUNT_EVERY = 1;
-const WORKER_LIMIT = 1;
+const UPDATE_COUNT_EVERY = 3;
+const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
 
 export async function fetchCompanies(
   hsClient: Client,
@@ -54,7 +54,9 @@ export async function fetchCompanies(
       return dbCompany;
     });
 
-    let { error } = await supabase.from("items").insert(dbCompanies);
+    let { error } = await supabase
+      .from("items")
+      .upsert(dbCompanies, { onConflict: "workspace_id,item_type,distant_id" });
     if (error) {
       throw error;
     }
