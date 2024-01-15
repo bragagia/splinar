@@ -67,8 +67,7 @@ async function genericInstallSimilarities(
   const { error } = await supabase
     .from("workspaces")
     .update({
-      installation_similarities_total_batches: totalOffset + totalOperations,
-      installation_similarities_done_batches: 0,
+      installation_similarities_total_batches: totalOffset + totalOperations, // Note: There may already have been some batch that ended and done may be incrementing when we do this update, but is should not pause a problem in real life situation
     })
     .eq("id", workspaceId);
   if (error) {

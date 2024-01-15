@@ -61,7 +61,6 @@ async function genericSimilaritiesBatchEval(
     throw errorInsert;
   }
 
-  console.log("# Increment done batches");
   const { data: remainingBatches, error: errorIncrement } = await supabase.rpc(
     "similarities_increment_done_batches",
     {
@@ -74,7 +73,7 @@ async function genericSimilaritiesBatchEval(
   if (remainingBatches == null) {
     throw new Error("remainingBatches is null");
   }
-  console.log("####### remainingBatches:", remainingBatches);
+  console.log("-> remainingBatches:", remainingBatches);
 
   if (remainingBatches === 0) {
     await inngest.send({
