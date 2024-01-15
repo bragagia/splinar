@@ -251,7 +251,7 @@ export function WorkspaceInstallationCardPendingInstalling() {
   // Dup Stack have started and explanation
 
   const dupStackTextProgress =
-    Math.round(dupStackProgress * 100).toString() + "%";
+    Math.floor(dupStackProgress * 100).toString() + "%";
 
   // aggregate progress
   let aggregateProgress =
