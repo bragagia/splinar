@@ -19,7 +19,9 @@ export async function updateDupStackInstallationTotal(
     .from("items")
     .select("*", { count: "exact", head: true })
     .is("merged_in_distant_id", null)
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", true)
+    .eq("dup_checked", false);
   if (errorContacts || dupTotalContacts === null) {
     throw errorContacts || new Error("missing count on contacts");
   }
@@ -46,6 +48,7 @@ async function updateDupStackInstallationDone(
     .select("*", { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", true)
     .eq("dup_checked", true);
   if (errorContacts || dupContactsDone === null) {
     throw errorContacts || new Error("missing count");
