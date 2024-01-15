@@ -16,7 +16,7 @@ export async function calcWorkspaceUsageDetailed(
 
   const { count: contactsCount, error: errorContacts } = await supabase
     .from("contacts")
-    .select("", { count: "exact" })
+    .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId);
   if (errorContacts || contactsCount === null) {
     throw errorContacts || new Error("Missing contact count");
@@ -24,7 +24,7 @@ export async function calcWorkspaceUsageDetailed(
 
   const { count: companiesCount, error: errorCompanies } = await supabase
     .from("companies")
-    .select("", { count: "exact" })
+    .select("*", { count: "exact", head: true })
     .eq("workspace_id", workspaceId);
   if (errorCompanies || companiesCount === null) {
     throw errorCompanies || new Error("Missing companies count");
