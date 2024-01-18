@@ -52,6 +52,7 @@ export default function DemoStackComp() {
         >
           <DupStackCard
             itemWordName={"companies"}
+            getStackMetadata={(a) => {}}
             dupStack={{
               id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
               created_at: "2024-01-07T16:31:35.032105+00:00",
