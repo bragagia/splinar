@@ -31,7 +31,11 @@ export function SpTooltip({
           <div className="flex flex-row items-center gap-1">
             {icon}
 
-            <p>{tooltip}</p>
+            <div>
+              {tooltip.split("\n").map((str, i) => (
+                <p key={i}>{str}</p>
+              ))}
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>

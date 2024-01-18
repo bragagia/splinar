@@ -22,12 +22,10 @@ function AlgoTest() {
 
   const companyA = {
     id: uuid(),
-    name: "Blabla",
   };
 
   const companyB = {
     id: uuid(),
-    name: "Sibilu",
   };
 
   const tests = [
@@ -37,26 +35,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: ["0781208307"],
-          emails: [],
+          mobilephone: "0781208307",
+          email: null,
           company_name: "",
           companies: [],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0781208307"],
-          emails: ["jkfldjkflds@kfdlskldfs.com"],
+          mobilephone: "0781208307",
+          email: "jkfldjkflds@kfdlskldfs.com",
           company_name: "",
           companies: [],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -67,26 +65,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias@blabla.com"],
+          mobilephone: null,
+          email: "mathias@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias@sibilu.com"],
+          mobilephone: null,
+          email: "mathias@sibilu.com",
           company_name: "",
           companies: [],
-        }),
+        },
       },
       "POTENTIAL"
     ),
@@ -97,26 +95,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias@blabla.com"],
+          mobilephone: null,
+          email: "mathias@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias@sibilu.com"],
+          mobilephone: null,
+          email: "mathias@sibilu.com",
           company_name: "",
           companies: [companyB],
-        }),
+        },
       },
       false
     ),
@@ -127,26 +125,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: ["mathias+test@blabla.com"],
+          mobilephone: null,
+          email: "mathias+test@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias@blabla.com"],
+          mobilephone: null,
+          email: "mathias@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -157,26 +155,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "",
           lastname: "",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "",
           lastname: "",
-          phones: [],
-          emails: ["lathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "lathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       false
     ),
@@ -187,26 +185,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: [],
+          mobilephone: null,
+          email: null,
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: [],
+          mobilephone: null,
+          email: null,
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -217,26 +215,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: [],
+          mobilephone: null,
+          email: null,
           company_name: "",
           companies: [],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: [],
+          mobilephone: null,
+          email: null,
           company_name: "",
           companies: [],
-        }),
+        },
       },
       "POTENTIAL"
     ),
@@ -247,26 +245,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyB],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -277,26 +275,27 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: ["0388090228", "0781208307"],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: "0388090228",
+          phone: "0781208307",
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "",
-          phones: ["0781208307"],
-          emails: ["mathias.bragagia@gmail.com"],
+          mobilephone: "0781208307",
+          email: "mathias.bragagia@gmail.com",
           company_name: "",
           companies: [companyB],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -307,26 +306,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Bragagia",
           lastname: "Mathias",
-          phones: ["0781208307"],
-          emails: ["mathias.bragagia@bla.bla"],
+          mobilephone: "0781208307",
+          email: "mathias.bragagia@bla.bla",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "POTENTIAL"
     ),
@@ -337,26 +336,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "",
           lastname: "",
-          phones: [""],
-          emails: ["mathias.bragagia@blabla.fr"],
+          mobilephone: "",
+          email: "mathias.bragagia@blabla.fr",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -367,56 +366,56 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Vincent",
           lastname: "Abraham",
-          phones: ["0707070707"],
-          emails: ["vincent@splinar.com"],
+          mobilephone: "0707070707",
+          email: "vincent@splinar.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       false
     ),
 
     testContacts(
       13,
-      "Same name and company, but unlikely emails",
+      "Same name and company, but unlikely email",
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: [],
-          emails: ["mathias.bragag@gmail.com"],
+          mobilephone: null,
+          email: "mathias.bragag@gmail.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -427,56 +426,56 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mathias.bragagia@gmail.com"],
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@gmail.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Vincent",
           lastname: "Abraham",
-          phones: ["0707070707"],
-          emails: [],
+          mobilephone: "0707070707",
+          email: null,
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       false
     ),
 
     testContacts(
       15,
-      "Same company, phone and name, but different emails",
+      "Same company, phone and name, but different email",
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mbragag@gmail.com"],
+          mobilephone: "0707070707",
+          email: "mbragag@gmail.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),
@@ -487,26 +486,26 @@ function AlgoTest() {
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mathias.bragagia@blabla.com"],
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       {
         ...baseContact,
         id: uuid(),
-        value: JSON.stringify({
+        value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          phones: ["0707070707"],
-          emails: ["mbragag@gmail.com"],
+          mobilephone: "0707070707",
+          email: "mbragag@gmail.com",
           company_name: "",
           companies: [companyA],
-        }),
+        },
       },
       "CONFIDENT"
     ),

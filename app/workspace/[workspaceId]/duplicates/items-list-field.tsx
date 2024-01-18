@@ -2,7 +2,6 @@
 
 import { StandardLinkButton } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
-import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Database, Tables } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -45,9 +44,13 @@ export function ItemsListField({
 
   if (items === null) {
     return (
-      <span className={cn("text-gray-400 font-light w-full max-w-full")}>
-        <Icons.spinner className="inline-flex h-3 w-3 animate-spin" />
-      </span>
+      <div>
+        {itemsDistantIds?.map((itemDistantId, i) => (
+          <StandardLinkButton key={i} href={"#"}>
+            <span className="text-gray-400">#{itemDistantId}</span>
+          </StandardLinkButton>
+        ))}
+      </div>
     );
   }
 
@@ -58,8 +61,6 @@ export function ItemsListField({
       </span>
     );
   }
-
-  console.log(items);
 
   return (
     <div>

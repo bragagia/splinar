@@ -193,15 +193,17 @@ function DupStackRowInfo({
 
   if (isJSXFunction(value)) {
     return (
-      <p className={cn("break-words w-full max-w-full", className)}>
+      <div className={cn("break-words w-full max-w-full", className)}>
         {value()}
-      </p>
+      </div>
     );
   }
 
   // Is ReactNode or string
   return (
-    <p className={cn("break-words w-full max-w-full", className)}>{value}</p>
+    <div className={cn("break-words w-full max-w-full", className)}>
+      {value}
+    </div>
   );
 }
 
@@ -222,11 +224,12 @@ function DupStackCardCell({
 }) {
   return (
     <div
-      className={cn("p-1 border-transparent w-full", {
+      className={cn("p-1 w-full", {
         // "border-gray-100": !isPotential,
         // "border-gray-200": isPotential,
         // "border-t": expand && i / 4 >= 1,
         // "border-l": expand && i % 4 !== 0,
+        "border-b border-gray-200": isCardExpanded && !isLastLine,
         "pt-3": isCardExpanded && isFirstLine,
         "pb-3": isCardExpanded && isLastLine,
         "pt-2": !isCardExpanded && isFirstLine,
@@ -272,8 +275,7 @@ export function DupStackCardRow({
   expand?: boolean;
 }) {
   const firstLineUntil = 3;
-  const lastLineAfter =
-    rowInfos.columns.length - (((rowInfos.columns.length - 2) % 3) + 1);
+  const lastLineAfter = Math.floor((rowInfos.columns.length - 2) / 3) * 3; // - 1 for the name column and -1 to prevent full last line to be considered not the last
   //const fillerCells = (4 - (rowInfos.columns.length % 4)) % 4;
 
   return (
@@ -292,6 +294,7 @@ export function DupStackCardRow({
               isCardExpanded={expand}
             />
           </div>
+
           <div className={cn("col-span-3 spa grid grid-cols-3 w-full")}>
             {(expand
               ? rowInfos.columns.slice(1)

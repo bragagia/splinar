@@ -78,5 +78,10 @@ async function updateDupStackInstallationDone(
     return 0;
   }
 
-  console.log("-> Dup stack items done:", dupContactsDone);
+  console.log(
+    "-> Dup stack items done:",
+    dupContactsDone,
+    "/",
+    workspace.installation_dup_total
+  );
 }

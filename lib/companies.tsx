@@ -32,13 +32,13 @@ export function getCompanyColumns(item: Tables<"items">) {
     address: address !== "" ? address : null,
     facebook_company_page: value.facebook_company_page as string | null,
     twitterhandle: value.twitterhandle as string | null,
-    website: value.website as string | null,
   };
 }
 
 export function getCompanyRowInfos(
   workspaceHubId: string,
-  dupStackItem: DupStackItemWithItemT
+  dupStackItem: DupStackItemWithItemT,
+  stackMetadataG: any
 ): DupStackRowInfos {
   const item = dupStackItem.item;
   if (!item) {
@@ -62,7 +62,7 @@ export function getCompanyRowInfos(
 
       {
         value: itemValue.domain ? (
-          <StandardLinkButton href={itemValue.domain}>
+          <StandardLinkButton href={"https://" + itemValue.domain}>
             {itemValue.domain}
           </StandardLinkButton>
         ) : null,
@@ -114,16 +114,6 @@ export function getCompanyRowInfos(
         style: "text-gray-700",
         tips: "X/Twitter page",
       },
-
-      {
-        value: itemValue.website ? (
-          <StandardLinkButton href={itemValue.website}>
-            {itemValue.website}
-          </StandardLinkButton>
-        ) : null,
-        style: "text-gray-700",
-        tips: "Website",
-      },
     ],
   };
 }
@@ -138,13 +128,6 @@ export const companyScoring = {
   },
 
   domain: {
-    exact: 70,
-    similar: 40,
-    notMatchingMalus: -40,
-    emptyBonus: 0,
-  },
-
-  website: {
     exact: 70,
     similar: 40,
     notMatchingMalus: -40,
@@ -256,30 +239,6 @@ export function companiesSimilarityCheck(
 
         if (removeExt(a) === removeExt(b)) {
           addSimilarity("domain", a, b, "similar");
-        }
-      }
-    }
-  }
-
-  // website
-  if (
-    companyAValue.website &&
-    companyBValue.website &&
-    companyAValue.website.length > 3 &&
-    companyBValue.website.length > 3
-  ) {
-    const a = companyAValue.website.trim().toLowerCase();
-    const b = companyBValue.website.trim().toLowerCase();
-
-    if (a !== "" && b !== "") {
-      if (a == b) {
-        addSimilarity("website", a, b, "exact");
-      } else {
-        const removeExt = (str: string) =>
-          str.split(".").slice(0, -1).join(".");
-
-        if (removeExt(a) === removeExt(b)) {
-          addSimilarity("website", a, b, "similar");
         }
       }
     }

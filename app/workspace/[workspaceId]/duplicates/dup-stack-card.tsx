@@ -34,14 +34,17 @@ export type DupItemTypeType = DupStackItemWithItemT["dup_type"];
 export function DupStackCard({
   dupStack,
   getRowInfos,
+  getStackMetadata,
   itemWordName,
   isDemo = false,
 }: {
   dupStack: DupStackWithItemsT;
   getRowInfos(
     workspaceHubId: string,
-    item: DupStackItemWithItemT
+    item: DupStackItemWithItemT,
+    stackMetadata: any
   ): DupStackRowInfos;
+  getStackMetadata: (dupStack: DupStackWithItemsT) => any;
   itemWordName: string;
   isDemo?: boolean;
 }) {
@@ -54,6 +57,11 @@ export function DupStackCard({
   const [loading, setLoading] = useState(false);
   const [allExpanded, setAllExpanded] = useState(false);
   const [falsePositivesExpanded, setFalsePositivesExpanded] = useState(false);
+
+  const stackMetadata = useMemo(
+    () => getStackMetadata(cachedDupStack),
+    [getStackMetadata, cachedDupStack]
+  );
 
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
 
@@ -146,15 +154,19 @@ export function DupStackCard({
 
   let cardTitle = useMemo(() => {
     return confidentsAndReference.reduce((acc, dupStackItem) => {
-      const rowInfos = getRowInfos(workspace.hub_id, dupStackItem);
+      const rowInfos = getRowInfos(
+        workspace.hub_id,
+        dupStackItem,
+        stackMetadata
+      );
       const column = rowInfos.columns[0].value as string | null;
 
       return column && column.length > acc.length ? column : acc;
     }, "");
-  }, [confidentsAndReference]);
+  }, [getRowInfos, workspace.hub_id, confidentsAndReference, stackMetadata]);
 
   const isExpandable =
-    getRowInfos(workspace.hub_id, reference).columns.length > 4;
+    getRowInfos(workspace.hub_id, reference, stackMetadata).columns.length > 4;
 
   return (
     <Card className="grow shadow-lg group/card">
@@ -178,8 +190,8 @@ export function DupStackCard({
                 <div className="flex ml-1">
                   <a
                     href={
-                      getRowInfos(workspace.hub_id, reference).columns[0]
-                        .hubspotLink
+                      getRowInfos(workspace.hub_id, reference, stackMetadata)
+                        .columns[0].hubspotLink
                     }
                     target="_blank"
                     className="flex items-center rounded-md border border-[#f8761f] text-[#f8761f] bg-white hover:bg-[#fff1e8] px-1 py-1 gap-1"
@@ -224,7 +236,11 @@ export function DupStackCard({
                     )}
 
                     <DupStackCardRow
-                      rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                      rowInfos={getRowInfos(
+                        workspace.hub_id,
+                        dupStackItem,
+                        stackMetadata
+                      )}
                       onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
                       expand={allExpanded}
                     />
@@ -266,7 +282,11 @@ export function DupStackCard({
                     )}
 
                     <DupStackCardRow
-                      rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                      rowInfos={getRowInfos(
+                        workspace.hub_id,
+                        dupStackItem,
+                        stackMetadata
+                      )}
                       onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
                       expand={allExpanded}
                     />
@@ -312,7 +332,11 @@ export function DupStackCard({
                       )}
 
                       <DupStackCardRow
-                        rowInfos={getRowInfos(workspace.hub_id, dupStackItem)}
+                        rowInfos={getRowInfos(
+                          workspace.hub_id,
+                          dupStackItem,
+                          stackMetadata
+                        )}
                         onUpdateDupType={onUpdateDupType(dupStackItem.item_id)}
                         expand={allExpanded}
                       />

@@ -9,6 +9,7 @@ import {
   contactSimilarityCheck,
   getContactColumns,
   getContactRowInfos,
+  getContactStackMetadata,
 } from "@/lib/contacts";
 import { Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
@@ -32,6 +33,8 @@ export function getItemType(itemType: itemTypeT) {
 
       dupScoring: companyScoring,
 
+      getStackMetadata: getContactStackMetadata, // TODO:
+
       getDistantMergeFn: (hsClient: Client) =>
         hsClient?.crm.companies.publicObjectApi.merge,
 
@@ -54,6 +57,8 @@ export function getItemType(itemType: itemTypeT) {
       similarityCheck: contactSimilarityCheck,
 
       dupScoring: contactScoring,
+
+      getStackMetadata: getContactStackMetadata,
 
       getDistantMergeFn: (hsClient: Client) =>
         hsClient?.crm.contacts.publicObjectApi.merge,

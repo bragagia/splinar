@@ -75,7 +75,7 @@ export default function DuplicatesPage() {
           });
         });
     });
-  }, [supabase, typesList]);
+  }, [supabase, typesList, workspace.id]);
 
   useEffect(() => {
     if (typesList.length === 0) {
@@ -230,6 +230,9 @@ export default function DuplicatesPage() {
                       getRowInfos={
                         getItemType(typeStateKey as itemTypeT).getRowInfos
                       }
+                      getStackMetadata={
+                        getItemType(typeStateKey as itemTypeT).getStackMetadata
+                      }
                     />
                   )}
                 />
@@ -285,7 +288,7 @@ function DuplicatesInfiniteList({
     if (newDupStacks.length !== PAGE_SIZE) {
       setHasMore(false);
     }
-  }, [supabase, workspace.id, dupStacks, nextCursor, hasMore, fetchNextPage]);
+  }, [supabase, workspace.id, dupStacks, nextCursor, hasMore, itemsType]);
 
   useEffect(() => {
     fetchNextPageWrapper().then();

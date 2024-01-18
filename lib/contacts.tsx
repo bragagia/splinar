@@ -5,15 +5,17 @@ import {
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import { getCompanyColumns } from "@/lib/companies";
 import { URLS } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
-import { DupStackItemWithItemT } from "@/types/dupstacks";
+import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { ItemLink } from "@/types/items";
 import { Tables, TablesInsert } from "@/types/supabase";
-import stringSimilarity from "string-similarity";
+import dayjs, { Dayjs } from "dayjs";
 
-export type ColumnList = {
-  [key: string]: any;
-};
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
+
+import stringSimilarity from "string-similarity";
 
 export function getContactColumns(item: Tables<"items">) {
   const value = item.value as any;
@@ -46,19 +48,169 @@ export function getContactColumns(item: Tables<"items">) {
     companies: (value.companies || []) as ItemLink[],
 
     hs_linkedinid: value.hs_linkedinid as string | null,
+
+    hs_last_sales_activity_timestamp: value.hs_last_sales_activity_timestamp
+      ? dayjs(value.hs_last_sales_activity_timestamp)
+      : null, // Last Engagement Date
+
+    notes_last_contacted: value.notes_last_contacted
+      ? dayjs(value.notes_last_contacted)
+      : null, // Last Contacted
+
+    notes_last_updated: value.notes_last_updated
+      ? dayjs(value.notes_last_updated)
+      : null, // Last activity date
+
+    num_contacted_notes: value.num_contacted_notes
+      ? parseInt(value.num_contacted_notes as string)
+      : null, // Number of times contacted
+  };
+}
+
+export type ContactStackMetadataT = {
+  cardTitle: string;
+  bestFilledId: string | null;
+  lastEngagedId: string | null;
+  lastContactedId: string | null;
+  lastActivityId: string | null;
+  mostContactedId: string | null;
+};
+
+// Return the list of max equal values
+function getMaxs<T>(array: T[], comparator: (a: T, b: T) => number): T[] {
+  let _curItems: T[] = [array[0]];
+
+  array.slice(1).forEach((item) => {
+    let cmp = comparator(_curItems[0], item);
+
+    if (cmp > 0) {
+      _curItems = [item];
+    } else if (cmp === 0) {
+      _curItems.push(item);
+    } else {
+      // Do nothing
+    }
+  });
+
+  return _curItems;
+}
+
+function nullCmp<T>(a: T | null, b: T | null, cmp: (a: T, b: T) => number) {
+  if (a !== null && b !== null) {
+    return cmp(a, b);
+  } else if (a === null && b !== null) {
+    return 1;
+  } else if (a === null && b === null) {
+    return 0;
+  } else {
+    // if (a !== null && b === null)
+    return -1;
+  }
+}
+
+function dateCmp(a: Dayjs, b: Dayjs) {
+  if (a.isAfter(b)) {
+    return -1;
+  } else if (a.isSame(b)) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+export function getContactStackMetadata(
+  dupstack: DupStackWithItemsT
+): ContactStackMetadataT {
+  const items = dupstack.dup_stack_items
+    .sort()
+    .filter(
+      (dupstackItem) =>
+        dupstackItem.dup_type === "CONFIDENT" ||
+        dupstackItem.dup_type === "REFERENCE"
+    )
+    .map((dupstackItem) => dupstackItem.item) as Tables<"items">[];
+
+  const bestFilledIds = getMaxs(
+    items,
+    (a, b) => b.filled_score - a.filled_score
+  );
+  const bestFilledId = bestFilledIds.length === 1 ? bestFilledIds[0].id : null;
+
+  const lastEngagedIds = getMaxs(items, (a, b) => {
+    const Va = getContactColumns(a).hs_last_sales_activity_timestamp;
+    const Vb = getContactColumns(b).hs_last_sales_activity_timestamp;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastEngagedId =
+    lastEngagedIds.length === 1 &&
+    getContactColumns(lastEngagedIds[0]).hs_last_sales_activity_timestamp
+      ? lastEngagedIds[0].id
+      : null;
+
+  const lastContactedIds = getMaxs(items, (a, b) => {
+    const Va = getContactColumns(a).notes_last_contacted;
+    const Vb = getContactColumns(b).notes_last_contacted;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastContactedId =
+    lastContactedIds.length === 1 &&
+    getContactColumns(lastContactedIds[0]).notes_last_contacted
+      ? lastContactedIds[0].id
+      : null;
+
+  const lastActivityIds = getMaxs(items, (a, b) => {
+    const Va = getContactColumns(a).notes_last_updated;
+    const Vb = getContactColumns(b).notes_last_updated;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastActivityId =
+    lastActivityIds.length === 1 &&
+    getContactColumns(lastActivityIds[0]).notes_last_updated
+      ? lastActivityIds[0].id
+      : null;
+
+  const mostContactedIds = getMaxs(items, (a, b) => {
+    const Va = getContactColumns(a).num_contacted_notes;
+    const Vb = getContactColumns(b).num_contacted_notes;
+    return nullCmp(Va, Vb, (a, b) => b - a);
+  });
+  const mostContactedId =
+    mostContactedIds.length === 1 &&
+    getContactColumns(mostContactedIds[0]).num_contacted_notes
+      ? mostContactedIds[0].id
+      : null;
+
+  return {
+    cardTitle: "soon",
+    bestFilledId: bestFilledId,
+    lastEngagedId: lastEngagedId,
+    lastContactedId: lastContactedId,
+    lastActivityId: lastActivityId,
+    mostContactedId: mostContactedId,
   };
 }
 
 export function getContactRowInfos(
   workspaceHubId: string,
-  dupStackItem: DupStackItemWithItemT
+  dupStackItem: DupStackItemWithItemT,
+  stackMetadataG: any
 ): DupStackRowInfos {
   const item = dupStackItem.item;
   if (!item) {
     throw new Error("missing contact");
   }
 
+  const stackMetadata = stackMetadataG as ContactStackMetadataT;
+
   const itemColumns = getContactColumns(item);
+
+  const isLastEngaged = stackMetadata.lastEngagedId === dupStackItem.item_id;
+  const isMostContacted =
+    stackMetadata.mostContactedId === dupStackItem.item_id;
+  const isBestFilled = stackMetadata.bestFilledId === dupStackItem.item_id;
+  const isLastContacted =
+    stackMetadata.lastContactedId === dupStackItem.item_id;
+  const isLastActivity = stackMetadata.lastActivityId === dupStackItem.item_id;
 
   return {
     dup_type: dupStackItem.dup_type,
@@ -81,6 +233,79 @@ export function getContactRowInfos(
         value: itemColumns.phones,
         style: "text-gray-700",
         tips: "Phone numbers",
+      },
+      {
+        value: (
+          <div className="flex flex-col pt-1">
+            {isLastEngaged ||
+            isMostContacted ||
+            isLastContacted ||
+            isLastActivity ||
+            isBestFilled ? (
+              <>
+                {isBestFilled && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-yellow-50 w-fit h-fit leading-none">
+                    Best filled
+                  </div>
+                )}
+
+                {isLastEngaged && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md bg-orange-50 w-fit h-fit leading-none">
+                    Last engaged
+                  </div>
+                )}
+
+                {isLastContacted && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-pink-50 w-fit h-fit leading-none">
+                    Last contacted
+                  </div>
+                )}
+
+                {isLastActivity && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-purple-50 w-fit h-fit leading-none">
+                    Last activity
+                  </div>
+                )}
+
+                {isMostContacted && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-red-50 w-fit h-fit leading-none">
+                    Most contacted
+                  </div>
+                )}
+              </>
+            ) : (
+              <span
+                className={cn("text-gray-400 font-light w-full max-w-full")}
+              >
+                -
+              </span>
+            )}
+          </div>
+        ),
+        style: "text-gray-700",
+        tips: `
+Fields with values: ${item.filled_score}
+Last Engagement Date: ${
+          itemColumns.hs_last_sales_activity_timestamp
+            ? dayjs().to(itemColumns.hs_last_sales_activity_timestamp)
+            : "-"
+        }
+Last contacted: ${
+          itemColumns.notes_last_contacted
+            ? dayjs().to(itemColumns.notes_last_contacted)
+            : "-"
+        }
+Last activity date: ${
+          itemColumns.notes_last_updated
+            ? dayjs().to(itemColumns.notes_last_updated)
+            : "-"
+        }
+Number of times contacted: ${
+          itemColumns.num_contacted_notes
+            ? itemColumns.num_contacted_notes
+            : "-"
+        }
+`,
       },
       {
         value: itemColumns.hs_linkedinid ? (
@@ -115,7 +340,7 @@ export function getContactRowInfos(
 }
 
 export const contactScoring = {
-  fullname: {
+  name: {
     exact: 40,
     similar: 30,
     potential: 5,
@@ -145,7 +370,13 @@ export const contactScoring = {
     emptyBonusMultiplier: 1.2,
   },
 
-  company: {
+  hs_linkedinid: {
+    exact: 70,
+    notMatchingMalus: -30,
+    emptyBonus: 0,
+  },
+
+  companies: {
     exactMultiplier: 1.4,
 
     notMatchingMalus: -10,
@@ -172,7 +403,7 @@ export function contactSimilarityCheck(
     item_b_id: contactB.id,
 
     // Boilerplate, will be replaced later
-    field_type: "fullname",
+    field_type: "name",
     item_a_value: "",
     item_b_value: "",
     similarity_score: "unlikely",
@@ -189,7 +420,7 @@ export function contactSimilarityCheck(
     const fullNameSimilarityBase: TablesInsert<"similarities"> = {
       ...similarityBase,
       id: uuid(),
-      field_type: "fullname",
+      field_type: "name",
       item_a_value: aFullName,
       item_b_value: bFullName,
     };
@@ -349,6 +580,30 @@ export function contactSimilarityCheck(
     });
   });
 
+  // linkedin
+  if (
+    A.hs_linkedinid &&
+    B.hs_linkedinid &&
+    A.hs_linkedinid.length > 3 &&
+    B.hs_linkedinid.length > 3
+  ) {
+    const a = A.hs_linkedinid.trim().toLowerCase();
+    const b = B.hs_linkedinid.trim().toLowerCase();
+
+    if (a !== "" && b !== "") {
+      if (a == b) {
+        similarities.push({
+          ...similarityBase,
+          id: uuid(),
+          field_type: "hs_linkedinid",
+          item_a_value: a,
+          item_b_value: b,
+          similarity_score: "exact",
+        });
+      }
+    }
+  }
+
   // If there is no similarities or only unlikely ones, we skip, it will greatly reduce similarities db size
   // !!!
   // Note : Comapnies check is after, because it only acts as a multiplier for the dup score, so if there is only unlikely similarities,
@@ -369,7 +624,7 @@ export function contactSimilarityCheck(
       const companySimilarityBase: TablesInsert<"similarities"> = {
         ...similarityBase,
         id: uuid(),
-        field_type: "company",
+        field_type: "companies",
         item_a_value: companyA.id,
         item_b_value: companyB.id,
       };
