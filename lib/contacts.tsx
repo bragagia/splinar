@@ -490,7 +490,7 @@ export function contactSimilarityCheck(
       const emailSimilarityBase: TablesInsert<"similarities"> = {
         ...similarityBase,
         id: uuid(),
-        field_type: "email",
+        field_type: "emails",
         item_a_value: emailA,
         item_b_value: emailB,
       };
@@ -571,7 +571,7 @@ export function contactSimilarityCheck(
         similarities.push({
           ...similarityBase,
           id: uuid(),
-          field_type: "phone",
+          field_type: "phones",
           item_a_value: phoneA,
           item_b_value: phoneB,
           similarity_score: "exact",
