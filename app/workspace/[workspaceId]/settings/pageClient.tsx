@@ -19,12 +19,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
+import { getItemType } from "@/lib/items_common";
 import { URLS } from "@/lib/urls";
 import { Database, Tables } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+const util = require("util");
 
 export default function WorkspaceSettingsPageClient({
   subscription,
@@ -36,9 +39,14 @@ export default function WorkspaceSettingsPageClient({
   const router = useRouter();
   const user = useUser();
   const couponDateRef = useRef<HTMLInputElement>(null);
+  const itemCheck1Ref = useRef<HTMLInputElement>(null);
+  const itemCheck2Ref = useRef<HTMLInputElement>(null);
 
   const [resetWorkspaceLoading, setResetWorkspaceLoading] = useState(false);
   const [couponEndDate, setCouponEndDate] = useState<string | undefined>();
+  const [itemCheck1Val, setItemCheck1Val] = useState<string | undefined>();
+  const [itemCheck2Val, setItemCheck2Val] = useState<string | undefined>();
+  const [dupCheckResult, setDupCheckResult] = useState<string | undefined>();
 
   async function onResetWorkspace(
     reset: "dup_stacks" | "full" | "similarities_and_dup"
@@ -56,6 +64,75 @@ export default function WorkspaceSettingsPageClient({
     await supabase.from("workspaces").delete().eq("id", workspace.id);
     router.push(URLS.workspaceIndex);
   }
+
+  const onCheckDupStatus = useCallback(async () => {
+    if (!itemCheck1Val || !itemCheck2Val) {
+      return;
+    }
+
+    // TODO: Put this in server action to prevent the dupcheck code to be sent to front
+    const items = await supabase
+      .from("items")
+      .select()
+      .eq("workspace_id", workspace.id)
+      .in("distant_id", [itemCheck1Val, itemCheck2Val]);
+    if (items.error) {
+      setDupCheckResult(JSON.stringify(items.error, null, 2));
+      return;
+    }
+    if (!items.data || items.data.length != 2) {
+      setDupCheckResult("Couldn't fetch one of the two items");
+      return;
+    }
+
+    const a = items.data[0];
+    const b = items.data[1];
+    let res = "";
+    const log = (...str: any[]) => {
+      res += util.format(...str) + "\n";
+    };
+
+    let itemType = getItemType(a.item_type);
+
+    log("A:", JSON.stringify(itemType.getColumns(a), null, 2));
+    log(" ");
+    log(" ");
+
+    log("B:", JSON.stringify(itemType.getColumns(b), null, 2));
+    log(" ");
+    log(" ");
+
+    const similarities = itemType.similarityCheck(workspace.id, a, b) || [];
+
+    log("### Similarities: ");
+    if (similarities.length === 0) {
+      log("No similarities");
+    } else {
+      log(
+        similarities.map((similarity) => ({
+          field_type: similarity.field_type,
+          similarity_score: similarity.similarity_score,
+        }))
+      );
+    }
+
+    log(" ");
+    log(" ");
+
+    log("### Dup check:");
+    const dupRes = areItemsDups(
+      { ...a, similarities: similarities as Tables<"similarities">[] },
+      { ...b, similarities: similarities as Tables<"similarities">[] },
+      log
+    );
+
+    log(" ");
+    log(" ");
+
+    log("Dup result:", dupRes);
+
+    setDupCheckResult(res);
+  }, [supabase, workspace.id, itemCheck1Val, itemCheck2Val]);
 
   return (
     <div className="flex-1 space-y-4 w-full">
@@ -166,97 +243,171 @@ export default function WorkspaceSettingsPageClient({
       {/* SUPERADMIN SECTION */}
       {(user.role === "SUPERADMIN" ||
         process.env.NODE_ENV === "development") && (
-        <Card className="border-red-400">
-          <CardHeader>
-            <CardTitle className="text-xl">Superadmin zone</CardTitle>
-          </CardHeader>
+        <>
+          <Card className="border-red-400">
+            <CardHeader>
+              <CardTitle className="text-xl">Superadmin zone</CardTitle>
+            </CardHeader>
 
-          <CardContent className="grid gap-6">
-            <div className="flex items-center justify-between space-x-2">
-              <Label htmlFor="performance" className="flex flex-col space-y-1">
-                <span className="font-normal leading-snug text-muted-foreground">
-                  Any information stored like &quot;Not a duplicate&quot; flags
-                  will be lost /!\
-                </span>
-              </Label>
+            <CardContent className="grid gap-6">
+              <div className="flex items-center justify-between space-x-2">
+                <Label
+                  htmlFor="performance"
+                  className="flex flex-col space-y-1"
+                >
+                  <div className="flex flex-row space-x-1 items-center">
+                    <span className="font-normal leading-snug text-muted-foreground">
+                      A:
+                    </span>
 
-              <SpButton
-                className="shrink-0"
-                variant="fullDanger"
-                onClick={() => onResetWorkspace("dup_stacks")}
-                disabled={resetWorkspaceLoading}
-              >
-                Reset dup stacks
-              </SpButton>
-            </div>
+                    <input
+                      ref={itemCheck1Ref}
+                      className="border border-gray-400 rounded-md p-1"
+                      onChange={() =>
+                        setItemCheck1Val(itemCheck1Ref.current?.value)
+                      }
+                    />
+                  </div>
 
-            <div className="flex items-center justify-between space-x-2">
-              <Label htmlFor="performance" className="flex flex-col space-y-1">
-                <span className="font-normal leading-snug text-muted-foreground">
-                  -
-                </span>
-              </Label>
+                  <div className="flex flex-row space-x-1 items-center">
+                    <span className="font-normal leading-snug text-muted-foreground">
+                      B:
+                    </span>
 
-              <SpButton
-                className="shrink-0"
-                variant="fullDanger"
-                onClick={() => onResetWorkspace("similarities_and_dup")}
-                disabled={resetWorkspaceLoading}
-              >
-                Reset similarities
-              </SpButton>
-            </div>
+                    <input
+                      ref={itemCheck2Ref}
+                      className="border border-gray-400 rounded-md p-1"
+                      onChange={() =>
+                        setItemCheck2Val(itemCheck2Ref.current?.value)
+                      }
+                    />
+                  </div>
+                </Label>
 
-            <div className="flex items-center justify-between space-x-2">
-              <Label htmlFor="performance" className="flex flex-col space-y-1">
-                <span className="font-normal leading-snug text-muted-foreground">
-                  Note: Merged data stats will be kept
-                </span>
-              </Label>
+                <SpButton
+                  className="shrink-0"
+                  variant="full"
+                  onClick={onCheckDupStatus}
+                >
+                  Check dup status
+                </SpButton>
+              </div>
 
-              <SpButton
-                className="shrink-0"
-                variant="fullDanger"
-                onClick={() => onResetWorkspace("full")}
-                disabled={resetWorkspaceLoading}
-              >
-                Reset all workspace datas
-              </SpButton>
-            </div>
+              <div className="flex items-center justify-between space-x-2">
+                <Label
+                  htmlFor="performance"
+                  className="flex flex-col space-y-1"
+                >
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Any information stored like &quot;Not a duplicate&quot;
+                    flags will be lost /!\
+                  </span>
+                </Label>
 
-            <div className="flex items-center justify-between space-x-2">
-              <Label htmlFor="performance" className="flex flex-col space-y-1">
-                <span className="font-normal leading-snug text-muted-foreground">
-                  End date:
-                </span>
+                <SpButton
+                  className="shrink-0"
+                  variant="fullDanger"
+                  onClick={() => onResetWorkspace("dup_stacks")}
+                  disabled={resetWorkspaceLoading}
+                >
+                  Reset dup stacks
+                </SpButton>
+              </div>
 
-                <input
-                  ref={couponDateRef}
-                  type="date"
-                  onChange={() =>
-                    setCouponEndDate(couponDateRef.current?.value)
-                  }
-                />
-              </Label>
+              <div className="flex items-center justify-between space-x-2">
+                <Label
+                  htmlFor="performance"
+                  className="flex flex-col space-y-1"
+                >
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    -
+                  </span>
+                </Label>
 
-              <SpButton
-                className="shrink-0"
-                variant="full"
-                onClick={async () => {
-                  await addCouponSubscription(
-                    workspace.id,
-                    dayjs(couponEndDate || "").toISOString()
-                  );
+                <SpButton
+                  className="shrink-0"
+                  variant="fullDanger"
+                  onClick={() => onResetWorkspace("similarities_and_dup")}
+                  disabled={resetWorkspaceLoading}
+                >
+                  Reset similarities
+                </SpButton>
+              </div>
 
-                  location.reload();
-                }}
-                disabled={subscription || !couponEndDate ? true : false}
-              >
-                Add coupon subscription
-              </SpButton>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center justify-between space-x-2">
+                <Label
+                  htmlFor="performance"
+                  className="flex flex-col space-y-1"
+                >
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Note: Merged data stats will be kept
+                  </span>
+                </Label>
+
+                <SpButton
+                  className="shrink-0"
+                  variant="fullDanger"
+                  onClick={() => onResetWorkspace("full")}
+                  disabled={resetWorkspaceLoading}
+                >
+                  Reset all workspace datas
+                </SpButton>
+              </div>
+
+              <div className="flex items-center justify-between space-x-2">
+                <Label
+                  htmlFor="performance"
+                  className="flex flex-col space-y-1"
+                >
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    End date:
+                  </span>
+
+                  <input
+                    ref={couponDateRef}
+                    type="date"
+                    className="border border-gray-400 rounded-md p-1"
+                    onChange={() =>
+                      setCouponEndDate(couponDateRef.current?.value)
+                    }
+                  />
+                </Label>
+
+                <SpButton
+                  className="shrink-0"
+                  variant="full"
+                  onClick={async () => {
+                    await addCouponSubscription(
+                      workspace.id,
+                      dayjs(couponEndDate || "").toISOString()
+                    );
+
+                    location.reload();
+                  }}
+                  disabled={subscription || !couponEndDate ? true : false}
+                >
+                  Add coupon subscription
+                </SpButton>
+              </div>
+            </CardContent>
+          </Card>
+
+          {dupCheckResult && (
+            <Card className="border-red-400">
+              <CardHeader>
+                <CardTitle className="text-xl">DupCheck result</CardTitle>
+              </CardHeader>
+
+              <CardContent className="flex flex-col">
+                {dupCheckResult.split("\n").map((line, i) => (
+                  <p key={i} className="min-h-[20px]">
+                    {line}
+                  </p>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
       {/* END OF SUPERADMIN SECTION */}
     </div>

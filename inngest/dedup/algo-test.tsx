@@ -509,6 +509,36 @@ function AlgoTest() {
       },
       "CONFIDENT"
     ),
+
+    testContacts(
+      17,
+      "Same phone, but different person without company",
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Mathias",
+          lastname: "Bragagia",
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@blabla.com",
+          company_name: "",
+          companies: [companyA],
+        },
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Vincent",
+          lastname: "Abraham",
+          mobilephone: "0707070707",
+          email: "vincent@splinar.com",
+          company_name: "",
+          companies: [],
+        },
+      },
+      false // TODO: Not sure about this one
+    ),
   ];
 
   const validCount = tests.filter((test) => test).length;
@@ -535,8 +565,7 @@ function testContacts(
 
   const areDups = areItemsDups(
     { ...a, similarities: similarities as Tables<"similarities">[] },
-    { ...b, similarities: similarities as Tables<"similarities">[] },
-    false
+    { ...b, similarities: similarities as Tables<"similarities">[] }
   );
 
   if (areDups !== expected) {
@@ -563,7 +592,7 @@ function testContacts(
     areItemsDups(
       { ...a, similarities: similarities as Tables<"similarities">[] },
       { ...b, similarities: similarities as Tables<"similarities">[] },
-      true
+      console.log
     );
 
     console.log("#");

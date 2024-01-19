@@ -22,7 +22,7 @@ export type ValueScoringType = {
 export function areItemsDups(
   itemA: ItemWithSimilaritiesType,
   itemB: ItemWithSimilaritiesType,
-  verbose: boolean = false
+  log: (message?: any, ...optionalParams: any[]) => void = (...any) => {}
 ): "CONFIDENT" | "POTENTIAL" | false {
   if (!itemA || !itemB) {
     return false;
@@ -58,38 +58,36 @@ export function areItemsDups(
         const notMatchingMalus = scoring[field]["notMatchingMalus"];
         score += notMatchingMalus || 0;
 
-        if (verbose && notMatchingMalus !== undefined)
-          console.log(`[${field}] not matching - Malus: ${notMatchingMalus}`);
+        if (notMatchingMalus !== undefined)
+          log(`[${field}] not matching - Malus: ${notMatchingMalus}`);
 
         const notMatchingMalusMultiplier =
           scoring[field]["notMatchingMalusMultiplier"];
         multiplier *= notMatchingMalusMultiplier || 1;
 
-        if (verbose && notMatchingMalusMultiplier !== undefined)
-          console.log(
+        if (notMatchingMalusMultiplier !== undefined)
+          log(
             `[${field}] not matching - Malus multiplier: ${notMatchingMalusMultiplier}`
           );
       } else {
         const emptyBonus = scoring[field]["emptyBonus"];
         score += emptyBonus || 0;
 
-        if (verbose && emptyBonus !== undefined)
-          console.log(`[${field}] empty - Bonus: ${emptyBonus}`);
+        if (emptyBonus !== undefined)
+          log(`[${field}] empty - Bonus: ${emptyBonus}`);
 
         const emptyBonusMultiplier = scoring[field]["emptyBonusMultiplier"];
         multiplier *= emptyBonusMultiplier || 1;
 
-        if (verbose && emptyBonusMultiplier !== undefined)
-          console.log(
-            `[${field}] empty - Bonus multiplier: ${emptyBonusMultiplier}`
-          );
+        if (emptyBonusMultiplier !== undefined)
+          log(`[${field}] empty - Bonus multiplier: ${emptyBonusMultiplier}`);
       }
     } else {
       const similarityBonus = scoring[field][similarity.similarity_score];
       score += similarityBonus || 0;
 
-      if (verbose && similarityBonus !== undefined)
-        console.log(
+      if (similarityBonus !== undefined)
+        log(
           `[${field}] ${similarity.similarity_score} - Bonus: ${similarityBonus}`
         );
 
@@ -98,16 +96,15 @@ export function areItemsDups(
       ];
       multiplier *= similarityBonusMultiplier || 1;
 
-      if (verbose && similarityBonusMultiplier !== undefined)
-        console.log(
+      if (similarityBonusMultiplier !== undefined)
+        log(
           `[${field}] ${similarity.similarity_score} - Bonus multiplier: ${similarityBonusMultiplier}`
         );
     }
   });
 
   const finalScore = score * multiplier;
-  if (verbose)
-    console.log(`--- finalScore = ${score} * ${multiplier} = ${finalScore}`);
+  log(`--- finalScore = ${score} * ${multiplier} = ${finalScore}`);
 
   if (finalScore >= 80) {
     return "CONFIDENT";

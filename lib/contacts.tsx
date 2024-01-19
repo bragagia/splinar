@@ -350,7 +350,7 @@ export const contactScoring = {
     emptyBonusMultiplier: 1.2,
   },
 
-  email: {
+  emails: {
     exact: 180,
     similar: 140,
     potential: 70,
@@ -362,7 +362,7 @@ export const contactScoring = {
     emptyBonusMultiplier: 1.2,
   },
 
-  phone: {
+  phones: {
     exact: 70, // phones can be shared like a company, but can also be unique
 
     notMatchingMalus: -30,
