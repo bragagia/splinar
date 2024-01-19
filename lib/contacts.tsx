@@ -363,7 +363,7 @@ export const contactScoring = {
   },
 
   phones: {
-    exact: 70, // phones can be shared like a company, but can also be unique
+    exact: 35, // phones can be shared like a company, but can also be unique
 
     notMatchingMalus: -20,
 

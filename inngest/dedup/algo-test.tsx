@@ -56,7 +56,7 @@ function AlgoTest() {
           companies: [],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -297,7 +297,7 @@ function AlgoTest() {
           companies: [companyB],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -567,7 +567,37 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      "POTENTIAL" // TODO: Not sure about this one
+      "POTENTIAL"
+    ),
+
+    testContacts(
+      19,
+      "Same phone, but different email",
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Mathias",
+          lastname: "Bragagia",
+          mobilephone: "0707070707",
+          email: "mathias.bragagia@blabla.com",
+          company_name: "",
+          companies: [companyA],
+        },
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "",
+          lastname: "",
+          mobilephone: "0707070707",
+          email: "mb@larouequitourne.com",
+          company_name: null,
+          companies: [companyA],
+        },
+      },
+      false
     ),
   ];
 
