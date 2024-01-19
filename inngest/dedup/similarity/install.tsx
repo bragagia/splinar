@@ -65,7 +65,7 @@ async function genericCountSimilarities(
   console.log("Countint", itemType);
   const { count: itemsCount, error: errorCount } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("item_type", itemType)
     .eq("workspace_id", workspaceId);

@@ -657,7 +657,7 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      false
+      "POTENTIAL"
     ),
   ];
 
