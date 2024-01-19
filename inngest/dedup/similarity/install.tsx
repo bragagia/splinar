@@ -43,6 +43,7 @@ async function genericInstallSimilarities(
   itemType: itemTypeT,
   totalOffset: number = 0
 ) {
+  console.log("Countint", itemType);
   const { count: itemsCount, error: errorCount } = await supabase
     .from("items")
     .select("*", { count: "exact", head: true })
@@ -64,10 +65,11 @@ async function genericInstallSimilarities(
   let batchTotal = Math.ceil(limitedCount / SIMILARITIES_BATCH_SIZE);
   let totalOperations = (batchTotal + 1) * (batchTotal / 2);
 
+  console.log("Updating total batches to", totalOffset + totalOperations);
   const { error } = await supabase
     .from("workspaces")
     .update({
-      installation_similarities_total_batches: totalOffset + totalOperations, // Note: There may already have been some batch that ended and done may be incrementing when we do this update, but is should not pause a problem in real life situation
+      installation_similarities_total_batches: totalOffset + totalOperations, // Note: There may already have been some batch that ended and done may be incrementing when we do this update, but is should not create a problem in real life situation
     })
     .eq("id", workspaceId);
   if (error) {
@@ -81,6 +83,7 @@ async function genericInstallSimilarities(
     console.log(itemType + " similarities batch started: ", batchStarted);
   }
 
+  console.log("Starting", itemType, "sim check");
   await updateSimilarities(
     supabase,
     workspaceId,
