@@ -15,17 +15,19 @@ export async function calcWorkspaceUsageDetailed(
   // ! TODO: Calc from hubspot when needed
 
   const { count: contactsCount, error: errorContacts } = await supabase
-    .from("contacts")
+    .from("items")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", "CONTACTS");
   if (errorContacts || contactsCount === null) {
     throw errorContacts || new Error("Missing contact count");
   }
 
   const { count: companiesCount, error: errorCompanies } = await supabase
-    .from("companies")
+    .from("items")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", "COMPANIES");
   if (errorCompanies || companiesCount === null) {
     throw errorCompanies || new Error("Missing companies count");
   }

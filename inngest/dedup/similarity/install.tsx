@@ -26,22 +26,41 @@ export async function installSimilarities(
 
   let total = 0;
   for (var itemType of typesList) {
-    total += await genericInstallSimilarities(
+    total += await genericCountSimilarities(
       supabase,
       workspaceId,
       isFreeTier,
-      itemType,
-      total
+      itemType
+    );
+  }
+
+  console.log("Updating total batches to", total);
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      installation_similarities_total_batches: total,
+      installation_similarities_done_batches: 0,
+    })
+    .eq("id", workspaceId);
+  if (error) {
+    throw error;
+  }
+
+  for (var itemType of typesList) {
+    await genericInstallSimilarities(
+      supabase,
+      workspaceId,
+      isFreeTier,
+      itemType
     );
   }
 }
 
-async function genericInstallSimilarities(
+async function genericCountSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   isFreeTier: boolean,
-  itemType: itemTypeT,
-  totalOffset: number = 0
+  itemType: itemTypeT
 ) {
   console.log("Countint", itemType);
   const { count: itemsCount, error: errorCount } = await supabase
@@ -65,17 +84,15 @@ async function genericInstallSimilarities(
   let batchTotal = Math.ceil(limitedCount / SIMILARITIES_BATCH_SIZE);
   let totalOperations = (batchTotal + 1) * (batchTotal / 2);
 
-  console.log("Updating total batches to", totalOffset + totalOperations);
-  const { error } = await supabase
-    .from("workspaces")
-    .update({
-      installation_similarities_total_batches: totalOffset + totalOperations, // Note: There may already have been some batch that ended and done may be incrementing when we do this update, but is should not create a problem in real life situation
-    })
-    .eq("id", workspaceId);
-  if (error) {
-    throw error;
-  }
+  return totalOperations;
+}
 
+async function genericInstallSimilarities(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  isFreeTier: boolean,
+  itemType: itemTypeT
+) {
   let batchStarted = 0;
   async function incrementBatchStarted() {
     batchStarted += 1;
@@ -91,6 +108,4 @@ async function genericInstallSimilarities(
     itemType,
     incrementBatchStarted
   );
-
-  return totalOffset + totalOperations;
 }
