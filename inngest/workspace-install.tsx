@@ -45,12 +45,14 @@ export default inngest.createFunction(
       if (reset) {
         logger.info("-> reset -", reset);
 
+        console.log("-> dup_stack_items");
         const { error: error1 } = await supabaseAdmin
           .from("dup_stack_items")
           .delete()
           .eq("workspace_id", workspaceId);
         if (error1) throw error1;
 
+        console.log("-> dup_stacks");
         const { error: error3 } = await supabaseAdmin
           .from("dup_stacks")
           .delete()
@@ -58,6 +60,7 @@ export default inngest.createFunction(
         if (error3) throw error3;
 
         if (reset === "full" || reset === "similarities_and_dup") {
+          console.log("-> similarities");
           const { error: error4 } = await supabaseAdmin
             .from("similarities")
             .delete()
@@ -71,6 +74,7 @@ export default inngest.createFunction(
         };
 
         if (reset === "full") {
+          console.log("-> items");
           const { error: error7 } = await supabaseAdmin
             .from("items")
             .delete()
@@ -99,6 +103,7 @@ export default inngest.createFunction(
             workspaceUpdate.installation_similarities_done_batches = 0;
           }
 
+          console.log("-> reset items status");
           const { error: error9 } = await supabaseAdmin
             .from("items")
             .update(update)
@@ -107,6 +112,7 @@ export default inngest.createFunction(
           if (error9) throw error9;
         }
 
+        console.log("-> update workspace");
         const { error: error10 } = await supabaseAdmin
           .from("workspaces")
           .update(workspaceUpdate)
