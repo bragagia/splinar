@@ -59,6 +59,7 @@ export default function DuplicatesPage() {
         .select(undefined, { count: "exact", head: true })
         .eq("item_type", itemType)
         .eq("workspace_id", workspace.id)
+        .limit(0)
         .then(({ count, error }) => {
           if (error) {
             throw error;

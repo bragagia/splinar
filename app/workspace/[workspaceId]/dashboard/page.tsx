@@ -21,25 +21,28 @@ export default async function WorkspacePage({
 
   const { count: dupStackCount, error: errorDupStack } = await supabase
     .from("dup_stacks")
-    .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
+    .select(undefined, { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .limit(0);
   if (errorDupStack || dupStackCount === null) {
     throw errorDupStack || new Error("Missing dupstack count");
   }
 
   const { count: dupstackCount, error: errorDupStackCount } = await supabase
     .from("dup_stack_items")
-    .select("*", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
+    .select(undefined, { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .limit(0);
   if (errorDupStackCount) {
     throw errorDupStackCount;
   }
 
   const { count: mergedCount, error: errorMergedContactsCount } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .not("merged_in_distant_id", "is", null)
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .limit(0);
   if (errorMergedContactsCount) {
     throw errorMergedContactsCount;
   }

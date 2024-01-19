@@ -17,11 +17,12 @@ export async function updateDupStackInstallationTotal(
 ) {
   const { count: dupTotalContacts, error: errorContacts } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId)
     .eq("similarity_checked", true)
-    .eq("dup_checked", false);
+    .eq("dup_checked", false)
+    .limit(0);
   if (errorContacts || dupTotalContacts === null) {
     throw errorContacts || new Error("missing count on contacts");
   }
@@ -55,11 +56,12 @@ async function updateDupStackInstallationDone(
 
   const { count: dupContactsRemaining, error: errorContacts } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId)
     .eq("similarity_checked", true)
-    .eq("dup_checked", false);
+    .eq("dup_checked", false)
+    .limit(0);
   if (errorContacts || dupContactsRemaining === null) {
     throw errorContacts || new Error("missing count");
   }

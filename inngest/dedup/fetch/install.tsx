@@ -92,9 +92,10 @@ export async function updateInstallItemsCount(
 ) {
   const items = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .limit(0);
   if (items.error) {
     throw items.error;
   }

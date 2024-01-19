@@ -68,7 +68,8 @@ async function genericCountSimilarities(
     .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("item_type", itemType)
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .limit(0);
   if (errorCount || itemsCount === null) {
     throw errorCount || new Error("itemsCount: missing");
   }

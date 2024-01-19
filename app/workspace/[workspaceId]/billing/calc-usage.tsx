@@ -16,18 +16,20 @@ export async function calcWorkspaceUsageDetailed(
 
   const { count: contactsCount, error: errorContacts } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
-    .eq("item_type", "CONTACTS");
+    .eq("item_type", "CONTACTS")
+    .limit(0);
   if (errorContacts || contactsCount === null) {
     throw errorContacts || new Error("Missing contact count");
   }
 
   const { count: companiesCount, error: errorCompanies } = await supabase
     .from("items")
-    .select("*", { count: "exact", head: true })
+    .select(undefined, { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
-    .eq("item_type", "COMPANIES");
+    .eq("item_type", "COMPANIES")
+    .limit(0);
   if (errorCompanies || companiesCount === null) {
     throw errorCompanies || new Error("Missing companies count");
   }
