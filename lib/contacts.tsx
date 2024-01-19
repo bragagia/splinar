@@ -341,7 +341,7 @@ Number of times contacted: ${
 
 export const contactScoring = {
   name: {
-    exact: 40,
+    exact: 50,
     similar: 30,
     potential: 5,
 
@@ -357,7 +357,7 @@ export const contactScoring = {
     unlikely: 5,
     unlikelyMultiplier: 1.1,
 
-    notMatchingMalus: -30,
+    notMatchingMalus: -20,
 
     emptyBonusMultiplier: 1.2,
   },
@@ -365,7 +365,7 @@ export const contactScoring = {
   phones: {
     exact: 70, // phones can be shared like a company, but can also be unique
 
-    notMatchingMalus: -30,
+    notMatchingMalus: -20,
 
     emptyBonusMultiplier: 1.2,
   },
@@ -379,7 +379,7 @@ export const contactScoring = {
   companies: {
     exactMultiplier: 1.4,
 
-    notMatchingMalus: -10,
+    notMatchingMalus: -20,
     notMatchingMalusMultiplier: 0.7,
 
     emptyBonusMultiplier: 1,
