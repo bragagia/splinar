@@ -347,7 +347,7 @@ export const contactScoring = {
 
     notMatchingMalus: -80,
 
-    emptyBonusMultiplier: 1.2,
+    emptyBonusMultiplier: 1,
   },
 
   emails: {
@@ -359,7 +359,7 @@ export const contactScoring = {
 
     notMatchingMalus: -20,
 
-    emptyBonusMultiplier: 1.2,
+    emptyBonusMultiplier: 1,
   },
 
   phones: {
@@ -367,7 +367,7 @@ export const contactScoring = {
 
     notMatchingMalus: -20,
 
-    emptyBonusMultiplier: 1.2,
+    emptyBonusMultiplier: 1,
   },
 
   hs_linkedinid: {

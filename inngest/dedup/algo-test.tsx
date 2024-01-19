@@ -206,7 +206,7 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -595,6 +595,36 @@ function AlgoTest() {
           email: "mb@larouequitourne.com",
           company_name: null,
           companies: [companyA],
+        },
+      },
+      false
+    ),
+
+    testContacts(
+      20,
+      "Same name, but different email",
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Mathias",
+          lastname: "Bragagia",
+          mobilephone: null,
+          email: "mathias.bragagia@blabla.com",
+          company_name: "",
+          companies: [],
+        },
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Mathias",
+          lastname: "Bragagia",
+          mobilephone: null,
+          email: "mb@larouequitourne.com",
+          company_name: null,
+          companies: [],
         },
       },
       false
