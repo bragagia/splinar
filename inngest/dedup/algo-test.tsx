@@ -629,6 +629,36 @@ function AlgoTest() {
       },
       false
     ),
+
+    testContacts(
+      20,
+      "Same mail and company, but different name and phone",
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Mathias",
+          lastname: "Bragagia",
+          mobilephone: "01234567",
+          email: "mathias.bragagia@blabla.com",
+          company_name: "",
+          companies: [companyA],
+        },
+      },
+      {
+        ...baseContact,
+        id: uuid(),
+        value: {
+          firstname: "Vincent",
+          lastname: "Abraham",
+          mobilephone: "077777777",
+          email: "mathias.bragagia@blabla.com",
+          company_name: null,
+          companies: [companyA],
+        },
+      },
+      false
+    ),
   ];
 
   const validCount = tests.filter((test) => test).length;

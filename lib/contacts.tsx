@@ -345,14 +345,14 @@ export const contactScoring = {
     similar: 30,
     potential: 5,
 
-    notMatchingMalus: -80,
+    notMatchingMalus: -50,
 
     emptyBonusMultiplier: 1,
   },
 
   emails: {
-    exact: 180,
-    similar: 140,
+    exact: 100,
+    similar: 80,
     potential: 70,
     unlikely: 5,
     unlikelyMultiplier: 1.1,
