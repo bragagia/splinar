@@ -1,4 +1,5 @@
 import { inngest } from "@/inngest";
+import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
 import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
@@ -41,7 +42,7 @@ export async function fetchCompanies(
         workspace_id: workspaceId,
         distant_id: company.id,
         item_type: "COMPANIES",
-        value: company.properties,
+        value: deleteNullKeys(company.properties),
         dup_checked: false,
         similarity_checked: false,
         filled_score: 0,

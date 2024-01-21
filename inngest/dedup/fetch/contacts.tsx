@@ -53,7 +53,10 @@ export async function fetchContacts(
         workspace_id: workspaceId,
         distant_id: contact.id,
         item_type: "CONTACTS",
-        value: { ...contact.properties, companies: contactCompanies },
+        value: {
+          ...deleteNullKeys(contact.properties),
+          companies: contactCompanies,
+        },
         similarity_checked: false,
         dup_checked: false,
         filled_score: 0, // Calculated below
@@ -107,4 +110,17 @@ export async function fetchContacts(
       workspaceId: workspaceId,
     },
   });
+}
+
+export function deleteNullKeys(values: { [key: string]: string | null }) {
+  let newValues: { [key: string]: string } = {};
+
+  Object.keys(values).forEach((key) => {
+    const val = values[key];
+    if (val !== null) {
+      newValues[key] = val;
+    }
+  });
+
+  return newValues;
 }
