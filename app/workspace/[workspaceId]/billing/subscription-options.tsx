@@ -101,7 +101,7 @@ export function SubscriptionOptions({
         </p>
 
         <p className="text-gray-400 text-sm font-medium mt-2">
-          10€ + 1€ per 1000 items per month
+          1€ per 1000 items per month
         </p>
 
         <p className="text-gray-600 text-md mt-6">

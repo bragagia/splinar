@@ -55,9 +55,9 @@ export default function DuplicatesPage() {
   useEffect(() => {
     typesList.forEach((itemType) => {
       supabase
-        .from("dup_stacks")
-        .select(undefined, { count: "exact", head: true })
-        .eq("item_type", itemType)
+        .from("dup_stack_items")
+        .select("*, items!inner (*)", { count: "exact", head: true })
+        .eq("items.item_type", itemType)
         .eq("workspace_id", workspace.id)
         .limit(0)
         .then(({ count, error }) => {

@@ -41,6 +41,6 @@ export async function calcWorkspaceUsageDetailed(
     companiesTotal: companiesCount,
     usage: roundItemsCount,
     usagePrice: roundItemsCount * 1,
-    priceTotal: roundItemsCount * 1 + 10,
+    priceTotal: roundItemsCount * 1,
   };
 }
