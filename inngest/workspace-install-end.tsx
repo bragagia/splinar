@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
-  { id: "workspace-install-end" },
+  { id: "workspace-install-end", retries: 0 },
   { event: "workspace/any/dups/install.finished" },
   async ({ event, step, logger }) => {
     logger.info("# workspaceInstallEnd");

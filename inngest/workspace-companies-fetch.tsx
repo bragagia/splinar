@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
-  { id: "workspace-companies-fetch" },
+  { id: "workspace-companies-fetch", retries: 0 },
   { event: "workspace/companies/fetch.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;

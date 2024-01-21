@@ -25,6 +25,8 @@ export async function resolveNextDuplicatesStack(
 
   startWithItem?: ItemWithSimilaritiesType
 ): Promise<boolean> {
+  const startTime = performance.now();
+
   let referenceItem: ItemWithSimilaritiesType;
 
   if (startWithItem) {
@@ -126,6 +128,12 @@ export async function resolveNextDuplicatesStack(
     await addChildsToStack(referenceItem.id, false);
   } catch (newReferenceItem) {
     if (isAT(newReferenceItem)) {
+      console.log(
+        "########### [PERF] resolveNextDupStack FIRST ATTEMPT:",
+        Math.round(performance.now() - startTime),
+        "ms"
+      );
+
       return await resolveNextDuplicatesStack(
         supabase,
         workspaceId,
@@ -162,6 +170,12 @@ export async function resolveNextDuplicatesStack(
 
   // Mark dupstack elements as dup_checked, at least the contact that was analysed
   await markDupstackElementsAsDupChecked(supabase, workspaceId, allDupsId);
+
+  console.log(
+    "########### [PERF] resolveNextDupStack:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 
   return true;
 }
@@ -241,7 +255,8 @@ async function fetchNextReference(
   supabase: SupabaseClient<Database>,
   workspaceId: string
 ) {
-  // const startTime = performance.now();
+  const startTime = performance.now();
+
   const { data, error } = await supabase
     .from("items")
     .select(
@@ -268,11 +283,11 @@ async function fetchNextReference(
     ) as Tables<"similarities">[],
   };
 
-  //console.log(
-  //  "### [PERF] fetchNextContactReference:",
-  //  Math.round(performance.now() - startTime),
-  //  "ms"
-  //);
+  console.log(
+    "### [PERF] fetchNextContactReference:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 
   return contact;
 }
@@ -285,7 +300,7 @@ export async function fetchSortedSimilar(
   },
   parentContactId: string
 ) {
-  // const startTime = performance.now();
+  const startTime = performance.now();
 
   const parentContact = contactsCacheById[parentContactId];
 
@@ -364,11 +379,11 @@ export async function fetchSortedSimilar(
 
   res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
 
-  //console.log(
-  //  "### [PERF] fetchSimilarContactsSortedByFillScore:",
-  //  Math.round(performance.now() - startTime),
-  //  "ms"
-  //);
+  console.log(
+    "### [PERF] fetchSimilarSortedByFillScore:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 
   return res;
 }
@@ -379,7 +394,7 @@ async function createDupstack(
   genericDupstack: GenericDupStack,
   itemType: itemTypeT
 ) {
-  // const startTime = performance.now();
+  const startTime = performance.now();
 
   const dupstackId = uuid();
   const dupstack: TablesInsert<"dup_stacks"> = {
@@ -428,11 +443,11 @@ async function createDupstack(
     throw errorDupstackContact;
   }
 
-  //console.log(
-  //  "### [PERF] createContactsDupstack:",
-  //  Math.round(performance.now() - startTime),
-  //  "ms"
-  //);
+  console.log(
+    "### [PERF] createDupstack:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 }
 
 async function markDupstackElementsAsDupChecked(
@@ -440,7 +455,7 @@ async function markDupstackElementsAsDupChecked(
   workspaceId: string,
   dupstackIds: string[]
 ) {
-  // const startTime = performance.now();
+  const startTime = performance.now();
 
   for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error: errorChecked } = await supabase
@@ -453,9 +468,9 @@ async function markDupstackElementsAsDupChecked(
     }
   }
 
-  //console.log(
-  //  "### [PERF] markContactDupstackElementsAsDupChecked:",
-  //  Math.round(performance.now() - startTime),
-  //  "ms"
-  //);
+  console.log(
+    "### [PERF] markDupstackElementsAsDupChecked:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
 }

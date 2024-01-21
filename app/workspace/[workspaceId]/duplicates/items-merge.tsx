@@ -2,6 +2,7 @@
 
 import { newHubspotClient } from "@/lib/hubspot";
 import { getItemType } from "@/lib/items_common";
+import { captureException } from "@/lib/sentry";
 import {
   DupStackWithItemsT,
   getDupstackConfidents,
@@ -11,7 +12,6 @@ import {
 } from "@/types/dupstacks";
 import { Database, Tables } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
-import { captureException } from "@sentry/node";
 import {
   SupabaseClient,
   createServerActionClient,

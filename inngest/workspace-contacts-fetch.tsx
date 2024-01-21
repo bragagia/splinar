@@ -1,11 +1,11 @@
+import { fetchContacts } from "@/inngest/dedup/fetch/contacts";
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
-import { fetchContacts } from "@/inngest/dedup/fetch/contacts";
 
 export default inngest.createFunction(
-  { id: "workspace-contacts-fetch" },
+  { id: "workspace-contacts-fetch", retries: 0 },
   { event: "workspace/contacts/fetch.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;

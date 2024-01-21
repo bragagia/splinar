@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
-  { id: "workspace-similarities-batch-install" },
+  { id: "workspace-similarities-batch-install", retries: 0 },
   { event: "workspace/similarities/batch-install.start" },
   async ({ event, step, logger }) => {
     logger.info("# similaritiesBatchEval");

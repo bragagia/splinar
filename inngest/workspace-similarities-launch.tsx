@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
-  { id: "workspace-similarities-launch" },
+  { id: "workspace-similarities-launch", retries: 0 },
   { event: "workspace/all/fetch.finished" },
   async ({ event, step, logger }) => {
     logger.info("# workspaceSimilaritiesLaunch");

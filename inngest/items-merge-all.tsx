@@ -8,7 +8,7 @@ import { inngest } from "./client";
 const MAX_IT = 2;
 
 export default inngest.createFunction(
-  { id: "items-merge-all" },
+  { id: "items-merge-all", retries: 0 },
   { event: "items/merge-all.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
