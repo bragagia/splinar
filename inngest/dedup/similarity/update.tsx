@@ -1,4 +1,3 @@
-import { inngest } from "@/inngest";
 import { itemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
@@ -16,6 +15,8 @@ export async function updateSimilarities(
 ) {
   let batchLength = 0;
   let count = 0;
+
+  let payloads: { name: string; data: any }[] = [];
 
   do {
     let query = supabase
@@ -39,7 +40,7 @@ export async function updateSimilarities(
 
     const batchIds = batch.map((o) => o.id);
 
-    await inngest.send({
+    payloads.push({
       name: "workspace/similarities/batch-install.start",
       data: {
         workspaceId: workspaceId,
@@ -52,13 +53,14 @@ export async function updateSimilarities(
       await afterBatchCallback();
     }
 
-    await compareBatchWithAllInstalledBatches(
+    const payloadRet = await compareBatchWithAllInstalledBatches(
       supabase,
       workspaceId,
       table,
       batchIds,
       afterBatchCallback
     );
+    payloads.push(...payloadRet);
 
     await markBatchInstalled(supabase, batchIds);
 
@@ -67,6 +69,8 @@ export async function updateSimilarities(
     batchLength === SIMILARITIES_BATCH_SIZE &&
     (!isFreeTier || count < FREE_TIER_BATCH_LIMIT)
   );
+
+  return payloads;
 }
 
 async function markBatchInstalled(
@@ -91,6 +95,8 @@ async function compareBatchWithAllInstalledBatches(
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
+  let payloads: { name: string; data: any }[] = [];
+
   let lastItemId: string | null = null;
   do {
     let query = supabase
@@ -118,7 +124,7 @@ async function compareBatchWithAllInstalledBatches(
 
     const installedBatchIds = installedBatch.map((o) => o.id);
 
-    await inngest.send({
+    payloads.push({
       name: "workspace/similarities/batch-install.start",
       data: {
         workspaceId: workspaceId,
@@ -137,4 +143,6 @@ async function compareBatchWithAllInstalledBatches(
       lastItemId = null;
     }
   } while (lastItemId);
+
+  return payloads;
 }

@@ -1,4 +1,5 @@
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
+import { inngest } from "@/inngest";
 import {
   FREE_TIER_BATCH_LIMIT,
   SIMILARITIES_BATCH_SIZE,
@@ -46,13 +47,19 @@ export async function installSimilarities(
     throw error;
   }
 
+  let payloads: { name: string; data: any }[] = [];
   for (var itemType of typesList) {
-    await genericInstallSimilarities(
+    const ret = await genericInstallSimilarities(
       supabase,
       workspaceId,
       isFreeTier,
       itemType
     );
+    payloads.push(...ret);
+  }
+
+  for (let payload of payloads) {
+    await inngest.send(payload as any);
   }
 }
 
@@ -102,7 +109,7 @@ async function genericInstallSimilarities(
   }
 
   console.log("Starting", itemType, "sim check");
-  await updateSimilarities(
+  return await updateSimilarities(
     supabase,
     workspaceId,
     isFreeTier,
