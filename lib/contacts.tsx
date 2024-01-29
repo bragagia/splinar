@@ -4,13 +4,14 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import { getCompanyColumns } from "@/lib/companies";
+import { getMaxs, nullCmp, dateCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { ItemLink } from "@/types/items";
 import { Tables, TablesInsert } from "@/types/supabase";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
@@ -75,48 +76,6 @@ export type ContactStackMetadataT = {
   lastActivityId: string | null;
   mostContactedId: string | null;
 };
-
-// Return the list of max equal values
-function getMaxs<T>(array: T[], comparator: (a: T, b: T) => number): T[] {
-  let _curItems: T[] = [array[0]];
-
-  array.slice(1).forEach((item) => {
-    let cmp = comparator(_curItems[0], item);
-
-    if (cmp > 0) {
-      _curItems = [item];
-    } else if (cmp === 0) {
-      _curItems.push(item);
-    } else {
-      // Do nothing
-    }
-  });
-
-  return _curItems;
-}
-
-function nullCmp<T>(a: T | null, b: T | null, cmp: (a: T, b: T) => number) {
-  if (a !== null && b !== null) {
-    return cmp(a, b);
-  } else if (a === null && b !== null) {
-    return 1;
-  } else if (a === null && b === null) {
-    return 0;
-  } else {
-    // if (a !== null && b === null)
-    return -1;
-  }
-}
-
-function dateCmp(a: Dayjs, b: Dayjs) {
-  if (a.isAfter(b)) {
-    return -1;
-  } else if (a.isSame(b)) {
-    return 0;
-  } else {
-    return 1;
-  }
-}
 
 export function getContactStackMetadata(
   dupstack: DupStackWithItemsT

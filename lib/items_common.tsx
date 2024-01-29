@@ -3,6 +3,7 @@ import {
   companyScoring,
   getCompanyColumns,
   getCompanyRowInfos,
+  getCompanyStackMetadata,
 } from "@/lib/companies";
 import {
   contactScoring,
@@ -33,7 +34,7 @@ export function getItemType(itemType: itemTypeT) {
 
       dupScoring: companyScoring,
 
-      getStackMetadata: getContactStackMetadata, // TODO:
+      getStackMetadata: getCompanyStackMetadata,
 
       getDistantMergeFn: (hsClient: Client) =>
         hsClient?.crm.companies.publicObjectApi.merge,

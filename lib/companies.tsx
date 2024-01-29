@@ -5,10 +5,13 @@ import {
   StandardLinkButton,
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
+import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
-import { DupStackItemWithItemT } from "@/types/dupstacks";
+import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Tables, TablesInsert } from "@/types/supabase";
+import dayjs from "dayjs";
 import stringSimilarity from "string-similarity";
 
 export function getCompanyColumns(item: Tables<"items">) {
@@ -32,6 +35,152 @@ export function getCompanyColumns(item: Tables<"items">) {
     address: address !== "" ? address : null,
     facebook_company_page: value.facebook_company_page as string | null,
     twitterhandle: value.twitterhandle as string | null,
+
+    hs_createdate: value.hs_createdate ? dayjs(value.hs_createdate) : null, // Object create date/time
+
+    hs_last_booked_meeting_date: value.hs_last_booked_meeting_date
+      ? dayjs(value.hs_last_booked_meeting_date)
+      : null, // Last Booked Meeting Date
+
+    hs_last_logged_call_date: value.hs_last_logged_call_date
+      ? dayjs(value.hs_last_logged_call_date)
+      : null, // Last Logged Call Date
+
+    hs_last_open_task_date: value.hs_last_open_task_date
+      ? dayjs(value.hs_last_open_task_date)
+      : null, // Last Open Task Date
+
+    hs_last_sales_activity_timestamp: value.hs_last_sales_activity_timestamp
+      ? dayjs(value.hs_last_sales_activity_timestamp)
+      : null, // Last Engagement Date
+
+    notes_last_contacted: value.notes_last_contacted
+      ? dayjs(value.notes_last_contacted)
+      : null, // Last Contacted
+
+    notes_last_updated: value.notes_last_updated
+      ? dayjs(value.notes_last_updated)
+      : null, // Last Activity Date
+  };
+}
+
+export type CompanyStackMetadataT = {
+  cardTitle: string;
+  bestFilledId: string | null;
+  firstCreatedId: string | null;
+  lastBookedMeetingId: string | null;
+  lastLoggedCallId: string | null;
+  lastOpenTaskId: string | null;
+  lastEngagedId: string | null;
+  lastContactedId: string | null;
+  lastActivityId: string | null;
+};
+
+export function getCompanyStackMetadata(
+  dupstack: DupStackWithItemsT
+): CompanyStackMetadataT {
+  const items = dupstack.dup_stack_items
+    .sort()
+    .filter(
+      (dupstackItem) =>
+        dupstackItem.dup_type === "CONFIDENT" ||
+        dupstackItem.dup_type === "REFERENCE"
+    )
+    .map((dupstackItem) => dupstackItem.item) as Tables<"items">[];
+
+  const bestFilledIds = getMaxs(
+    items,
+    (a, b) => b.filled_score - a.filled_score
+  );
+  const bestFilledId = bestFilledIds.length === 1 ? bestFilledIds[0].id : null;
+
+  const firstCreatedIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).hs_createdate;
+    const Vb = getCompanyColumns(b).hs_createdate;
+    return nullCmp(Va, Vb, (a, b) => -dateCmp(a, b));
+  });
+  const firstCreatedId =
+    firstCreatedIds.length === 1 &&
+    getCompanyColumns(firstCreatedIds[0]).hs_createdate
+      ? firstCreatedIds[0].id
+      : null;
+
+  const lastBookedMeetingIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).hs_last_booked_meeting_date;
+    const Vb = getCompanyColumns(b).hs_last_booked_meeting_date;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastBookedMeetingId =
+    lastBookedMeetingIds.length === 1 &&
+    getCompanyColumns(lastBookedMeetingIds[0]).hs_last_booked_meeting_date
+      ? lastBookedMeetingIds[0].id
+      : null;
+
+  const lastLoggedCallIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).hs_last_logged_call_date;
+    const Vb = getCompanyColumns(b).hs_last_logged_call_date;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastLoggedCallId =
+    lastLoggedCallIds.length === 1 &&
+    getCompanyColumns(lastLoggedCallIds[0]).hs_last_logged_call_date
+      ? lastLoggedCallIds[0].id
+      : null;
+
+  const lastOpenTaskIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).hs_last_open_task_date;
+    const Vb = getCompanyColumns(b).hs_last_open_task_date;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastOpenTaskId =
+    lastOpenTaskIds.length === 1 &&
+    getCompanyColumns(lastOpenTaskIds[0]).hs_last_open_task_date
+      ? lastOpenTaskIds[0].id
+      : null;
+
+  const lastEngagedIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).hs_last_sales_activity_timestamp;
+    const Vb = getCompanyColumns(b).hs_last_sales_activity_timestamp;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastEngagedId =
+    lastEngagedIds.length === 1 &&
+    getCompanyColumns(lastEngagedIds[0]).hs_last_sales_activity_timestamp
+      ? lastEngagedIds[0].id
+      : null;
+
+  const lastContactedIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).notes_last_contacted;
+    const Vb = getCompanyColumns(b).notes_last_contacted;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastContactedId =
+    lastContactedIds.length === 1 &&
+    getCompanyColumns(lastContactedIds[0]).notes_last_contacted
+      ? lastContactedIds[0].id
+      : null;
+
+  const lastActivityIds = getMaxs(items, (a, b) => {
+    const Va = getCompanyColumns(a).notes_last_updated;
+    const Vb = getCompanyColumns(b).notes_last_updated;
+    return nullCmp(Va, Vb, (a, b) => dateCmp(a, b));
+  });
+  const lastActivityId =
+    lastActivityIds.length === 1 &&
+    getCompanyColumns(lastActivityIds[0]).notes_last_updated
+      ? lastActivityIds[0].id
+      : null;
+
+  return {
+    cardTitle: "soon",
+    bestFilledId: bestFilledId,
+    firstCreatedId: firstCreatedId,
+    lastBookedMeetingId: lastBookedMeetingId,
+    lastLoggedCallId: lastLoggedCallId,
+    lastOpenTaskId: lastOpenTaskId,
+    lastEngagedId: lastEngagedId,
+    lastContactedId: lastContactedId,
+    lastActivityId: lastActivityId,
   };
 }
 
@@ -46,6 +195,21 @@ export function getCompanyRowInfos(
   }
 
   const itemValue = getCompanyColumns(item);
+
+  const stackMetadata = stackMetadataG as CompanyStackMetadataT;
+
+  const isBestFilled = stackMetadata.bestFilledId === dupStackItem.item_id;
+  const isFirstCreated = stackMetadata.firstCreatedId === dupStackItem.item_id;
+  const isLastBooked =
+    stackMetadata.lastBookedMeetingId === dupStackItem.item_id;
+  const isLastLoggedCall =
+    stackMetadata.lastLoggedCallId === dupStackItem.item_id;
+  const isLastOpenedTask =
+    stackMetadata.lastOpenTaskId === dupStackItem.item_id;
+  const isLastEngaged = stackMetadata.lastEngagedId === dupStackItem.item_id;
+  const isLastContacted =
+    stackMetadata.lastContactedId === dupStackItem.item_id;
+  const isLastActivity = stackMetadata.lastActivityId === dupStackItem.item_id;
 
   return {
     dup_type: dupStackItem.dup_type,
@@ -81,6 +245,110 @@ export function getCompanyRowInfos(
         ) : null,
         style: "text-gray-700",
         tips: "Linkedin page",
+      },
+
+      {
+        value: (
+          <div className="flex flex-col pt-1">
+            {isBestFilled ||
+            isFirstCreated ||
+            isLastBooked ||
+            isLastLoggedCall ||
+            isLastOpenedTask ||
+            isLastEngaged ||
+            isLastContacted ||
+            isLastActivity ? (
+              <>
+                {isBestFilled && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-yellow-50 w-fit h-fit leading-none">
+                    Best filled
+                  </div>
+                )}
+
+                {isFirstCreated && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md bg-orange-50 w-fit h-fit leading-none">
+                    First created
+                  </div>
+                )}
+
+                {isLastBooked && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-pink-50 w-fit h-fit leading-none">
+                    Last booked
+                  </div>
+                )}
+
+                {isLastLoggedCall && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-purple-50 w-fit h-fit leading-none">
+                    Last Logged Call
+                  </div>
+                )}
+
+                {isLastOpenedTask && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-violet-50 w-fit h-fit leading-none">
+                    Last Opened Task
+                  </div>
+                )}
+
+                {isLastEngaged && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-fuchsia-50 w-fit h-fit leading-none">
+                    Last Engagement Date
+                  </div>
+                )}
+
+                {isLastContacted && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-lime-50 w-fit h-fit leading-none">
+                    Last Contacted
+                  </div>
+                )}
+
+                {isLastActivity && (
+                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-emerald-50 w-fit h-fit leading-none">
+                    Last Activity
+                  </div>
+                )}
+              </>
+            ) : (
+              <span
+                className={cn("text-gray-400 font-light w-full max-w-full")}
+              >
+                -
+              </span>
+            )}
+          </div>
+        ),
+        style: "text-gray-700",
+        tips: `
+Fields with values: ${item.filled_score}
+Date created: ${
+          itemValue.hs_createdate ? dayjs().to(itemValue.hs_createdate) : "-"
+        }
+Last Booked Meeting Date: ${
+          itemValue.hs_last_booked_meeting_date
+            ? dayjs().to(itemValue.hs_last_booked_meeting_date)
+            : "-"
+        }
+Last Logged Call Date: ${
+          itemValue.hs_last_logged_call_date
+            ? dayjs().to(itemValue.hs_last_logged_call_date)
+            : "-"
+        }
+Last Open Task Date: ${
+          itemValue.hs_last_open_task_date
+            ? dayjs().to(itemValue.hs_last_open_task_date)
+            : "-"
+        }
+Last Engagement Date: ${
+          itemValue.hs_last_sales_activity_timestamp
+            ? itemValue.hs_last_sales_activity_timestamp
+            : "-"
+        }
+Last Contacted: ${
+          itemValue.notes_last_contacted ? itemValue.notes_last_contacted : "-"
+        }
+Last Activity Date: ${
+          itemValue.notes_last_updated ? itemValue.notes_last_updated : "-"
+        }
+`,
       },
 
       {

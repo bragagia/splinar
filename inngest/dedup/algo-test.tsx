@@ -4,6 +4,8 @@ import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Tables } from "@/types/supabase";
 
+const VERBOSE = true;
+
 function AlgoTest() {
   const baseContact: Tables<"items"> = {
     id: "",
@@ -688,7 +690,7 @@ function testContacts(
     { ...b, similarities: similarities as Tables<"similarities">[] }
   );
 
-  if (areDups !== expected) {
+  if (areDups !== expected || VERBOSE) {
     console.log("");
     console.log("######");
     console.log("# Test:", nb);
@@ -720,13 +722,11 @@ function testContacts(
     console.log("#", areDups, "vs expected:", expected);
     console.log("######");
     console.log("");
-
-    return false;
   } else {
     console.log("# Test", nb, "✓");
-
-    return true;
   }
+
+  return areDups === expected;
 }
 
 AlgoTest();
