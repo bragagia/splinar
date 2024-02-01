@@ -112,14 +112,14 @@ export default function SignUpPage({}) {
                   <p className="mt-2 px-8 text-center text-sm text-muted-foreground">
                     By clicking Sign up, you agree to our{" "}
                     <Link
-                      href="/terms"
+                      href={URLS.external.termsOfService}
                       className="underline underline-offset-4 hover:text-primary"
                     >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
                     <Link
-                      href="/privacy"
+                      href={URLS.external.privacyPolicy}
                       className="underline underline-offset-4 hover:text-primary"
                     >
                       Privacy Policy
