@@ -78,20 +78,22 @@ export async function fetchContacts(
 
     pageId++;
 
-    if (pageId % UPDATE_COUNT_EVERY === 0) {
-      await updateInstallItemsCount(supabase, workspaceId);
-    }
+    if (after) {
+      if (pageId % UPDATE_COUNT_EVERY === 0) {
+        await updateInstallItemsCount(supabase, workspaceId);
+      }
 
-    if (pageId % WORKER_LIMIT === 0) {
-      await inngest.send({
-        name: "workspace/contacts/fetch.start",
-        data: {
-          workspaceId: workspaceId,
-          after: after,
-        },
-      });
+      if (pageId % WORKER_LIMIT === 0) {
+        await inngest.send({
+          name: "workspace/contacts/fetch.start",
+          data: {
+            workspaceId: workspaceId,
+            after: after,
+          },
+        });
 
-      return;
+        return;
+      }
     }
   } while (after);
 
