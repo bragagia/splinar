@@ -143,7 +143,7 @@ export function SubscriptionOptions({
             <span className="text-purple-800 flex justify-center w-5 h-5 text-sm font-semibold">
               soon
             </span>
-            24/7 instant synchronisation with Hubspot
+            24/7 instant synchronisation with HubSpot
           </li>
         </ul>
 

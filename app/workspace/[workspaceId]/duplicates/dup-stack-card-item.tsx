@@ -241,7 +241,7 @@ function DupStackCardCell({
           className="flex flex-col items-start justify-center w-full h-full text-left"
           tooltip={
             columnData.hubspotLink
-              ? `Hubspot page (${columnData.tips})`
+              ? `HubSpot page (${columnData.tips})`
               : columnData.tips
           }
           align="start"

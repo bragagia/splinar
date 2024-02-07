@@ -49,7 +49,7 @@ export default async function WorkspaceIndexPage() {
 
           <CardContent>
             <p className="text-sm">
-              You will be redirected to Hubspot, please follow their
+              You will be redirected to HubSpot, please follow their
               instructions.
             </p>
           </CardContent>

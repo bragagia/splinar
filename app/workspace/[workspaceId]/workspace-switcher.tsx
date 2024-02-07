@@ -208,7 +208,7 @@ export default function WorkspaceSwitcher({
 
         <div className="space-y-4 py-2 pb-4 text-sm">
           <p>
-            You will be redirected to Hubspot, please follow their instructions.
+            You will be redirected to HubSpot, please follow their instructions.
           </p>
         </div>
 
