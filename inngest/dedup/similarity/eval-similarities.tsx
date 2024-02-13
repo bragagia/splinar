@@ -86,7 +86,17 @@ export function evalSimilarities(
     }
   }
 
-  return Object.values(dedupedSimilarities);
+  const finalSimilarities = Object.values(dedupedSimilarities);
+
+  // If there is only one similarity and it's not exact, we don't return it because it's not enough to be identified as dup and it prevent cluttering the DB
+  if (
+    finalSimilarities.length === 1 &&
+    finalSimilarities[0].similarity_score !== "exact"
+  ) {
+    return [];
+  }
+
+  return finalSimilarities;
 }
 
 function evalSimilarityField(

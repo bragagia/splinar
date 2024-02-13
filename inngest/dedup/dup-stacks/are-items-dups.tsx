@@ -37,9 +37,9 @@ export function areItemsDups(
   const itemAFields = listItemFields(itemA);
   const itemBFields = listItemFields(itemB);
 
-  if (itemAFields.length === 1 || itemBFields.length === 1) {
-    multiplier *= 2;
-  }
+  // if (itemAFields.length === 1 || itemBFields.length === 1) {
+  //   multiplier *= 2;
+  // }
 
   config.fields.forEach((field) => {
     let similarity = similarities.find(
