@@ -4,8 +4,8 @@ import { ItemWithSimilaritiesType } from "@/types/items";
 const simScoreFactorMap: { [key: string]: number } = {
   exact: 1,
   similar: 0.75,
-  potential: 0.5,
-  unlikely: 0.25,
+  potential: 0.4,
+  unlikely: 0,
 };
 
 export function areItemsDups(
