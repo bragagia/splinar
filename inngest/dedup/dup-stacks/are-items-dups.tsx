@@ -93,6 +93,9 @@ export function areItemsDups(
         } else if (field.ifDifferent === "reduce-confident") {
           confidentScore += -1;
           log(`# ${field.displayName} -> different / reduce-confident`);
+        } else if (field.ifDifferent === "reduce-potential") {
+          potentialScore += -1;
+          log(`# ${field.displayName} -> different / reduce-potential`);
         } else {
           log(`# ${field.displayName} -> different / N/A`);
         }

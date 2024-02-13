@@ -92,7 +92,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["companies"],
       matchingMethod: "exact",
       ifMatch: "multiplier",
-      ifDifferent: "null",
+      ifDifferent: "reduce-potential",
       linkType: "item-reference",
     },
   ],

@@ -106,6 +106,7 @@ export type ItemFieldConfigT = {
     | "prevent-confident-reduce-potential"
     | "reduce-confident-reduce-potential"
     | "reduce-confident"
+    | "reduce-potential"
     | "null";
   linkType?:
     | "external"
