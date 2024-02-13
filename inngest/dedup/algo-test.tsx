@@ -633,7 +633,7 @@ function AlgoTest() {
     ),
 
     testContacts(
-      20,
+      21,
       "Same mail and company, but different name and phone",
       {
         ...baseContact,

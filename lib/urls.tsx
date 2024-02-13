@@ -11,6 +11,7 @@ export const URLS = {
     dashboard: `/workspace/${workspaceId}/dashboard`,
     duplicates: `/workspace/${workspaceId}/duplicates`,
     settings: `/workspace/${workspaceId}/settings`,
+    duplicateSettings: `/workspace/${workspaceId}/settings/duplicates`,
     billing: {
       index: `/workspace/${workspaceId}/billing`,
       canceled: `/workspace/${workspaceId}/billing?canceled=true`,

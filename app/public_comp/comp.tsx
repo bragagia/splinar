@@ -6,7 +6,6 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card";
 import { UserProvider } from "@/app/workspace/[workspaceId]/user-context";
 import { WorkspaceProvider } from "@/app/workspace/[workspaceId]/workspace-context";
-import { getCompanyRowInfos } from "@/lib/companies";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -52,7 +51,6 @@ export default function DemoStackComp() {
         >
           <DupStackCard
             itemWordName={"companies"}
-            getStackMetadata={(a) => {}}
             dupStack={{
               id: "9f276bf7-432c-4677-9403-e9a0b28b8cc8",
               created_at: "2024-01-07T16:31:35.032105+00:00",
@@ -88,6 +86,7 @@ export default function DemoStackComp() {
                       linkedin_company_page:
                         "https://www.linkedin.com/company/yakidoo",
                       twitterhandle: "YakidooTeam",
+                      filled_score: "7",
                     },
                     similarity_checked: true,
                     dup_checked: true,
@@ -122,6 +121,7 @@ export default function DemoStackComp() {
                       facebook_company_page: null,
                       linkedin_company_page: null,
                       twitterhandle: null,
+                      filled_score: "1",
                     },
                     similarity_checked: true,
                     dup_checked: true,
@@ -156,6 +156,7 @@ export default function DemoStackComp() {
                       facebook_company_page: null,
                       linkedin_company_page: null,
                       twitterhandle: null,
+                      filled_score: "1",
                     },
                     similarity_checked: true,
                     dup_checked: true,
@@ -190,6 +191,7 @@ export default function DemoStackComp() {
                       facebook_company_page: null,
                       linkedin_company_page: null,
                       twitterhandle: null,
+                      filled_score: "1",
                     },
                     similarity_checked: true,
                     dup_checked: true,
@@ -224,6 +226,7 @@ export default function DemoStackComp() {
                       facebook_company_page: null,
                       linkedin_company_page: null,
                       twitterhandle: null,
+                      filled_score: "1",
                     },
                     similarity_checked: true,
                     dup_checked: true,
@@ -232,7 +235,6 @@ export default function DemoStackComp() {
                 },
               ],
             }}
-            getRowInfos={getCompanyRowInfos}
             isDemo={true}
           />
         </WorkspaceProvider>

@@ -15,7 +15,3 @@ export type ItemWithRawSimilaritiesType = MergeDeep<
     similarities_b: Tables<"similarities">[];
   }
 >;
-
-export type ItemLink = {
-  id: string;
-};

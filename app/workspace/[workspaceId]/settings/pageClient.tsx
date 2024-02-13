@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
-import { getItemType } from "@/lib/items_common";
+import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
+import { getItemFieldsValues, listItemFields } from "@/lib/items_common";
 import { URLS } from "@/lib/urls";
 import { Database, Tables } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -87,22 +88,23 @@ export default function WorkspaceSettingsPageClient({
 
     const a = items.data[0];
     const b = items.data[1];
+
     let res = "";
     const log = (...str: any[]) => {
       res += util.format(...str) + "\n";
     };
 
-    let itemType = getItemType(a.item_type);
-
-    log("A:", JSON.stringify(itemType.getColumns(a), null, 2));
+    log("A:", JSON.stringify(getItemFieldsValues(a), null, 2));
+    log("A:", listItemFields(a));
     log(" ");
     log(" ");
 
-    log("B:", JSON.stringify(itemType.getColumns(b), null, 2));
+    log("B:", JSON.stringify(getItemFieldsValues(b), null, 2));
+    log("A:", listItemFields(b));
     log(" ");
     log(" ");
 
-    const similarities = itemType.similarityCheck(workspace.id, a, b) || [];
+    const similarities = evalSimilarities(workspace.id, a, b);
 
     log("### Similarities: ");
     if (similarities.length === 0) {
@@ -112,6 +114,8 @@ export default function WorkspaceSettingsPageClient({
         similarities.map((similarity) => ({
           field_type: similarity.field_type,
           similarity_score: similarity.similarity_score,
+          a: similarity.item_a_value,
+          b: similarity.item_b_value,
         }))
       );
     }
@@ -214,6 +218,24 @@ export default function WorkspaceSettingsPageClient({
           </div>
         </CardHeader>
       </Card>
+
+      {(user.role === "SUPERADMIN" ||
+        process.env.NODE_ENV === "development") && (
+        <Card>
+          <CardHeader className="flex flex-row justify-between items-center">
+            <CardTitle className="text-xl">Deduplication rules</CardTitle>
+
+            <SpButton
+              variant="outline"
+              onClick={() =>
+                router.push(URLS.workspace(workspace.id).duplicateSettings)
+              }
+            >
+              Edit
+            </SpButton>
+          </CardHeader>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

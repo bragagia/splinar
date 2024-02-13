@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  DupStackCardRow,
-  DupStackRowInfos,
-} from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
+import { DupStackCardRow } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { itemsMergeSA } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
@@ -16,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { delay } from "@/lib/delay";
+import { getItemStackMetadata, getRowInfos } from "@/lib/items_common";
 import { cn } from "@/lib/utils";
 import {
   DupStackItemWithItemT,
@@ -33,18 +31,10 @@ export type DupItemTypeType = DupStackItemWithItemT["dup_type"];
 
 export function DupStackCard({
   dupStack,
-  getRowInfos,
-  getStackMetadata,
   itemWordName,
   isDemo = false,
 }: {
   dupStack: DupStackWithItemsT;
-  getRowInfos(
-    workspaceHubId: string,
-    item: DupStackItemWithItemT,
-    stackMetadata: any
-  ): DupStackRowInfos;
-  getStackMetadata: (dupStack: DupStackWithItemsT) => any;
   itemWordName: string;
   isDemo?: boolean;
 }) {
@@ -59,8 +49,8 @@ export function DupStackCard({
   const [falsePositivesExpanded, setFalsePositivesExpanded] = useState(false);
 
   const stackMetadata = useMemo(
-    () => getStackMetadata(cachedDupStack),
-    [getStackMetadata, cachedDupStack]
+    () => getItemStackMetadata(cachedDupStack),
+    [cachedDupStack]
   );
 
   useEffect(() => setCachedDupStack(dupStack), [dupStack]);
@@ -159,11 +149,11 @@ export function DupStackCard({
         dupStackItem,
         stackMetadata
       );
-      const column = rowInfos.columns[0].value as string | null;
+      const cardTitle = rowInfos.name;
 
-      return column && column.length > acc.length ? column : acc;
+      return cardTitle && cardTitle.length > acc.length ? cardTitle : acc;
     }, "");
-  }, [getRowInfos, workspace.hub_id, confidentsAndReference, stackMetadata]);
+  }, [workspace.hub_id, confidentsAndReference, stackMetadata]);
 
   const isExpandable =
     getRowInfos(workspace.hub_id, reference, stackMetadata).columns.length > 4;

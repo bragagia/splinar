@@ -4,12 +4,12 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import { getCompanyColumns } from "@/lib/companies";
-import { getMaxs, nullCmp, dateCmp } from "@/lib/metadata_helpers";
+import { DedupConfigT } from "@/lib/items_common";
+import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
-import { ItemLink } from "@/types/items";
 import { Tables, TablesInsert } from "@/types/supabase";
 import dayjs from "dayjs";
 
@@ -17,6 +17,128 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
 import stringSimilarity from "string-similarity";
+
+export const contactsDedupConfig: DedupConfigT = {
+  hubspotSourceFields: [
+    {
+      value: "firstname",
+      label: "First name",
+    },
+    {
+      value: "lastname",
+      label: "Last name",
+    },
+    {
+      value: "email",
+      label: "Email",
+    },
+    {
+      value: "phone",
+      label: "Phone",
+    },
+    {
+      value: "mobilephone",
+      label: "Mobile phone",
+    },
+    {
+      value: "linkedin",
+      label: "Linkedin",
+    },
+    {
+      value: "companies",
+      label: "Companies",
+    },
+  ],
+  itemNameSources: ["firstname", "lastname"],
+  fields: [
+    {
+      id: "b8ab3013-ddc5-4dec-8f0f-6c42e22064ce",
+      displayName: "Full name",
+      sources: ["firstname", "lastname"],
+      matchingMethod: "name",
+      nameMinimumLength: 3,
+      ifMatch: "potential",
+      ifDifferent: "prevent-confident-reduce-potential",
+      linkType: "hubspot",
+    },
+    {
+      id: "e83701e1-c834-4093-b87a-2c928ce1ab1a",
+      displayName: "Emails",
+      sources: ["email"],
+      matchingMethod: "email",
+      ifMatch: "confident",
+      ifDifferent: "prevent-confident-reduce-potential",
+    },
+    {
+      id: "f4301d99-295c-4491-91e2-21335110f675",
+      displayName: "linkedin",
+      sources: ["hs_linkedinid"],
+      matchingMethod: "url",
+      ifMatch: "confident",
+      ifDifferent: "prevent-confident-reduce-potential",
+      linkType: "linkedin",
+    },
+    {
+      id: "7e290d76-aa92-4c4b-ae22-8236fc73070d",
+      displayName: "Phones",
+      sources: ["phone", "mobilephone"],
+      matchingMethod: "exact",
+      ifMatch: "potential",
+      ifDifferent: "reduce-confident-reduce-potential",
+    },
+    {
+      id: "3982daff-7b19-4b65-914b-d2f02b54f7d9",
+      displayName: "Companies",
+      sources: ["companies"],
+      matchingMethod: "exact",
+      ifMatch: "multiplier",
+      ifDifferent: "null",
+      linkType: "item-reference",
+    },
+  ],
+  flags: [
+    {
+      id: "c45c9aa0-261f-47d4-b8f8-342ed85a1585",
+      flagName: "Best filled",
+      displayName: "Fields with values",
+      source: "filled_score",
+      dataType: "number",
+      winner: "highest",
+    },
+    {
+      id: "48c8cd9a-d31d-4469-8577-872430b4fca9",
+      flagName: "Last engaged",
+      displayName: "Last engagement date",
+      source: "hs_last_sales_activity_timestamp",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "48b0531b-9e74-4e5b-9dbf-326097459a30",
+      flagName: "Last contacted",
+      displayName: "Last contact date",
+      source: "notes_last_contacted",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "127f91d3-e88d-418e-8fb4-7362320bec46",
+      flagName: "Last activity",
+      displayName: "Last activity date",
+      source: "notes_last_updated",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "4be48025-a482-450c-9700-603d138a5584",
+      flagName: "Most contacted",
+      displayName: "Number of times contacted",
+      source: "num_contacted_notes",
+      dataType: "number",
+      winner: "highest",
+    },
+  ],
+};
 
 export function getContactColumns(item: Tables<"items">) {
   const value = item.value as any;
@@ -46,7 +168,7 @@ export function getContactColumns(item: Tables<"items">) {
       (v) => v !== null && v !== undefined
     ) as string[],
 
-    companies: (value.companies || []) as ItemLink[],
+    companies: (value.companies || []) as string[],
 
     hs_linkedinid: value.hs_linkedinid as string | null,
 
@@ -172,6 +294,7 @@ export function getContactRowInfos(
   const isLastActivity = stackMetadata.lastActivityId === dupStackItem.item_id;
 
   return {
+    name: "",
     dup_type: dupStackItem.dup_type,
     columns: [
       {
@@ -280,9 +403,7 @@ Number of times contacted: ${
       {
         value: () => (
           <ItemsListField
-            itemsDistantIds={
-              itemColumns.companies?.map((link) => link.id) as string[] | null
-            }
+            itemsDistantIds={itemColumns.companies}
             nameFn={(item: Tables<"items">) =>
               getCompanyColumns(item).name || "#" + item.distant_id
             }
@@ -578,17 +699,17 @@ export function contactSimilarityCheck(
   }
 
   // Companies
-  A.companies.forEach((companyA: ItemLink) => {
-    B.companies.forEach((companyB: ItemLink) => {
+  A.companies.forEach((companyA: string) => {
+    B.companies.forEach((companyB: string) => {
       const companySimilarityBase: TablesInsert<"similarities"> = {
         ...similarityBase,
         id: uuid(),
         field_type: "companies",
-        item_a_value: companyA.id,
-        item_b_value: companyB.id,
+        item_a_value: companyA,
+        item_b_value: companyB,
       };
 
-      if (companyA.id === companyB.id) {
+      if (companyA === companyB) {
         similarities.push({
           ...companySimilarityBase,
           similarity_score: "exact",

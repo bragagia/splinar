@@ -7,7 +7,7 @@ export default inngest.createFunction(
   {
     id: "workspace-similarities-batch-install",
     retries: 0,
-    concurrency: { limit: 20 },
+    concurrency: { limit: process.env.NODE_ENV === "development" ? 1 : 20 },
   },
   { event: "workspace/similarities/batch-install.start" },
   async ({ event, step, logger }) => {

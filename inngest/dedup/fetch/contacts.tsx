@@ -2,7 +2,6 @@ import { inngest } from "@/inngest";
 import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
-import { ItemLink } from "@/types/items";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -41,12 +40,10 @@ export async function fetchContacts(
     }
 
     let dbContacts = contacts.map((contact) => {
-      let contactCompanies: ItemLink[] | undefined =
+      let contactCompanies: string[] | undefined =
         contact.associations?.companies?.results
           ?.filter((company) => company.type == "contact_to_company_unlabeled")
-          .map((company) => ({
-            id: company.id,
-          }));
+          .map((company) => company.id);
 
       let dbContact: TablesInsert<"items"> = {
         id: uuid(),
@@ -65,6 +62,8 @@ export async function fetchContacts(
       dbContact.filled_score = listItemFields(
         dbContact as Tables<"items">
       ).length;
+
+      (dbContact.value as any).filled_score = dbContact.filled_score.toString();
 
       return dbContact;
     });

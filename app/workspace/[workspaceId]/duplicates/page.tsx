@@ -228,12 +228,6 @@ export default function DuplicatesPage() {
                     <DupStackCard
                       itemWordName={typeState.word}
                       dupStack={dupStack}
-                      getRowInfos={
-                        getItemType(typeStateKey as itemTypeT).getRowInfos
-                      }
-                      getStackMetadata={
-                        getItemType(typeStateKey as itemTypeT).getStackMetadata
-                      }
                     />
                   )}
                 />

@@ -22,6 +22,7 @@ export type DupStackRowColumnType = {
 };
 
 export type DupStackRowInfos = {
+  name: string;
   columns: DupStackRowColumnType[];
   dup_type: DupItemTypeType;
 };

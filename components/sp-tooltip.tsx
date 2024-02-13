@@ -28,10 +28,10 @@ export function SpTooltip({
         </TooltipTrigger>
 
         <TooltipContent sideOffset={10} align={align}>
-          <div className="flex flex-row items-center gap-1">
+          <div className="flex flex-row items-center gap-1 max-w-96">
             {icon}
 
-            <div>
+            <div className="flex flex-col gap-2">
               {tooltip.split("\n").map((str, i) => (
                 <p key={i}>{str}</p>
               ))}

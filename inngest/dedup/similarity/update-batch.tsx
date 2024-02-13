@@ -1,4 +1,5 @@
 import { inngest } from "@/inngest";
+import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
 import { getItemType, itemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
@@ -16,7 +17,6 @@ export async function similaritiesUpdateBatch(
   await genericSimilaritiesBatchEval(
     supabase,
     workspaceId,
-    itemType.similarityCheck,
     batchAIds,
     batchBIds
   );
@@ -25,38 +25,28 @@ export async function similaritiesUpdateBatch(
 async function genericSimilaritiesBatchEval(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  comparatorFn: (
-    workspaceId: string,
-    itemA: Tables<"items">,
-    itemB: Tables<"items">
-  ) => TablesInsert<"similarities">[] | undefined,
   batchAIds: string[],
   batchBIds?: string[]
 ) {
   const batchA = await fetchBatchItems(supabase, workspaceId, batchAIds);
 
-  let similarities: TablesInsert<"similarities">[] | undefined;
+  let similarities: TablesInsert<"similarities">[];
 
   if (!batchBIds) {
-    similarities = await compareBatchWithItself(
-      workspaceId,
-      comparatorFn,
-      batchA
-    );
+    similarities = await compareBatchWithItself(workspaceId, batchA);
   } else {
     const batchB = await fetchBatchItems(supabase, workspaceId, batchBIds);
 
-    similarities = await compareBatchesPair(
-      workspaceId,
-      comparatorFn,
-      batchA,
-      batchB
-    );
+    similarities = await compareBatchesPair(workspaceId, batchA, batchB);
   }
 
+  console.log("-> Inserting similarities:", similarities.length);
+  if (similarities.length > 10000) {
+    console.log("-> similarities:", similarities);
+  }
   let { error: errorInsert } = await supabase
     .from("similarities")
-    .insert(similarities as any);
+    .insert(similarities);
   if (errorInsert) {
     throw errorInsert;
   }
@@ -87,18 +77,13 @@ async function genericSimilaritiesBatchEval(
 
 async function compareBatchWithItself(
   workspaceId: string,
-  comparatorFn: (
-    workspaceId: string,
-    itemA: Tables<"items">,
-    itemB: Tables<"items">
-  ) => TablesInsert<"similarities">[] | undefined,
   batch: Tables<"items">[]
 ) {
   let similarities: TablesInsert<"similarities">[] = [];
 
   batch.forEach((contactA, i) => {
     batch.slice(0, i).forEach((contactB) => {
-      let pairSimilarities = comparatorFn(workspaceId, contactA, contactB);
+      let pairSimilarities = evalSimilarities(workspaceId, contactA, contactB);
 
       if (pairSimilarities && pairSimilarities.length > 0) {
         similarities.push(...pairSimilarities);
@@ -111,11 +96,6 @@ async function compareBatchWithItself(
 
 async function compareBatchesPair(
   workspaceId: string,
-  comparatorFn: (
-    workspaceId: string,
-    itemA: Tables<"items">,
-    itemB: Tables<"items">
-  ) => TablesInsert<"similarities">[] | undefined,
   batchA: Tables<"items">[],
   batchB: Tables<"items">[]
 ) {
@@ -123,7 +103,7 @@ async function compareBatchesPair(
 
   batchA.forEach((contactA) => {
     batchB.forEach((contactB) => {
-      let pairSimilarities = comparatorFn(workspaceId, contactA, contactB);
+      let pairSimilarities = evalSimilarities(workspaceId, contactA, contactB);
 
       if (pairSimilarities && pairSimilarities.length > 0) {
         similarities.push(...pairSimilarities);

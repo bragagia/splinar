@@ -27,11 +27,14 @@ export function nullCmp<T>(
   b: T | null,
   cmp: (a: T, b: T) => number
 ) {
-  if (a !== null && b !== null) {
+  if (a !== null && a !== undefined && b !== null && b !== undefined) {
     return cmp(a, b);
-  } else if (a === null && b !== null) {
+  } else if ((a === null || a === undefined) && b !== null && b !== undefined) {
     return 1;
-  } else if (a === null && b === null) {
+  } else if (
+    (a === null || a === undefined) &&
+    (b === null || b === undefined)
+  ) {
     return 0;
   } else {
     // if (a !== null && b === null)

@@ -5,6 +5,7 @@ import {
   StandardLinkButton,
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
+import { DedupConfigT } from "@/lib/items_common";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,154 @@ import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Tables, TablesInsert } from "@/types/supabase";
 import dayjs from "dayjs";
 import stringSimilarity from "string-similarity";
+
+export const companiesDedupConfig: DedupConfigT = {
+  hubspotSourceFields: [
+    {
+      value: "name",
+      label: "Name",
+    },
+    {
+      value: "domain",
+      label: "Domain",
+    },
+    {
+      value: "website",
+      label: "Website",
+    },
+    {
+      value: "linkedin",
+      label: "LinkedIn",
+    },
+    {
+      value: "phone",
+      label: "Phone",
+    },
+  ],
+  itemNameSources: ["name"],
+  fields: [
+    {
+      id: "81aa1ed0-ce0d-4b4e-8f49-99a5c4fdf26f",
+      displayName: "Name",
+      sources: ["name"],
+      matchingMethod: "name",
+      ifMatch: "potential",
+      ifDifferent: "prevent-confident-reduce-potential",
+      linkType: "hubspot",
+    },
+    {
+      id: "aecc092d-cdcf-477e-96ee-8fd8371982ff",
+      displayName: "Website",
+      sources: ["domain", "website"],
+      matchingMethod: "url",
+      ifMatch: "confident",
+      ifDifferent: "reduce-confident-reduce-potential",
+      linkType: "external",
+    },
+    {
+      id: "a01d710d-6c50-43b2-ae37-a306ff22c4ea",
+      displayName: "LinkedIn",
+      sources: ["linkedin_company_page"],
+      matchingMethod: "url",
+      ifMatch: "confident",
+      ifDifferent: "reduce-confident-reduce-potential",
+      linkType: "linkedin",
+    },
+    {
+      id: "c729d617-d4a6-435b-a94d-6f1dbc3e6274",
+      displayName: "Phones",
+      sources: ["phone"],
+      matchingMethod: "exact",
+      ifMatch: "confident",
+      ifDifferent: "reduce-confident-reduce-potential",
+    },
+    // {
+    //   id: "6896b00a-1e71-4919-96ee-dfdc2d32a2f9",
+    //   displayName: "Address",
+    //   sources: ["address", "zip", "city", "state", "country"],
+    //   nameMinimumLength: 25,
+    //   matchingMethod: "name",
+    //   ifMatch: "potential",
+    //   ifDifferent: "null",
+    // },
+    {
+      id: "3335c6b4-8719-40a5-8021-8fc0bc5dc70e",
+      displayName: "Facebook",
+      sources: ["facebook_company_page"],
+      matchingMethod: "url",
+      ifMatch: "confident",
+      ifDifferent: "reduce-confident-reduce-potential",
+      linkType: "facebook",
+    },
+    {
+      id: "70655159-9477-422b-8add-9983ec5a6a61",
+      displayName: "Twitter",
+      sources: ["twitterhandle"],
+      matchingMethod: "url",
+      ifMatch: "confident",
+      ifDifferent: "reduce-confident-reduce-potential",
+      linkType: "twitter",
+    },
+  ],
+  flags: [
+    {
+      id: "7d8c56ae-9a93-4844-8004-f96fc080137f",
+      flagName: "Best filled",
+      displayName: "Fields with values",
+      source: "filled_score",
+      dataType: "number",
+      winner: "highest",
+    },
+    {
+      id: "ab06ccab-9fcb-4b3c-9504-96849ee6a35b",
+      flagName: "Last booked",
+      displayName: "Last Booked Meeting Date",
+      source: "hs_last_booked_meeting_date",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "78b8f3c9-b958-47a1-bb19-5d95e1f718de",
+      flagName: "Last logged call",
+      displayName: "Last Logged Call Date",
+      source: "hs_last_logged_call_date",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "80273c17-1f0f-4c57-89f8-e9a3e25ea949",
+      flagName: "Last opened task",
+      displayName: "Last Open Task Date",
+      source: "hs_last_open_task_date",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "50e69b8b-c748-4c71-a7fd-71baf8b075e7",
+      flagName: "Last engaged",
+      displayName: "Last Engagement Date",
+      source: "hs_last_sales_activity_timestamp",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "575cb9b9-ef8e-412f-8220-e3606d8ddd81",
+      flagName: "Last contacted",
+      displayName: "Last Contacted",
+      source: "notes_last_contacted",
+      dataType: "date",
+      winner: "highest",
+    },
+    {
+      id: "84e59329-9710-46e0-b70c-e86e822a99cf",
+      flagName: "Last activity",
+      displayName: "Last Activity Date",
+      source: "notes_last_updated",
+      dataType: "date",
+      winner: "highest",
+    },
+  ],
+};
 
 export function getCompanyColumns(item: Tables<"items">) {
   const value = item.value as any;
@@ -35,8 +184,6 @@ export function getCompanyColumns(item: Tables<"items">) {
     address: address !== "" ? address : null,
     facebook_company_page: value.facebook_company_page as string | null,
     twitterhandle: value.twitterhandle as string | null,
-
-    hs_createdate: value.hs_createdate ? dayjs(value.hs_createdate) : null, // Object create date/time
 
     hs_last_booked_meeting_date: value.hs_last_booked_meeting_date
       ? dayjs(value.hs_last_booked_meeting_date)
@@ -67,7 +214,6 @@ export function getCompanyColumns(item: Tables<"items">) {
 export type CompanyStackMetadataT = {
   cardTitle: string;
   bestFilledId: string | null;
-  firstCreatedId: string | null;
   lastBookedMeetingId: string | null;
   lastLoggedCallId: string | null;
   lastOpenTaskId: string | null;
@@ -93,17 +239,6 @@ export function getCompanyStackMetadata(
     (a, b) => b.filled_score - a.filled_score
   );
   const bestFilledId = bestFilledIds.length === 1 ? bestFilledIds[0].id : null;
-
-  const firstCreatedIds = getMaxs(items, (a, b) => {
-    const Va = getCompanyColumns(a).hs_createdate;
-    const Vb = getCompanyColumns(b).hs_createdate;
-    return nullCmp(Va, Vb, (a, b) => -dateCmp(a, b));
-  });
-  const firstCreatedId =
-    firstCreatedIds.length === 1 &&
-    getCompanyColumns(firstCreatedIds[0]).hs_createdate
-      ? firstCreatedIds[0].id
-      : null;
 
   const lastBookedMeetingIds = getMaxs(items, (a, b) => {
     const Va = getCompanyColumns(a).hs_last_booked_meeting_date;
@@ -174,7 +309,6 @@ export function getCompanyStackMetadata(
   return {
     cardTitle: "soon",
     bestFilledId: bestFilledId,
-    firstCreatedId: firstCreatedId,
     lastBookedMeetingId: lastBookedMeetingId,
     lastLoggedCallId: lastLoggedCallId,
     lastOpenTaskId: lastOpenTaskId,
@@ -199,7 +333,6 @@ export function getCompanyRowInfos(
   const stackMetadata = stackMetadataG as CompanyStackMetadataT;
 
   const isBestFilled = stackMetadata.bestFilledId === dupStackItem.item_id;
-  const isFirstCreated = stackMetadata.firstCreatedId === dupStackItem.item_id;
   const isLastBooked =
     stackMetadata.lastBookedMeetingId === dupStackItem.item_id;
   const isLastLoggedCall =
@@ -212,6 +345,7 @@ export function getCompanyRowInfos(
   const isLastActivity = stackMetadata.lastActivityId === dupStackItem.item_id;
 
   return {
+    name: "",
     dup_type: dupStackItem.dup_type,
     columns: [
       {
@@ -251,7 +385,6 @@ export function getCompanyRowInfos(
         value: (
           <div className="flex flex-col pt-1">
             {isBestFilled ||
-            isFirstCreated ||
             isLastBooked ||
             isLastLoggedCall ||
             isLastOpenedTask ||
@@ -262,12 +395,6 @@ export function getCompanyRowInfos(
                 {isBestFilled && (
                   <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-yellow-50 w-fit h-fit leading-none">
                     Best filled
-                  </div>
-                )}
-
-                {isFirstCreated && (
-                  <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md bg-orange-50 w-fit h-fit leading-none">
-                    First created
                   </div>
                 )}
 
@@ -291,7 +418,7 @@ export function getCompanyRowInfos(
 
                 {isLastEngaged && (
                   <div className="-mt-1 py-1 px-1 border border-gray-400 text-[10px] rounded-md  bg-fuchsia-50 w-fit h-fit leading-none">
-                    Last Engagement Date
+                    Last Engaged
                   </div>
                 )}
 
@@ -319,9 +446,6 @@ export function getCompanyRowInfos(
         style: "text-gray-700",
         tips: `
 Fields with values: ${item.filled_score}
-Date created: ${
-          itemValue.hs_createdate ? dayjs().to(itemValue.hs_createdate) : "-"
-        }
 Last Booked Meeting Date: ${
           itemValue.hs_last_booked_meeting_date
             ? dayjs().to(itemValue.hs_last_booked_meeting_date)
