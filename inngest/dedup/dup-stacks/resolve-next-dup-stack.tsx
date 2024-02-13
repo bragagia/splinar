@@ -92,11 +92,18 @@ export async function resolveNextDuplicatesStack(
       //   }
       // }
 
-      if (dupStatus === "CONFIDENT" && !isChildOfPotentialDup) {
-        childsNewDuplicates.confident_ids.push(similarItem.id);
-      } else if (dupStatus) {
-        // Even if the dup is confident, if we descent from a potential dup, we only add it as a potential too
-        childsNewDuplicates.potential_ids.push(similarItem.id);
+      if (dupStatus === "CONFIDENT") {
+        if (!isChildOfPotentialDup) {
+          childsNewDuplicates.confident_ids.push(similarItem.id);
+        } else {
+          // If we are a child of a potential dup, we are also a potential dup
+          childsNewDuplicates.potential_ids.push(similarItem.id);
+        }
+      } else if (dupStatus === "POTENTIAL") {
+        // If we are a child of a potential dup, we don't add more potential dups
+        if (!isChildOfPotentialDup) {
+          childsNewDuplicates.potential_ids.push(similarItem.id);
+        }
       }
     });
 

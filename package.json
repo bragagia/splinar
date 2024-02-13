@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "run-p next-dev inngest-dev stripe-dev",
+    "dev-turbo": "run-p next-dev-turbo inngest-dev stripe-dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "npx --yes tsx inngest/dedup/algo-test.tsx",
-    "next-dev": "next dev --turbo",
+    "next-dev": "next dev",
+    "next-dev-turbo": "next dev --turbo",
     "stripe-dev": "stripe listen --forward-to localhost:3000/api/stripe-hook",
     "inngest-dev": "npx --yes inngest-cli@latest dev"
   },

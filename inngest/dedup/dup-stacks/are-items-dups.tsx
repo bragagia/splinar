@@ -62,7 +62,7 @@ export function areItemsDups(
           `# ${field.displayName} -> matched / potential (simScoreFactor: ${simScoreFactor})`
         );
       } else if (field.ifMatch === "multiplier") {
-        multiplier *= 2; // TODO: Use simScoreFactor
+        multiplier *= 1 + simScoreFactor;
         log(`# ${field.displayName} -> matched / multiplier`);
       } else {
         log(`# ${field.displayName} -> matched / N/A`);
