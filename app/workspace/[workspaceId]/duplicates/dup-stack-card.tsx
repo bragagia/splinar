@@ -13,7 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { delay } from "@/lib/delay";
-import { getItemStackMetadata, getRowInfos } from "@/lib/items_common";
+import {
+  getItemStackMetadata,
+  getItemType,
+  getRowInfos,
+} from "@/lib/items_common";
 import { cn } from "@/lib/utils";
 import {
   DupStackItemWithItemT,
@@ -25,17 +29,15 @@ import {
 } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type DupItemTypeType = DupStackItemWithItemT["dup_type"];
 
 export function DupStackCard({
   dupStack,
-  itemWordName,
   isDemo = false,
 }: {
   dupStack: DupStackWithItemsT;
-  itemWordName: string;
   isDemo?: boolean;
 }) {
   const workspace = useWorkspace();
@@ -109,7 +111,7 @@ export function DupStackCard({
     });
   };
 
-  const onMerge = async () => {
+  const onMerge = useCallback(async () => {
     setLoading(true);
 
     if (isDemo) {
@@ -120,7 +122,7 @@ export function DupStackCard({
 
     setLoading(false);
     setMerged(true);
-  };
+  }, [cachedDupStack, isDemo, workspace.id]);
 
   const reference = useMemo(
     () => getDupstackReference(cachedDupStack),
@@ -155,8 +157,12 @@ export function DupStackCard({
     }, "");
   }, [workspace.hub_id, confidentsAndReference, stackMetadata]);
 
-  const isExpandable =
-    getRowInfos(workspace.hub_id, reference, stackMetadata).columns.length > 4;
+  const isExpandable = useMemo(
+    () =>
+      getRowInfos(workspace.hub_id, reference, stackMetadata).columns.length >
+      4,
+    [reference, stackMetadata, workspace.hub_id]
+  );
 
   return (
     <Card className="grow shadow-lg group/card">
@@ -247,7 +253,8 @@ export function DupStackCard({
                 }
                 className="mt-2"
               >
-                Merge {confidentsAndReference.length} {itemWordName}
+                Merge {confidentsAndReference.length}{" "}
+                {getItemType(dupStack.item_type).word}
               </SpButton>
             </div>
           </CardContent>

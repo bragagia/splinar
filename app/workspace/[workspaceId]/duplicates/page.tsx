@@ -218,19 +218,7 @@ export default function DuplicatesPage() {
                   </p>
                 </div>
               ) : (
-                <DuplicatesInfiniteList
-                  itemsType={typeStateKey as itemTypeT}
-                  dupStackDisplay={({
-                    dupStack,
-                  }: {
-                    dupStack: DupStackWithItemsT;
-                  }) => (
-                    <DupStackCard
-                      itemWordName={typeState.word}
-                      dupStack={dupStack}
-                    />
-                  )}
-                />
+                <DuplicatesInfiniteList itemsType={typeStateKey as itemTypeT} />
               )}
             </TabsContent>
           );
@@ -240,19 +228,7 @@ export default function DuplicatesPage() {
   );
 }
 
-function DuplicatesInfiniteList({
-  dupStackDisplay,
-  itemsType,
-}: {
-  dupStackDisplay: ({
-    dupStack,
-  }: {
-    dupStack: DupStackWithItemsT;
-  }) => React.ReactNode;
-  itemsType: itemTypeT;
-}) {
-  const DupStackDisplay = dupStackDisplay;
-
+function DuplicatesInfiniteList({ itemsType }: { itemsType: itemTypeT }) {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
@@ -320,7 +296,7 @@ function DuplicatesInfiniteList({
         <div className="space-y-4">
           <div className="flex flex-col gap-4">
             {dupStacks?.map((dups, i) => (
-              <DupStackDisplay key={i} dupStack={dups} />
+              <DupStackCard key={i} dupStack={dups} />
             ))}
           </div>
         </div>
