@@ -1,10 +1,10 @@
 import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
-import { contactSimilarityCheck } from "@/lib/contacts";
+import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Tables } from "@/types/supabase";
 
-const VERBOSE = true;
+const VERBOSE = false;
 
 function AlgoTest() {
   const baseContact: Tables<"items"> = {
@@ -22,13 +22,8 @@ function AlgoTest() {
     value: "",
   };
 
-  const companyA = {
-    id: uuid(),
-  };
-
-  const companyB = {
-    id: uuid(),
-  };
+  const companyA = uuid();
+  const companyB = uuid();
 
   const tests = [
     testContacts(
@@ -39,10 +34,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
+          lastname: undefined,
           mobilephone: "0781208307",
-          email: null,
-          company_name: null,
+          email: undefined,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -54,7 +49,7 @@ function AlgoTest() {
           lastname: "Bragagia",
           mobilephone: "0781208307",
           email: "jkfldjkflds@kfdlskldfs.com",
-          company_name: null,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -70,9 +65,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -82,9 +77,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias@sibilu.com",
-          company_name: null,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -100,9 +95,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -112,9 +107,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias@sibilu.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyB],
         },
       },
@@ -129,10 +124,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
+          lastname: undefined,
+          mobilephone: undefined,
           email: "mathias+test@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -142,9 +137,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -158,11 +153,11 @@ function AlgoTest() {
         ...baseContact,
         id: uuid(),
         value: {
-          firstname: null,
-          lastname: null,
-          mobilephone: null,
+          firstname: undefined,
+          lastname: undefined,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -170,11 +165,11 @@ function AlgoTest() {
         ...baseContact,
         id: uuid(),
         value: {
-          firstname: null,
-          lastname: null,
-          mobilephone: null,
+          firstname: undefined,
+          lastname: undefined,
+          mobilephone: undefined,
           email: "lathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -189,10 +184,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
-          email: null,
-          company_name: null,
+          lastname: undefined,
+          mobilephone: undefined,
+          email: undefined,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -201,10 +196,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
-          email: null,
-          company_name: null,
+          lastname: undefined,
+          mobilephone: undefined,
+          email: undefined,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -219,10 +214,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
-          email: null,
-          company_name: null,
+          lastname: undefined,
+          mobilephone: undefined,
+          email: undefined,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -231,10 +226,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
-          email: null,
-          company_name: null,
+          lastname: undefined,
+          mobilephone: undefined,
+          email: undefined,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -249,10 +244,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
+          lastname: undefined,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -261,10 +256,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
-          mobilephone: null,
+          lastname: undefined,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyB],
         },
       },
@@ -279,11 +274,11 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
+          lastname: undefined,
           mobilephone: "0388090228",
           phone: "0781208307",
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -292,10 +287,10 @@ function AlgoTest() {
         id: uuid(),
         value: {
           firstname: "Mathias",
-          lastname: null,
+          lastname: undefined,
           mobilephone: "0781208307",
           email: "mathias.bragagia@gmail.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyB],
         },
       },
@@ -311,9 +306,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -325,7 +320,7 @@ function AlgoTest() {
           lastname: "Mathias",
           mobilephone: "0781208307",
           email: "mathias.bragagia@bla.bla",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -341,7 +336,7 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
@@ -359,7 +354,7 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -401,7 +396,7 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [companyA],
@@ -413,13 +408,13 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias.bragag@gmail.com",
           company_name: "",
           companies: [companyA],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -444,7 +439,7 @@ function AlgoTest() {
           firstname: "Vincent",
           lastname: "Abraham",
           mobilephone: "0707070707",
-          email: null,
+          email: undefined,
           company_name: "",
           companies: [companyA],
         },
@@ -479,12 +474,12 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
       16,
-      "Same name and company, and empty other columns",
+      "Same name and company and phone, and empty other columns",
       {
         ...baseContact,
         id: uuid(),
@@ -509,7 +504,7 @@ function AlgoTest() {
           companies: [companyA],
         },
       },
-      "CONFIDENT"
+      "POTENTIAL"
     ),
 
     testContacts(
@@ -563,13 +558,13 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mb@larouequitourne.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
-      "POTENTIAL"
+      false
     ),
 
     testContacts(
@@ -595,7 +590,7 @@ function AlgoTest() {
           lastname: "",
           mobilephone: "0707070707",
           email: "mb@larouequitourne.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -611,7 +606,7 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mathias.bragagia@blabla.com",
           company_name: "",
           companies: [],
@@ -623,9 +618,9 @@ function AlgoTest() {
         value: {
           firstname: "Mathias",
           lastname: "Bragagia",
-          mobilephone: null,
+          mobilephone: undefined,
           email: "mb@larouequitourne.com",
-          company_name: null,
+          company_name: undefined,
           companies: [],
         },
       },
@@ -655,7 +650,7 @@ function AlgoTest() {
           lastname: "Abraham",
           mobilephone: "077777777",
           email: "mathias.bragagia@blabla.com",
-          company_name: null,
+          company_name: undefined,
           companies: [companyA],
         },
       },
@@ -683,7 +678,7 @@ function testContacts(
   a.filled_score = listItemFields(a).length;
   b.filled_score = listItemFields(b).length;
 
-  const similarities = contactSimilarityCheck("abcd", a, b) || [];
+  const similarities = evalSimilarities("abcd", a, b) || [];
 
   const areDups = areItemsDups(
     { ...a, similarities: similarities as Tables<"similarities">[] },

@@ -14,17 +14,29 @@ import { contactsDedupConfig } from "@/lib/contacts";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
-import { Tables, TablesInsert } from "@/types/supabase";
+import { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import dayjs from "dayjs";
 
 export type itemTypeT = "COMPANIES" | "CONTACTS";
 
+export type ItemConfig = {
+  word: string;
+  dedupConfig: DedupConfigT;
+  getHubspotURL: (workspaceHubId: string, distantId: string) => string;
+  getDistantMergeFn: (hsClient: Client) => any;
+  getWorkspaceOperation: (workspace: Tables<"workspaces">) => string;
+  setWorkspaceOperation: (
+    newValue: TablesInsert<"workspaces">["contacts_operation_status"],
+    workspace?: Tables<"workspaces">
+  ) => TablesUpdate<"workspaces">;
+};
+
 export function getItemTypesList(): itemTypeT[] {
   return ["COMPANIES", "CONTACTS"];
 }
 
-export function getItemType(itemType: itemTypeT) {
+export function getItemType(itemType: itemTypeT): ItemConfig {
   if (itemType === "COMPANIES") {
     return {
       word: "companies",

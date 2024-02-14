@@ -5,9 +5,21 @@ import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack
 import { itemsMergeAllSA } from "@/app/workspace/[workspaceId]/duplicates/items-merge-all";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
-import { SpConfirmButton } from "@/components/sp-button";
+import { SpConfirmButton, SpIconButton } from "@/components/sp-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getItemType, getItemTypesList, itemTypeT } from "@/lib/items_common";
+import {
+  ItemConfig,
+  getItemType,
+  getItemTypesList,
+  itemTypeT,
+} from "@/lib/items_common";
+import { URLS } from "@/lib/urls";
 import { DupStackWithItemsT } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
 import {
@@ -15,6 +27,7 @@ import {
   createClientComponentClient,
 } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
@@ -22,9 +35,14 @@ export const dynamic = "force-dynamic";
 
 type TypeStateT = {
   count: number | null;
+  confidentCount: number | null;
   isMerging: boolean;
-  word: string;
+  itemConfig: ItemConfig;
 };
+
+function capitalizeFirstLetter(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
@@ -43,8 +61,9 @@ export default function DuplicatesPage() {
     getItemTypesList().forEach((itemType) => {
       typeStates[itemType] = {
         count: null,
+        confidentCount: null,
         isMerging: false,
-        word: getItemType(itemType).word,
+        itemConfig: getItemType(itemType),
       };
     });
 
@@ -71,6 +90,29 @@ export default function DuplicatesPage() {
             }
 
             cur[itemType].count = count;
+
+            return { ...cur };
+          });
+        });
+
+      supabase
+        .from("dup_stack_items")
+        .select("*, items!inner (*)", { count: "exact", head: true })
+        .eq("items.item_type", itemType)
+        .eq("dup_type", "CONFIDENT")
+        .eq("workspace_id", workspace.id)
+        .limit(0)
+        .then(({ count, error }) => {
+          if (error) {
+            throw error;
+          }
+
+          setTypeStates((cur) => {
+            if (!cur) {
+              return {};
+            }
+
+            cur[itemType].confidentCount = count;
 
             return { ...cur };
           });
@@ -160,6 +202,12 @@ export default function DuplicatesPage() {
     <div className="flex-1 space-y-4 w-full">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Duplicates</h2>
+        {/* <SpButton variant="ghost">
+          <div className="flex flex-row gap-1">
+            <Icons.settings className="h-5 w-5" />
+            Settings
+          </div>
+        </SpButton> */}
       </div>
 
       <Tabs defaultValue={Object.keys(typeStates)[0]}>
@@ -168,7 +216,10 @@ export default function DuplicatesPage() {
             {Object.keys(typeStates).map((typeStateKey, i) => (
               <TabsTrigger key={i} value={typeStateKey}>
                 <span>
-                  {typeStates[typeStateKey].word}
+                  {capitalizeFirstLetter(
+                    typeStates[typeStateKey].itemConfig.word
+                  )}
+
                   <span className="font-light">
                     {" "}
                     (
@@ -185,19 +236,56 @@ export default function DuplicatesPage() {
           </TabsList>
 
           <div>
-            {Object.keys(typeStates).map((typeStateKey, i) => {
+            {(Object.keys(typeStates) as itemTypeT[]).map((typeStateKey, i) => {
               const typeState = typeStates[typeStateKey];
+              const areAllConfidentsMergeable =
+                typeState.confidentCount &&
+                typeState.confidentCount > 0 &&
+                !typeState.isMerging;
 
               return (
-                <TabsContent key={i} value={typeStateKey} className="m-0">
+                <TabsContent
+                  key={i}
+                  value={typeStateKey}
+                  className="m-0 gap-2 flex flex-row"
+                >
                   <SpConfirmButton
                     variant="outline"
                     icon={Icons.merge}
-                    onClick={() => onMergeAll(typeStateKey as itemTypeT)}
-                    disabled={typeState.count === 0 || typeState.isMerging}
+                    onClick={() => onMergeAll(typeStateKey)}
+                    disabled={!areAllConfidentsMergeable}
                   >
-                    Merge all confident {typeState.word} duplicates
+                    Merge{" "}
+                    {typeState.confidentCount !== null ? (
+                      typeState.confidentCount
+                    ) : (
+                      <Icons.spinner className="inline-flex h-3 w-3 animate-spin" />
+                    )}{" "}
+                    confident {typeState.itemConfig.word} duplicates
                   </SpConfirmButton>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SpIconButton
+                        variant="outline"
+                        icon={Icons.dotsVertical}
+                      />
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={URLS.workspace(workspace.id).duplicatesSettings(
+                            typeStateKey
+                          )}
+                        >
+                          <Icons.pencil className="w-4 h-4 mr-1" />
+                          Edit {typeState.itemConfig.word} rules (
+                          {typeState.itemConfig.dedupConfig.fields.length})
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TabsContent>
               );
             })}

@@ -1,3 +1,5 @@
+import { itemTypeT } from "@/lib/items_common";
+
 const base = process.env.NEXT_PUBLIC_URL!;
 
 export const URLS = {
@@ -11,7 +13,8 @@ export const URLS = {
     dashboard: `/workspace/${workspaceId}/dashboard`,
     duplicates: `/workspace/${workspaceId}/duplicates`,
     settings: `/workspace/${workspaceId}/settings`,
-    duplicateSettings: `/workspace/${workspaceId}/settings/duplicates`,
+    duplicatesSettings: (itemType: itemTypeT) =>
+      `/workspace/${workspaceId}/duplicates/settings?itemType=${itemType}`,
     billing: {
       index: `/workspace/${workspaceId}/billing`,
       canceled: `/workspace/${workspaceId}/billing?canceled=true`,

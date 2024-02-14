@@ -219,24 +219,6 @@ export default function WorkspaceSettingsPageClient({
         </CardHeader>
       </Card>
 
-      {(user.role === "SUPERADMIN" ||
-        process.env.NODE_ENV === "development") && (
-        <Card>
-          <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-xl">Deduplication rules</CardTitle>
-
-            <SpButton
-              variant="outline"
-              onClick={() =>
-                router.push(URLS.workspace(workspace.id).duplicateSettings)
-              }
-            >
-              Edit
-            </SpButton>
-          </CardHeader>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Dangerous zone</CardTitle>

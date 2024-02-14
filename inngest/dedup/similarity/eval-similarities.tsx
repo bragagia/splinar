@@ -147,7 +147,7 @@ function evalSimilarityField(
     const removeInfiniteAddr = (str: string) => str.replace(/\+[^@]*$/, "");
     const removeUselessDots = (str: string) => str.split(".").join("");
     const removeExt = (str: string) => str.split(".").slice(0, -1).join(".");
-    // TODO: use RemoveExt
+
     const aVal = getItemValueAsArray(itemA.value, fieldConfig.sources, "string")
       .filter((val) => val.length > 4 && val.includes("@"))
       .map((val) => val.trim())
@@ -173,8 +173,8 @@ function evalSimilarityField(
         } else {
           const idSimScore = stringSimilarity.compareTwoStrings(a.id, b.id);
           const domainSimScore = stringSimilarity.compareTwoStrings(
-            a.domain,
-            b.domain
+            removeExt(a.domain),
+            removeExt(b.domain)
           );
 
           if (idSimScore > 0.95 && domainSimScore > 0.95) {

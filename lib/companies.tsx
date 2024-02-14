@@ -30,12 +30,40 @@ export const companiesDedupConfig: DedupConfigT = {
       label: "Website",
     },
     {
-      value: "linkedin",
+      value: "linkedin_company_page",
       label: "LinkedIn",
     },
     {
       value: "phone",
       label: "Phone",
+    },
+    {
+      value: "address",
+      label: "Address",
+    },
+    {
+      value: "zip",
+      label: "Zip",
+    },
+    {
+      value: "city",
+      label: "City",
+    },
+    {
+      value: "state",
+      label: "State",
+    },
+    {
+      value: "country",
+      label: "Country",
+    },
+    {
+      value: "facebook_company_page",
+      label: "Facebook",
+    },
+    {
+      value: "twitterhandle",
+      label: "Twitter",
     },
   ],
   itemNameSources: ["name"],

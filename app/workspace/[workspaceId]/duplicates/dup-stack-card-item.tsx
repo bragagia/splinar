@@ -49,7 +49,7 @@ export function LinkButton({
         hoverHexColor
       )}
     >
-      <div className="inline-flex flex-row items-center gap-1">
+      <div className="inline-flex flex-row items-center gap-1 break-words">
         {icon && (
           <div className={cn("flex items-center", iconHexColor)}>
             <span className="flex w-[10px] h-[10px] items-center justify-center">
@@ -61,7 +61,7 @@ export function LinkButton({
         {children}
       </div>
 
-      <Icons.arrowRight className="w-3 h-3 invisible group-hover/linkbutton:visible" />
+      <Icons.arrowRight className="w-3 h-3 shrink-0 invisible group-hover/linkbutton:visible" />
     </a>
   );
 }
@@ -349,7 +349,7 @@ export function DupStackCardRow({
             <>
               <SpTooltip tooltip="Mark as false positive">
                 <SpIconButton
-                  variant="ghost"
+                  variant="grayedGhost"
                   className="invisible group-hover:visible"
                   icon={Icons.thumbDown}
                   onClick={() => onUpdateDupType("FALSE_POSITIVE")}
@@ -358,7 +358,7 @@ export function DupStackCardRow({
 
               <SpTooltip tooltip="Set as reference in which all other items will be merged">
                 <SpIconButton
-                  variant="ghost"
+                  variant="grayedGhost"
                   className="invisible group-hover:visible"
                   icon={Icons.arrowsPointingIn}
                   onClick={() => onUpdateDupType("REFERENCE")}
@@ -371,7 +371,7 @@ export function DupStackCardRow({
             <>
               <SpTooltip tooltip="Mark as false positive">
                 <SpIconButton
-                  variant="ghost"
+                  variant="grayedGhost"
                   icon={Icons.thumbDown}
                   onClick={() => onUpdateDupType("FALSE_POSITIVE")}
                 />
@@ -379,7 +379,7 @@ export function DupStackCardRow({
 
               <SpTooltip tooltip="Add to merge list">
                 <SpIconButton
-                  variant="ghost"
+                  variant="grayedGhost"
                   icon={Icons.add}
                   onClick={() => onUpdateDupType("CONFIDENT")}
                 />
@@ -395,7 +395,7 @@ export function DupStackCardRow({
 
               <SpTooltip tooltip="Add to merge list">
                 <SpIconButton
-                  variant="ghost"
+                  variant="grayedGhost"
                   className="invisible group-hover:visible"
                   icon={Icons.add}
                   onClick={() => onUpdateDupType("CONFIDENT")}

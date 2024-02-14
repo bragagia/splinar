@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 export type OptionType = {
   label: string;
@@ -60,28 +60,8 @@ function MultiSelect({
         >
           <div className="flex gap-1 flex-wrap">
             {selected.map((item, i) => (
-              <Badge
-                variant="secondary"
-                key={i}
-                className="mr-1 mb-1"
-                onClick={() => handleUnselect(item)}
-              >
+              <Badge variant="secondary" key={i} className="mr-1 mb-1">
                 {getLabel(item)}
-                <button
-                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleUnselect(item);
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={() => handleUnselect(item)}
-                >
-                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </button>
               </Badge>
             ))}
           </div>

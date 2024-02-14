@@ -17,43 +17,49 @@ import { VariantProps, cva } from "class-variance-authority";
 import React, { ReactNode, useState } from "react";
 import { Merge } from "type-fest";
 
-const spButtonVariants = cva("border rounded-lg text-sm font-medium", {
-  variants: {
-    variant: {
-      // default: "bg-primary text-primary-foreground hover:bg-primary/90",
-      // destructive:
-      //   "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      ghost:
-        "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white ",
+const spButtonVariants = cva(
+  "border rounded-lg text-sm font-medium outline-none",
+  {
+    variants: {
+      variant: {
+        // default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // destructive:
+        //   "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        ghost:
+          "text-black border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white",
 
-      outline:
-        "text-black border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white disabled:text-gray-400 disabled:border-gray-300",
+        grayedGhost:
+          "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white",
 
-      ghostActivated:
-        "text-gray-600 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
+        outline:
+          "text-black bg-white border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white disabled:text-gray-400 disabled:border-gray-300",
 
-      full: "bg-gray-700 border-gray-700 text-gray-100 enabled:hover:bg-gray-900 enabled:hover:border-gray-900 disabled:bg-gray-400 disabled:border-gray-400",
+        ghostActivated:
+          "text-gray-600 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
 
-      fullAnimated:
-        "bg-opacity-40 bg-white border-gray-700 text-black hover:bg-opacity-10 hover:border-gray-900",
+        full: "bg-gray-700 border-gray-700 text-gray-100 enabled:hover:bg-gray-900 enabled:hover:border-gray-900 disabled:bg-gray-400 disabled:border-gray-400",
 
-      fullDanger:
-        "bg-red-700 border-red-700 text-red-100 hover:bg-red-900 hover:border-red-900",
+        fullAnimated:
+          "bg-opacity-40 bg-white border-gray-700 text-black hover:bg-opacity-10 hover:border-gray-900",
 
-      // link: "text-primary underline-offset-4 hover:underline",
+        fullDanger:
+          "bg-red-700 border-red-700 text-red-100 hover:bg-red-900 hover:border-red-900",
+
+        // link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        icon: "p-1",
+        sm: "py-0 px-1",
+        md: "py-1 px-2",
+        lg: "py-2 px-3",
+      },
     },
-    size: {
-      icon: "p-1",
-      sm: "py-0 px-1",
-      md: "py-1 px-2",
-      lg: "py-2 px-3",
+    defaultVariants: {
+      variant: "outline",
+      size: "md",
     },
-  },
-  defaultVariants: {
-    variant: "outline",
-    size: "md",
-  },
-});
+  }
+);
 
 export { spButtonVariants };
 

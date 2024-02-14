@@ -4,7 +4,7 @@ import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpButton } from "@/components/sp-button";
 import { SpTooltip } from "@/components/sp-tooltip";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MultiSelect } from "@/components/ui/multiselect";
 import {
@@ -14,19 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DedupConfigT,
   ItemFieldConfigT,
   getItemType,
-  getItemTypesList,
   itemTypeT,
 } from "@/lib/items_common";
 import { URLS } from "@/lib/urls";
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 type TypeStateT = {
   word: string;
@@ -34,31 +31,14 @@ type TypeStateT = {
 };
 
 export default function WorkspaceSettingsPage() {
-  const supabase = createClientComponentClient<Database>();
   const workspace = useWorkspace();
 
-  const [typesList, setTypesList] = useState<itemTypeT[]>([]);
-  const [typeStates, setTypeStates] = useState<{
-    [key: string]: TypeStateT;
-  }>();
+  const searchParams = useSearchParams();
+  const itemType = searchParams.get("itemType") as itemTypeT;
 
-  useEffect(() => {
-    let typeStates: {
-      [key: string]: TypeStateT;
-    } = {};
+  const itemTypeConfig = useMemo(() => getItemType(itemType), [itemType]);
 
-    getItemTypesList().forEach((itemType) => {
-      typeStates[itemType] = {
-        word: getItemType(itemType).word,
-        config: getItemType(itemType).dedupConfig,
-      };
-    });
-
-    setTypeStates(typeStates);
-    setTypesList(getItemTypesList());
-  }, [supabase]);
-
-  if (!typeStates) {
+  if (!itemTypeConfig) {
     return (
       <div className="w-full flex items-center justify-center h-52">
         <Icons.spinner className="h-6 w-6 animate-spin" />
@@ -70,58 +50,41 @@ export default function WorkspaceSettingsPage() {
     <div className="flex-1 space-y-4 w-full">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">
-          <Link href={URLS.workspace(workspace.id).settings}>
-            <Icons.chevronLeft className="h-8 w-8 inline mb-1 text-gray-400 font-light" />{" "}
-            Workspace settings
-          </Link>{" "}
-          <span className="text-gray-400 font-light">/</span> Duplicates
+          <Link href={URLS.workspace(workspace.id).duplicates}>
+            <Icons.chevronLeft className="h-8 w-8 inline mb-1 text-gray-400 font-light" />
+            Duplicates
+          </Link>
+
+          <span className="text-gray-400 font-light mx-2">/</span>
+
+          <span>{itemTypeConfig.word} rules</span>
         </h2>
       </div>
 
-      <Tabs defaultValue={typesList[0]}>
-        <div className="flex flex-row justify-between items-center gap-2">
-          <TabsList>
-            {typesList.map((type, i) => (
-              <TabsTrigger key={i} value={type}>
-                <span>{typeStates[type].word}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <div className="bg-orange-100 px-2 py-6 rounded-md text-sm">
+        <p className="text-center">
+          ⚠️ The settings for duplicate rules are currently read-only. If the
+          default settings do not meet your needs, please contact us for
+          assistance.
+        </p>
+      </div>
 
-        {Object.keys(typeStates).map((typeStateKey, i) => {
-          const typeState = typeStates[typeStateKey];
+      <Card>
+        <CardContent className="pt-2">
+          <FieldsHeader />
+          {itemTypeConfig.dedupConfig.fields.map((field, i) => (
+            <FieldEditor
+              key={i}
+              config={itemTypeConfig.dedupConfig}
+              field={field}
+            />
+          ))}
 
-          return (
-            <TabsContent key={i} value={typeStateKey}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Fields</CardTitle>
-                </CardHeader>
-
-                <CardContent>
-                  <FieldsHeader />
-                  {typeState.config.fields.map((field, i) => (
-                    <FieldEditor
-                      key={i}
-                      config={typeState.config}
-                      field={field}
-                    />
-                  ))}
-
-                  <SpButton
-                    variant="full"
-                    className="mt-2 w-full"
-                    icon={Icons.add}
-                  >
-                    New
-                  </SpButton>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          );
-        })}
-      </Tabs>
+          <SpButton variant="full" className="mt-2 w-full" icon={Icons.add}>
+            New
+          </SpButton>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -194,7 +157,7 @@ function FieldEditor({
     <div className="border-b border-gray-400 p-2 w-full grid grid-cols-5 items-center gap-2">
       <Input
         className="[&:not(:hover)]:border-transparent font-semibold"
-        value={displayName}
+        defaultValue={displayName}
       />
 
       <MultiSelect
@@ -202,7 +165,8 @@ function FieldEditor({
         selected={sourceFields}
         onChange={setSourceFields}
       />
-      {/* 
+
+      {/*
       <Select onValueChange={() => {}} defaultValue={field.mergeMode}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select merge mode" />
@@ -235,11 +199,11 @@ function FieldEditor({
         </SelectTrigger>
 
         <SelectContent>
-          <SelectItem value="confident">Confident</SelectItem>
-          {/* <SelectItem value="half-confident">Half-confident</SelectItem> */}
+          <SelectItem value="confident">
+            Confident and double potential
+          </SelectItem>
           <SelectItem value="potential">Potential</SelectItem>
-          {/* <SelectItem value="half-potential">Half-potential</SelectItem> */}
-          {/* <SelectItem value="multiplier">Multiplier</SelectItem> */}
+          <SelectItem value="multiplier">Multiplier</SelectItem>
           <SelectItem value="null">Do nothing</SelectItem>
         </SelectContent>
       </Select>
@@ -254,11 +218,13 @@ function FieldEditor({
             Prevent them from matching
           </SelectItem>
           <SelectItem value="prevent-confident-reduce-potential">
-            Prevent confident match and reduce potential
+            Prevent confident match and reduce double potential
           </SelectItem>
-          {/* <SelectItem value="prevent-confident">
-            Prevent confident match
-          </SelectItem> */}
+          <SelectItem value="reduce-confident-reduce-potential">
+            Reduce confident and potential
+          </SelectItem>
+          <SelectItem value="reduce-confident">Reduce confident</SelectItem>
+          <SelectItem value="reduce-potential">Reduce potential</SelectItem>
           <SelectItem value="null">Do nothing</SelectItem>
         </SelectContent>
       </Select>

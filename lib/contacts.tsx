@@ -41,7 +41,7 @@ export const contactsDedupConfig: DedupConfigT = {
       label: "Mobile phone",
     },
     {
-      value: "linkedin",
+      value: "hs_linkedinid",
       label: "Linkedin",
     },
     {
@@ -58,7 +58,7 @@ export const contactsDedupConfig: DedupConfigT = {
       matchingMethod: "name",
       nameMinimumLength: 3,
       ifMatch: "potential",
-      ifDifferent: "prevent-confident-reduce-potential",
+      ifDifferent: "reduce-confident-reduce-potential",
       linkType: "hubspot",
     },
     {
@@ -67,7 +67,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["email"],
       matchingMethod: "email",
       ifMatch: "confident",
-      ifDifferent: "prevent-confident-reduce-potential",
+      ifDifferent: "reduce-confident-reduce-potential",
     },
     {
       id: "f4301d99-295c-4491-91e2-21335110f675",
@@ -75,7 +75,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["hs_linkedinid"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "prevent-confident-reduce-potential",
+      ifDifferent: "reduce-confident-reduce-potential",
       linkType: "linkedin",
     },
     {

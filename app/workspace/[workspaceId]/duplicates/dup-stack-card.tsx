@@ -203,7 +203,7 @@ export function DupStackCard({
 
           {!merged && isExpandable && (
             <SpIconButton
-              variant={allExpanded ? "ghostActivated" : "ghost"}
+              variant={allExpanded ? "ghostActivated" : "grayedGhost"}
               className={
                 !allExpanded ? "invisible group-hover/card:visible" : ""
               }
@@ -298,7 +298,7 @@ export function DupStackCard({
               <div className="flex flex-col">
                 <div className="flex flex-row items-center">
                   <SpButton
-                    variant="ghost"
+                    variant="grayedGhost"
                     className="-ml-2"
                     icon={
                       falsePositivesExpanded

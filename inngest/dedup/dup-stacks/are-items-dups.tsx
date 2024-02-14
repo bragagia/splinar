@@ -27,6 +27,8 @@ export function areItemsDups(
   let confidentScore = 0;
   let potentialScore = 0;
   let multiplier = 1;
+  let confidentMalus = 0;
+  let potentialMalus = 0;
 
   const similarities = itemA.similarities.filter(
     (similarity) =>
@@ -37,9 +39,9 @@ export function areItemsDups(
   const itemAFields = listItemFields(itemA);
   const itemBFields = listItemFields(itemB);
 
-  // if (itemAFields.length === 1 || itemBFields.length === 1) {
-  //   multiplier *= 2;
-  // }
+  if (itemAFields.length === 1 || itemBFields.length === 1) {
+    multiplier *= 1.35; // To allow similar to match as potential
+  }
 
   config.fields.forEach((field) => {
     let similarity = similarities.find(
@@ -62,7 +64,7 @@ export function areItemsDups(
           `# ${field.displayName} -> matched / potential (simScoreFactor: ${simScoreFactor})`
         );
       } else if (field.ifMatch === "multiplier") {
-        multiplier *= 1 + simScoreFactor;
+        multiplier *= 1 + 0.5 * simScoreFactor;
         log(`# ${field.displayName} -> matched / multiplier`);
       } else {
         log(`# ${field.displayName} -> matched / N/A`);
@@ -75,26 +77,26 @@ export function areItemsDups(
       // = Fields are differents
       if (bothItemHaveField) {
         if (field.ifDifferent === "prevent-match") {
-          confidentScore += -1000;
-          potentialScore += -1000;
+          confidentMalus += -1000;
+          potentialMalus += -1000;
           log(`# ${field.displayName} -> different / prevent-match`);
         } else if (field.ifDifferent === "prevent-confident-reduce-potential") {
-          confidentScore += -1000;
-          potentialScore += -1;
+          confidentMalus += -1000;
+          potentialMalus += -2;
           log(
             `# ${field.displayName} -> different / prevent-confident-reduce-potential`
           );
         } else if (field.ifDifferent === "reduce-confident-reduce-potential") {
-          confidentScore += -1;
-          potentialScore += -1;
+          confidentMalus += -1;
+          potentialMalus += -1;
           log(
             `# ${field.displayName} -> different / reduce-confident-reduce-potential`
           );
         } else if (field.ifDifferent === "reduce-confident") {
-          confidentScore += -1;
+          confidentMalus += -1;
           log(`# ${field.displayName} -> different / reduce-confident`);
         } else if (field.ifDifferent === "reduce-potential") {
-          potentialScore += -1;
+          potentialMalus += -1;
           log(`# ${field.displayName} -> different / reduce-potential`);
         } else {
           log(`# ${field.displayName} -> different / N/A`);
@@ -109,12 +111,16 @@ export function areItemsDups(
   log(`confident score -> ${confidentScore}`);
   log(`potential score -> ${potentialScore}`);
   log(`multiplier score -> ${multiplier}`);
+  log(`confident malus -> ${confidentMalus}`);
+  log(`potential malus -> ${potentialMalus}`);
 
-  potentialScore *= multiplier;
+  const finalConfidentScore = confidentScore * multiplier + confidentMalus;
+  const finalPotentialScore = potentialScore * multiplier + potentialMalus;
+  log(`---> Final scores : [${finalConfidentScore}, ${finalPotentialScore}]`);
 
-  if (confidentScore >= 1) {
+  if (finalConfidentScore >= 1) {
     return "CONFIDENT";
-  } else if (potentialScore >= 1) {
+  } else if (finalPotentialScore >= 1) {
     return "POTENTIAL";
   } else {
     return false;
