@@ -1,3 +1,4 @@
+import { WorkspaceSimilaritiesBatchInstallStart } from "@/inngest/types";
 import { itemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
@@ -16,7 +17,7 @@ export async function updateSimilarities(
   let batchLength = 0;
   let count = 0;
 
-  let payloads: { name: string; data: any }[] = [];
+  let payloads: WorkspaceSimilaritiesBatchInstallStart[] = [];
 
   do {
     let query = supabase
@@ -95,7 +96,7 @@ async function compareBatchWithAllInstalledBatches(
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {
-  let payloads: { name: string; data: any }[] = [];
+  let payloads: WorkspaceSimilaritiesBatchInstallStart[] = [];
 
   let lastItemId: string | null = null;
   do {

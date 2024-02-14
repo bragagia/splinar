@@ -5,6 +5,7 @@ import {
   SIMILARITIES_BATCH_SIZE,
   updateSimilarities,
 } from "@/inngest/dedup/similarity/update";
+import { WorkspaceSimilaritiesBatchInstallStart } from "@/inngest/types";
 import { getItemTypesList, itemTypeT } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
@@ -47,7 +48,7 @@ export async function installSimilarities(
     throw error;
   }
 
-  let payloads: { name: string; data: any }[] = [];
+  let payloads: WorkspaceSimilaritiesBatchInstallStart[] = [];
   for (var itemType of typesList) {
     const ret = await genericInstallSimilarities(
       supabase,
@@ -58,9 +59,7 @@ export async function installSimilarities(
     payloads.push(...ret);
   }
 
-  for (let payload of payloads) {
-    await inngest.send(payload as any);
-  }
+  await inngest.send(payloads);
 }
 
 async function genericCountSimilarities(
