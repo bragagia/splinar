@@ -459,7 +459,7 @@ export type JobExecutionOutputWithInput = {
   };
 };
 
-export async function customJobExecutor(
+async function customJobExecutor(
   items: Tables<"items">[],
   code: string
 ): Promise<JobExecutionOutputWithInput> {
