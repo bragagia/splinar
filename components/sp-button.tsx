@@ -133,11 +133,11 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
         }}
         {...props}
       >
-        <div className="flex flex-row items-center justify-center gap-1">
+        <div className="flex flex-row items-center justify-center gap-1 w-full">
           {!loading && Icon && <Icon className="w-4 h-4" />}
           {loading && <Icons.spinner className="w-4 h-4 animate-spin" />}
 
-          <div>{children}</div>
+          {children}
         </div>
       </Comp>
     );

@@ -202,12 +202,6 @@ export default function DuplicatesPage() {
     <div className="flex-1 space-y-4 w-full">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Duplicates</h2>
-        {/* <SpButton variant="ghost">
-          <div className="flex flex-row gap-1">
-            <Icons.settings className="h-5 w-5" />
-            Settings
-          </div>
-        </SpButton> */}
       </div>
 
       <Tabs defaultValue={Object.keys(typeStates)[0]}>

@@ -11,10 +11,16 @@ export const URLS = {
   // Retuns a link to last workspace if teamId is null
   workspace: (workspaceId: string) => ({
     dashboard: `/workspace/${workspaceId}/dashboard`,
+
+    dataCleaning: `/workspace/${workspaceId}/data-cleaning`,
+    dataCleaningJob: (jobId: string) =>
+      `/workspace/${workspaceId}/data-cleaning/job/${jobId}`,
+
     duplicates: `/workspace/${workspaceId}/duplicates`,
-    settings: `/workspace/${workspaceId}/settings`,
     duplicatesSettings: (itemType: itemTypeT) =>
       `/workspace/${workspaceId}/duplicates/settings?itemType=${itemType}`,
+
+    settings: `/workspace/${workspaceId}/settings`,
     billing: {
       index: `/workspace/${workspaceId}/billing`,
       canceled: `/workspace/${workspaceId}/billing?canceled=true`,
