@@ -1,8 +1,17 @@
 "use client";
 
+import {
+  disableDataCleaningJob,
+  enableOrUpdateDataCleaningJob,
+} from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverEnableOrUpdateJob";
 import { customJobExecutorSA } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverJob";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
+import {
+  SpButton,
+  SpConfirmButton,
+  SpIconButton,
+} from "@/components/sp-button";
 import {
   Card,
   CardContent,
@@ -10,6 +19,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { MultiSelect } from "@/components/ui/multiselect";
 import {
@@ -28,35 +43,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import useDebounce from "@/lib/debounce";
+import { captureException } from "@/lib/sentry";
 import { URLS } from "@/lib/urls";
-import { Database, Tables } from "@/types/supabase";
+import { Database, Tables, TablesUpdate } from "@/types/supabase";
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import Document from "@tiptap/extension-document";
+import History from "@tiptap/extension-history";
+import Paragraph from "@tiptap/extension-paragraph";
+import Text from "@tiptap/extension-text";
+import { EditorContent, Extension, useEditor } from "@tiptap/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getItemValueAsArray } from "../../../../../../lib/items_common";
-//const ivm = require("isolated-vm");
-
-type jobModeT = "standard" | "expert";
-
-const code = `function customJob(item: Item): Item {
-  const fields = ["firstname", "lastname"];
-
-  fields.forEach((fieldName) => {
-    item.fields[fieldName] = item.fields[fieldName]?.map((value) => {
-      return value
-        .trim() // Remove leading and trailing spaces
-        .replace(/[ \t]+/g, " ") // Replace multiple spaces with a single space
-        .split(" ") // Split the string into words
-        .map(
-          (word) => word.charAt(0).toLowerCase() + word.slice(1).toUpperCase()
-        ) // Capitalize each word
-        .join(" "); // Join the words back together
-    });
-  });
-
-  return item;
-}`;
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getItemValueAsArray,
+  itemTypeT,
+} from "../../../../../../lib/items_common";
 
 const typeDef = `type Item = {
   id: string;
@@ -68,6 +72,7 @@ const typeDef = `type Item = {
 
 declare function stringSimScore(string1: string, string2: string): number;`;
 
+// TODO: Remove
 const hubspotSourceFields = [
   {
     value: "firstname",
@@ -127,34 +132,132 @@ const hubspotSourceFields = [
   },
 ];
 
-export default function DataCleaningJobPage() {
+type jobModeT = "standard" | "expert";
+
+type JobRecurrenceType =
+  | "each-new"
+  | "each-new-and-updated"
+  | "every-day"
+  | "every-week"
+  | "every-month";
+
+export default function DataCleaningJobPage({
+  params,
+}: {
+  params: { jobId: string };
+}) {
+  const router = useRouter();
+
   const workspace = useWorkspace();
-
-  const [mode, setMode] = useState<jobModeT>("standard");
-  const [standardDialogOpen, setStandardDialogOpen] = useState(false);
-  const [expertDialogOpen, setExpertDialogOpen] = useState(false);
-  const [target, setTarget] = useState<string[]>(["CONTACTS"]);
-  const [expertCode, setExpertCode] = useState(code);
-  const monaco = useMonaco();
-
   const supabase = createClientComponentClient<Database>();
 
-  const [sampleItems, setSampleItems] = useState<Tables<"items">[]>([]);
+  const monaco = useMonaco();
 
+  const [job, setJob] = useState<Tables<"data_cleaning_jobs"> | undefined>();
+  const [jobValidated, setJobValidated] = useState<
+    Tables<"data_cleaning_job_validated"> | undefined
+  >();
+
+  const debouncedJob = useDebounce(job, 400);
+  const [jobIsPersisted, setJobIsPersisted] = useState<boolean | undefined>();
+
+  const [sampleItems, setSampleItems] = useState<Tables<"items">[]>([]);
   const [sampleOutput, setSampleOutput] =
     useState<JobExecutionOutputWithInput>();
 
-  useEffect(() => {
-    customJobExecutorSA(sampleItems, expertCode).then((output) => {
-      setSampleOutput(output);
-    });
-  }, [sampleItems, expertCode]);
+  const jobIsUpToDate = useMemo(() => {
+    if (!job || !jobValidated) {
+      return false;
+    }
+
+    return (
+      job.code === jobValidated.code &&
+      job.mode === jobValidated.mode &&
+      job.recurrence === jobValidated.recurrence &&
+      job.target_item_types.length === jobValidated.target_item_types.length &&
+      job.target_item_types.every(function (value, index) {
+        return value === jobValidated.target_item_types[index];
+      })
+    );
+  }, [job, jobValidated]);
 
   useEffect(() => {
     supabase
+      .from("data_cleaning_jobs")
+      .select("*, data_cleaning_job_validated(*)")
+      .eq("workspace_id", workspace.id)
+      .eq("id", params.jobId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          captureException(error);
+          return;
+        }
+
+        setJobValidated(data?.data_cleaning_job_validated || undefined);
+        const tmp: any = data;
+        delete tmp.data_cleaning_job_validated;
+        setJob(tmp);
+      });
+  }, [supabase, workspace.id, params.jobId]);
+
+  useEffect(() => {
+    if (!debouncedJob) {
+      return;
+    }
+
+    supabase
+      .from("data_cleaning_jobs")
+      .update(debouncedJob)
+      .eq("id", params.jobId)
+      .then(({ error }) => {
+        if (error) {
+          captureException(error);
+          return;
+        }
+
+        setJobIsPersisted(true);
+      });
+  }, [supabase, params.jobId, debouncedJob]);
+
+  const updateJob = async (updatedJob: TablesUpdate<"data_cleaning_jobs">) => {
+    setJob((prev) => {
+      if (prev) {
+        return {
+          ...prev,
+          ...updatedJob,
+        };
+      }
+    });
+
+    setJobIsPersisted(false);
+  };
+
+  const deleteJob = async () => {
+    await supabase.from("data_cleaning_jobs").delete().eq("id", params.jobId);
+    router.push(URLS.workspace(workspace.id).dataCleaning);
+  };
+
+  useEffect(() => {
+    if (!job?.code) {
+      return;
+    }
+
+    customJobExecutorSA(sampleItems, job.code).then((output) => {
+      setSampleOutput(output);
+    });
+  }, [sampleItems, job?.code]);
+
+  useEffect(() => {
+    if (!job?.target_item_types) {
+      return;
+    }
+
+    supabase
       .from("items")
       .select("*")
-      .in("item_type", target)
+      .in("item_type", job?.target_item_types)
+      .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .limit(50)
       .then(({ data, error }) => {
@@ -165,7 +268,7 @@ export default function DataCleaningJobPage() {
 
         setSampleItems(data || []);
       });
-  }, [supabase, target]);
+  }, [supabase, workspace.id, job?.target_item_types]);
 
   useEffect(() => {
     if (!monaco) return;
@@ -173,25 +276,172 @@ export default function DataCleaningJobPage() {
     monaco.languages.typescript.typescriptDefaults.addExtraLib(typeDef);
   }, [monaco]);
 
+  const titleEditor = useEditor(
+    {
+      extensions: [
+        Document,
+        Paragraph,
+        Text,
+        History,
+        Extension.create({
+          addKeyboardShortcuts(this) {
+            return {
+              Enter: () => {
+                updateJob({
+                  title: this.editor.getText(),
+                });
+                this.editor.commands.blur();
+                return true;
+              },
+            };
+          },
+        }),
+      ],
+      autofocus: false,
+      content: job?.title,
+
+      onBlur({ editor, event }) {
+        updateJob({
+          title: editor.getText(),
+        });
+      },
+    },
+    [job?.id, job?.title]
+  );
+
+  const enableOrUpdateJob = async () => {
+    if (!job) {
+      return;
+    }
+
+    setJobValidated(await enableOrUpdateDataCleaningJob(job.id));
+  };
+
+  const disableJob = async () => {
+    if (!job) {
+      return;
+    }
+
+    await disableDataCleaningJob(job.id);
+    setJobValidated(undefined);
+  };
+
+  if (!job) {
+    return <>loading</>;
+  }
+
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Data cleaning</h2>
+
+        <div className="flex flex-row gap-3">
+          {!(jobValidated && jobIsUpToDate) &&
+            jobIsPersisted !== undefined &&
+            (jobIsPersisted ? (
+              <div className="font-medium text-gray-400 flex flex-row items-center gap-1 text-xs">
+                <Icons.check className="h-3 w-3" /> Draft saved
+              </div>
+            ) : (
+              <div className="font-medium text-gray-300 flex flex-row items-center gap-1 text-xs">
+                <Icons.spinner className="h-3 w-3 animate-spin" /> Saving
+              </div>
+            ))}
+
+          {jobValidated ? (
+            <div className="flex flex-row gap-2">
+              {jobIsUpToDate ? (
+                <SpButton
+                  variant="outline"
+                  colorClass="green"
+                  icon={Icons.check}
+                  disabled
+                  size="md"
+                >
+                  Up to date
+                </SpButton>
+              ) : (
+                <SpButton
+                  variant="full"
+                  onClick={async () => {
+                    await enableOrUpdateJob();
+                  }}
+                  className="animate-pulse hover:animate-none"
+                >
+                  Update live version
+                </SpButton>
+              )}
+            </div>
+          ) : (
+            <SpButton
+              variant="full"
+              onClick={async () => {
+                await enableOrUpdateJob();
+              }}
+            >
+              Enable
+            </SpButton>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SpIconButton variant="outline" icon={Icons.dotsVertical} />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent>
+              {jobValidated && (
+                <DropdownMenuItem asChild>
+                  <button
+                    className="w-full"
+                    onClick={async () => {
+                      await disableJob();
+                    }}
+                  >
+                    Pause job
+                  </button>
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuItem asChild>
+                <SpConfirmButton
+                  classic
+                  className="w-full"
+                  onClick={async () => {
+                    await deleteJob();
+                  }}
+                >
+                  Delete job
+                </SpConfirmButton>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="flex flex-col space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="tracking-tight">
-              <Link href={URLS.workspace(workspace.id).dataCleaning}>
-                <Icons.chevronLeft className="h-6 w-6 inline mb-1 text-gray-400 font-light" />
-                My jobs
-              </Link>
+            <div className="flex flex-row justify-between items-center">
+              <CardTitle className="tracking-tight">
+                <Link href={URLS.workspace(workspace.id).dataCleaning}>
+                  <Icons.chevronLeft className="h-6 w-6 inline mb-1 text-gray-400 font-light" />
+                  My jobs
+                </Link>
 
-              <span className="text-gray-400 font-light mx-2">/</span>
+                <span className="text-gray-400 font-light mx-2">/</span>
 
-              <span>Standardize full names</span>
-            </CardTitle>
+                {titleEditor ? (
+                  <div className="py-1 px-2 rounded-lg border border-transparent hover:border-gray-700 hover:border-opacity-20 focus-within:border-gray-700 focus-within:border-opacity-50 focus:bg-white hover:bg-white focus-within:bg-white hover:focus-within:border-opacity-50 hover:focus-within:border-gray-700 inline-block">
+                    <EditorContent
+                      className="inline-block"
+                      editor={titleEditor}
+                    />
+                  </div>
+                ) : (
+                  <p>{job.title}</p>
+                )}
+              </CardTitle>
+            </div>
           </CardHeader>
 
           <CardContent>
@@ -205,8 +455,12 @@ export default function DataCleaningJobPage() {
                       { label: "Contacts", value: "CONTACTS" },
                       { label: "Companies", value: "COMPANIES" },
                     ]}
-                    selected={target}
-                    onChange={setTarget}
+                    selected={job.target_item_types}
+                    onChange={(newTarget) => {
+                      updateJob({
+                        target_item_types: newTarget as itemTypeT[],
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -215,7 +469,14 @@ export default function DataCleaningJobPage() {
                 <Label className="w-28">Recurrence:</Label>
 
                 <div>
-                  <Select defaultValue="each-new-and-updated">
+                  <Select
+                    onValueChange={(value: JobRecurrenceType) => {
+                      updateJob({
+                        recurrence: value,
+                      });
+                    }}
+                    value={job.recurrence}
+                  >
                     <SelectTrigger className="w-96">
                       <SelectValue />
                     </SelectTrigger>
@@ -233,9 +494,12 @@ export default function DataCleaningJobPage() {
               </div>
 
               <Tabs
-                defaultValue="standard"
-                value={mode}
-                onValueChange={(value) => setMode(value as jobModeT)}
+                value={job.mode}
+                onValueChange={(newMode) => {
+                  updateJob({
+                    mode: newMode as jobModeT,
+                  });
+                }}
               >
                 <div className="flex flex-row items-center">
                   <Label className="mr-2 w-28">Mode:</Label>
@@ -315,9 +579,13 @@ export default function DataCleaningJobPage() {
                       language="typescript"
                       theme="vs-dark"
                       className="rounded-md"
-                      value={code}
-                      onChange={(value) => {
-                        if (value) setExpertCode(value);
+                      value={job.code}
+                      onChange={(newCode) => {
+                        if (newCode) {
+                          updateJob({
+                            code: newCode,
+                          });
+                        }
                       }}
                       options={{
                         minimap: { enabled: false },

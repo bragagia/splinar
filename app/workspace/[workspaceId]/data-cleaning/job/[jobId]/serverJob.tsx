@@ -3,6 +3,11 @@
 import { JobExecutionOutputWithInput } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/page";
 import { getItemValueAsArray } from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
+import stringSimilarity from "string-similarity";
+
+declare global {
+  var stringSimScore: (s1: string, s2: string) => number;
+}
 
 export async function customJobExecutorSA(
   items: Tables<"items">[],
@@ -21,7 +26,7 @@ export async function customJobExecutorSA(
   } = {};
 
   try {
-    //globalThis.stringSimScore = stringSimilarity.compareTwoStrings;
+    global.stringSimScore = stringSimilarity.compareTwoStrings;
     const job = new Function("item", makeCodeAFunctionBody(code));
 
     items.forEach((item) => {

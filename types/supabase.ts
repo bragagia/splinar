@@ -6,9 +6,98 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
+      data_cleaning_job_validated: {
+        Row: {
+          code: string
+          created_at: string
+          data_cleaning_job_id: string
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types: string[]
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          data_cleaning_job_id: string
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types: string[]
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          data_cleaning_job_id?: string
+          mode?: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence?: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_cleaning_job_validated_data_cleaning_job_id_fkey"
+            columns: ["data_cleaning_job_id"]
+            isOneToOne: true
+            referencedRelation: "data_cleaning_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_cleaning_job_validated_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_cleaning_jobs: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          last_execution: string | null
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types: string[]
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          last_execution?: string | null
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types: string[]
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          last_execution?: string | null
+          mode?: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence?: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_types?: string[]
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_cleaning_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dup_stack_items: {
         Row: {
           created_at: string
@@ -52,7 +141,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       dup_stacks: {
@@ -81,7 +170,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       items: {
@@ -131,7 +220,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       similarities: {
@@ -189,7 +278,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       user_roles: {
@@ -215,7 +304,7 @@ export interface Database {
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       workspace_subscriptions: {
@@ -265,7 +354,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       workspaces: {
@@ -336,7 +425,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
     }
@@ -387,6 +476,13 @@ export interface Database {
         | "similar"
         | "potential"
         | "unlikely"
+      data_cleaning_jobs_mode: "standard" | "expert"
+      data_cleaning_jobs_recurrence:
+        | "each-new"
+        | "each-new-and-updated"
+        | "every-day"
+        | "every-week"
+        | "every-month"
       dup_stack_item_dup_type:
         | "REFERENCE"
         | "CONFIDENT"
@@ -415,14 +511,16 @@ export interface Database {
   }
 }
 
+type PublicSchema = Database[Extract<keyof Database, "public">]
+
 export type Tables<
   PublicTableNameOrOptions extends
-    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
       Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -430,68 +528,68 @@ export type Tables<
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] &
-      Database["public"]["Views"])
-  ? (Database["public"]["Tables"] &
-      Database["public"]["Views"])[PublicTableNameOrOptions] extends {
-      Row: infer R
-    }
-    ? R
+  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+        PublicSchema["Views"])
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
     : never
-  : never
 
 export type TablesInsert<
   PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
+    | keyof PublicSchema["Tables"]
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-  ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
-      Insert: infer I
-    }
-    ? I
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
     : never
-  : never
 
 export type TablesUpdate<
   PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
+    | keyof PublicSchema["Tables"]
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-  ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
-      Update: infer U
-    }
-    ? U
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
     : never
-  : never
 
 export type Enums<
   PublicEnumNameOrOptions extends
-    | keyof Database["public"]["Enums"]
+    | keyof PublicSchema["Enums"]
     | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never
+    : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
-  ? Database["public"]["Enums"][PublicEnumNameOrOptions]
-  : never
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
 

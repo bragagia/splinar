@@ -67,6 +67,30 @@ export type WorkspaceFetchFinished = {
   };
 };
 
+export type DataCleaningMasterDailyStart = {
+  name: "data-cleaning/master/daily.start";
+  data: {
+    workspaceId: string;
+  };
+};
+
+export type DataCleaningJobFullDBStart = {
+  name: "data-cleaning/job-fulldb.start";
+  data: {
+    workspaceId: string;
+    jobId: string;
+  };
+};
+
+export type DataCleaningJobBatchStart = {
+  name: "data-cleaning/job/batch.start";
+  data: {
+    workspaceId: string;
+    jobId: string;
+    itemIds: string[];
+  };
+};
+
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
   | WorkspaceFetchCompaniesStart
@@ -76,4 +100,7 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceAnyDupsInstallFinished
   | WorkspaceFetchFinished
   | ItemsMergeAllStart
+  | DataCleaningMasterDailyStart
+  | DataCleaningJobFullDBStart
+  | DataCleaningJobBatchStart
 >();

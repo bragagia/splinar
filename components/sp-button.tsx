@@ -22,30 +22,45 @@ const spButtonVariants = cva(
   {
     variants: {
       variant: {
-        // default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        // destructive:
-        //   "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         ghost:
-          "text-black border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white",
+          "text-[--color-text] border-transparent enabled:hover:text-[--color-text] enabled:hover:border-[--color-900] enabled:hover:bg-white",
 
         grayedGhost:
-          "text-gray-400 border-transparent enabled:hover:text-black enabled:hover:border-gray-900 enabled:hover:bg-white",
+          "text-[--color-400] border-transparent enabled:hover:text-[--color-text] enabled:hover:border-[--color-900] enabled:hover:bg-white",
 
         outline:
-          "text-black bg-white border-gray-400 enabled:hover:border-gray-900 enabled:hover:bg-white disabled:text-gray-400 disabled:border-gray-300",
+          "text-[--color-text] bg-white border-[--color-400] enabled:hover:border-[--color-900] enabled:hover:bg-white disabled:text-[--color-400] disabled:border-[--color-400]",
 
         ghostActivated:
-          "text-gray-600 border-gray-400 enabled:hover:text-black enabled:hover:border-gray-900",
+          "text-[--color-700] border-[--color-400] enabled:hover:text-[--color-text] enabled:hover:border-[--color-900]",
 
-        full: "bg-gray-700 border-gray-700 text-gray-100 enabled:hover:bg-gray-900 enabled:hover:border-gray-900 disabled:bg-gray-400 disabled:border-gray-400",
+        full: "bg-[--color-700] border-[--color-700] text-[--color-100] enabled:hover:bg-[--color-900] enabled:hover:border-[--color-900] disabled:bg-[--color-400] disabled:border-[--color-400]",
 
         fullAnimated:
-          "bg-opacity-40 bg-white border-gray-700 text-black hover:bg-opacity-10 hover:border-gray-900",
-
-        fullDanger:
-          "bg-red-700 border-red-700 text-red-100 hover:bg-red-900 hover:border-red-900",
-
-        // link: "text-primary underline-offset-4 hover:underline",
+          "bg-opacity-40 bg-white border-[--color-700] text-[--color-text] hover:bg-opacity-10 hover:border-[--color-900]",
+      },
+      colorClass: {
+        black: [
+          "[--color-100:theme(colors.gray.100)]",
+          "[--color-400:theme(colors.gray.400)]",
+          "[--color-700:theme(colors.gray.700)]",
+          "[--color-900:theme(colors.gray.900)]",
+          "[--color-text:theme(colors.black)]",
+        ],
+        red: [
+          "[--color-100:theme(colors.red.100)]",
+          "[--color-400:theme(colors.red.400)]",
+          "[--color-700:theme(colors.red.700)]",
+          "[--color-900:theme(colors.red.900)]",
+          "[--color-text:theme(colors.black)]",
+        ],
+        green: [
+          "[--color-100:theme(colors.green.100)]",
+          "[--color-400:theme(colors.green.600)]",
+          "[--color-700:theme(colors.green.700)]",
+          "[--color-900:theme(colors.green.900)]",
+          "[--color-text:theme(colors.black)]",
+        ],
       },
       size: {
         icon: "p-1",
@@ -55,6 +70,7 @@ const spButtonVariants = cva(
       },
     },
     defaultVariants: {
+      colorClass: "black",
       variant: "outline",
       size: "md",
     },
@@ -104,6 +120,7 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
     {
       className,
       variant,
+      colorClass,
       size,
       asChild = false,
       icon,
@@ -121,7 +138,9 @@ const SpButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(
 
     return (
       <Comp
-        className={cn(spButtonVariants({ variant, size, className }))}
+        className={cn(
+          spButtonVariants({ variant, colorClass, size, className })
+        )}
         ref={ref}
         disabled={disabled || loading}
         onClick={async (event: any) => {
@@ -148,49 +167,59 @@ SpButton.displayName = "SpButton";
 export interface SpConfirmButtonProps extends SpIconButtonProps {
   confirmTitle?: string;
   confirmDescription?: string;
+  classic?: boolean;
 }
 
 const SpConfirmButton = React.forwardRef<
   Merge<HTMLButtonElement, SpButtonProps>,
   SpConfirmButtonProps
->(({ children, confirmTitle, confirmDescription, onClick, ...props }, ref) => {
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+>(
+  (
+    { children, confirmTitle, confirmDescription, onClick, classic, ...props },
+    ref
+  ) => {
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
-  return (
-    <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
-      <DialogTrigger asChild>
-        <SpButton {...props}>{children}</SpButton>
-      </DialogTrigger>
+    return (
+      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <DialogTrigger asChild>
+          {classic ? (
+            <button {...props}>{children}</button>
+          ) : (
+            <SpButton {...props}>{children}</SpButton>
+          )}
+        </DialogTrigger>
 
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{confirmTitle ? confirmTitle : children}</DialogTitle>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmTitle ? confirmTitle : children}</DialogTitle>
 
-          <DialogDescription>
-            {confirmDescription ? confirmDescription : "Are you sure?"}
-          </DialogDescription>
-        </DialogHeader>
+            <DialogDescription>
+              {confirmDescription ? confirmDescription : "Are you sure?"}
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogFooter>
-          <SpButton
-            type="submit"
-            {...props}
-            onClick={
-              onClick
-                ? async (event: any) => {
-                    await onClick(event);
-                    setCancelModalOpen(false);
-                  }
-                : undefined
-            }
-          >
-            {children}
-          </SpButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-});
+          <DialogFooter>
+            <SpButton
+              type="submit"
+              {...props}
+              onClick={
+                onClick
+                  ? async (event: any) => {
+                      await onClick(event);
+                      setCancelModalOpen(false);
+                    }
+                  : undefined
+              }
+            >
+              {children}
+            </SpButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+);
 SpConfirmButton.displayName = "SpConfirmButton";
 
 const SpAnimatedButton = React.forwardRef<HTMLButtonElement, SpButtonProps>(

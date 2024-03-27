@@ -180,7 +180,8 @@ export default function WorkspaceSettingsPageClient({
                   </SpButton>
 
                   <SpConfirmButton
-                    variant="fullDanger"
+                    colorClass="red"
+                    variant="full"
                     confirmDescription="Are you sure? Your subscription will remain active until the end of current cycle."
                     onClick={async () => {
                       await cancelWorkspaceSubscription(workspace.id);
@@ -235,7 +236,8 @@ export default function WorkspaceSettingsPageClient({
 
             <SpConfirmButton
               className="shrink-0"
-              variant="fullDanger"
+              colorClass="red"
+              variant="full"
               onClick={onDeleteWorkspace}
             >
               Delete workspace
@@ -310,7 +312,8 @@ export default function WorkspaceSettingsPageClient({
 
                 <SpButton
                   className="shrink-0"
-                  variant="fullDanger"
+                  colorClass="red"
+                  variant="full"
                   onClick={() => onResetWorkspace("dup_stacks")}
                   disabled={resetWorkspaceLoading}
                 >
@@ -330,7 +333,8 @@ export default function WorkspaceSettingsPageClient({
 
                 <SpButton
                   className="shrink-0"
-                  variant="fullDanger"
+                  colorClass="red"
+                  variant="full"
                   onClick={() => onResetWorkspace("similarities_and_dup")}
                   disabled={resetWorkspaceLoading}
                 >
@@ -350,7 +354,8 @@ export default function WorkspaceSettingsPageClient({
 
                 <SpButton
                   className="shrink-0"
-                  variant="fullDanger"
+                  colorClass="red"
+                  variant="full"
                   onClick={() => onResetWorkspace("full")}
                   disabled={resetWorkspaceLoading}
                 >

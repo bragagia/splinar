@@ -1,3 +1,5 @@
+import dataCleaningJob from "@/inngest/data-cleaning-job";
+import dataCleaningJobBatch from "@/inngest/data-cleaning-job-batch";
 import itemsMergeAll from "@/inngest/items-merge-all";
 import workspaceCompaniesFetch from "@/inngest/workspace-companies-fetch";
 import workspaceContactsFetch from "@/inngest/workspace-contacts-fetch";
@@ -16,6 +18,8 @@ export const functions = [
   workspaceCompaniesFetch,
   workspaceContactsFetch,
   workspaceSimilaritiesLaunch,
+  dataCleaningJob,
+  dataCleaningJobBatch,
 ];
 
 export { inngest } from "./client";
