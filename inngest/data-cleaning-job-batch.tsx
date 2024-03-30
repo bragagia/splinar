@@ -1,4 +1,4 @@
-import { inngest } from "@/inngest";
+import { inngest } from "./client";
 import { Database } from "@/types/supabase";
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
 

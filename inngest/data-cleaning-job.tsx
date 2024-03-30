@@ -1,7 +1,7 @@
-import { inngest } from "@/inngest";
 import { runDataCleaningJobOnSubset } from "@/inngest/data-cleaning-job-batch";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
+import { inngest } from "./client";
 
 export default inngest.createFunction(
   { id: "data-cleaning-job-fulldb", retries: 0 },
