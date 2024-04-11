@@ -1,5 +1,5 @@
 import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
-import { itemTypeT } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
 import {
@@ -399,7 +399,7 @@ async function createDupstack(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   genericDupstack: GenericDupStack,
-  itemType: itemTypeT
+  itemType: ItemTypeT
 ) {
   const startTime = performance.now();
 

@@ -1,4 +1,4 @@
-import { itemTypeT } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 
 const base = process.env.NEXT_PUBLIC_URL!;
 
@@ -17,7 +17,7 @@ export const URLS = {
       `/workspace/${workspaceId}/data-cleaning/job/${jobId}`,
 
     duplicates: `/workspace/${workspaceId}/duplicates`,
-    duplicatesSettings: (itemType: itemTypeT) =>
+    duplicatesSettings: (itemType: ItemTypeT) =>
       `/workspace/${workspaceId}/duplicates/settings?itemType=${itemType}`,
 
     settings: `/workspace/${workspaceId}/settings`,

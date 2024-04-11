@@ -1,6 +1,6 @@
-import { inngest } from "./client";
 import { Database } from "@/types/supabase";
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { inngest } from "./client";
 
 export default inngest.createFunction(
   { id: "data-cleaning-job-batch", retries: 0 },
@@ -34,7 +34,7 @@ export default inngest.createFunction(
 );
 
 import { newHubspotClient } from "@/lib/hubspot";
-import { getItemType, getItemValueAsArray } from "@/lib/items_common";
+import { getItemTypeConfig, getItemValueAsArray } from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
 import stringSimilarity from "string-similarity";
 
@@ -79,7 +79,7 @@ export async function runDataCleaningJobOnSubset(
 
   // TODO: missing await
   Object.keys(jobOutput).forEach(async (itemId) => {
-    const itemType = getItemType(itemsById[itemId].item_type);
+    const itemType = getItemTypeConfig(itemsById[itemId].item_type);
 
     const hubspotFieldUpdates = Object.keys(jobOutput[itemId]).reduce(
       (acc, fieldName) => {

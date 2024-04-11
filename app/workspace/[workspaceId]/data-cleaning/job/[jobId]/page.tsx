@@ -58,8 +58,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ItemTypeT,
   getItemValueAsArray,
-  itemTypeT,
 } from "../../../../../../lib/items_common";
 
 const typeDef = `type Item = {
@@ -458,7 +458,7 @@ export default function DataCleaningJobPage({
                     selected={job.target_item_types}
                     onChange={(newTarget) => {
                       updateJob({
-                        target_item_types: newTarget as itemTypeT[],
+                        target_item_types: newTarget as ItemTypeT[],
                       });
                     }}
                   />

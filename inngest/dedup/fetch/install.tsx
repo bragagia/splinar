@@ -3,6 +3,7 @@ import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
+import dayjs from "dayjs";
 
 export async function fullFetch(
   supabase: SupabaseClient<Database>,
@@ -25,6 +26,14 @@ export async function fullFetch(
     workspace.refresh_token,
     "search"
   );
+
+  // Update last poll before fetching to ensure we don't miss any updated data when polling
+  await supabase
+    .from("workspaces")
+    .update({
+      last_poll: dayjs().toISOString(),
+    })
+    .eq("id", workspaceId);
 
   await updateInstallTotals(supabase, hsClientSearchLimited, workspaceId);
 

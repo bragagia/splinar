@@ -1,6 +1,6 @@
 import { itemsMerge } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { newHubspotClient } from "@/lib/hubspot";
-import { getItemType } from "@/lib/items_common";
+import { getItemTypeConfig } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
@@ -8,7 +8,17 @@ import { inngest } from "./client";
 const MAX_IT = 2;
 
 export default inngest.createFunction(
-  { id: "items-merge-all", retries: 0 },
+  {
+    id: "items-merge-all",
+    retries: 0,
+    concurrency: [
+      {
+        scope: "account",
+        key: "event.data.workspaceId",
+        limit: 1,
+      },
+    ],
+  },
   { event: "items/merge-all.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;
@@ -35,8 +45,9 @@ export default inngest.createFunction(
 
     if (!event.data.lastItemCreatedAt) {
       if (
-        getItemType(event.data.itemType).getWorkspaceOperation(workspace) ===
-        "PENDING"
+        getItemTypeConfig(event.data.itemType).getWorkspaceOperation(
+          workspace
+        ) === "PENDING"
       ) {
         throw new Error("Operation running on workspace");
       }
@@ -44,7 +55,9 @@ export default inngest.createFunction(
       const { error: error } = await supabaseAdmin
         .from("workspaces")
         .update(
-          getItemType(event.data.itemType).setWorkspaceOperation("PENDING")
+          getItemTypeConfig(event.data.itemType).setWorkspaceOperation(
+            "PENDING"
+          )
         )
         .eq("id", workspaceId);
       if (error) {
@@ -95,7 +108,9 @@ export default inngest.createFunction(
     if (finished) {
       const { error: errorWriteDone } = await supabaseAdmin
         .from("workspaces")
-        .update(getItemType(event.data.itemType).setWorkspaceOperation("NONE"))
+        .update(
+          getItemTypeConfig(event.data.itemType).setWorkspaceOperation("NONE")
+        )
         .eq("id", workspaceId);
       if (errorWriteDone) {
         throw errorWriteDone;

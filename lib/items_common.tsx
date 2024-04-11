@@ -9,19 +9,36 @@ import {
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
-import { companiesDedupConfig, getCompanyColumns } from "@/lib/companies";
-import { contactsDedupConfig } from "@/lib/contacts";
+import {
+  companiesDedupConfig,
+  companiesPollUpdater,
+  getCompanyColumns,
+} from "@/lib/companies";
+import { contactsDedupConfig, contactsPollUpdater } from "@/lib/contacts";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
+import { captureException } from "@/lib/sentry";
 import { URLS } from "@/lib/urls";
-import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
-import { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
+import {
+  DupStackItemWithItemT,
+  DupStackWithItemsT,
+  getDupstackConfidentsAndReference,
+  getDupstackPotentials,
+} from "@/types/dupstacks";
+import { Database, Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
-import dayjs from "dayjs";
+import { SupabaseClient } from "@supabase/supabase-js";
+import dayjs, { Dayjs } from "dayjs";
 
-export type itemTypeT = "COMPANIES" | "CONTACTS";
+export type ItemTypeT = "COMPANIES" | "CONTACTS";
 
 export type ItemConfig = {
   word: string;
+  pollUpdater: (
+    workspace: Tables<"workspaces">,
+    startFilter: Dayjs,
+    endFilter: Dayjs,
+    after?: string
+  ) => Promise<itemPollUpdaterT>;
   dedupConfig: DedupConfigT;
   getHubspotURL: (workspaceHubId: string, distantId: string) => string;
   getDistantMergeFn: (hsClient: Client) => any;
@@ -32,14 +49,21 @@ export type ItemConfig = {
   ) => TablesUpdate<"workspaces">;
 };
 
-export function getItemTypesList(): itemTypeT[] {
+export type itemPollUpdaterT = {
+  items: TablesInsert<"items">[];
+  after: string | null;
+};
+
+export function getItemTypesList(): ItemTypeT[] {
   return ["COMPANIES", "CONTACTS"];
 }
 
-export function getItemType(itemType: itemTypeT): ItemConfig {
+export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
   if (itemType === "COMPANIES") {
     return {
       word: "companies",
+
+      pollUpdater: companiesPollUpdater,
 
       dedupConfig: companiesDedupConfig,
 
@@ -59,6 +83,8 @@ export function getItemType(itemType: itemTypeT): ItemConfig {
   } else {
     return {
       word: "contacts",
+
+      pollUpdater: contactsPollUpdater,
 
       dedupConfig: contactsDedupConfig,
 
@@ -239,7 +265,7 @@ export function getItemValueAsNameArray(
 }
 
 export function getItemFieldsValues(item: Tables<"items">) {
-  const itemType = getItemType(item.item_type);
+  const itemType = getItemTypeConfig(item.item_type);
   const config = itemType.dedupConfig;
 
   const itemValue = item.value as any;
@@ -265,7 +291,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
 export function getItemFlagsValues(item: Tables<"items">) {
-  const itemType = getItemType(item.item_type);
+  const itemType = getItemTypeConfig(item.item_type);
   const config = itemType.dedupConfig;
 
   const itemValue = item.value as any;
@@ -396,7 +422,7 @@ export type FlagBestValueT = {
 };
 
 export function getItemStackMetadata(dupstack: DupStackWithItemsT) {
-  const itemType = getItemType(dupstack.item_type);
+  const itemType = getItemTypeConfig(dupstack.item_type);
   const config = itemType.dedupConfig;
 
   let stackFlags: FlagBestValueT[] = [];
@@ -435,7 +461,7 @@ export function getRowInfos(
     throw new Error("missing company");
   }
 
-  const itemType = getItemType(item.item_type);
+  const itemType = getItemTypeConfig(item.item_type);
 
   const fieldsValues = getItemFieldsValues(item);
 
@@ -581,4 +607,145 @@ export function getRowInfos(
     dup_type: dupStackItem.dup_type,
     columns: columns,
   };
+}
+
+export async function handleItemDeletion(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  itemId: string
+) {
+  console.log("HandleItemDeletion:", workspaceId, itemId);
+  const dupstacks = await getDupstacksOfItem(supabase, workspaceId, itemId);
+
+  if (dupstacks.length === 0) {
+    return;
+  }
+
+  let dupstackItemsToDelete: Tables<"dup_stack_items">[] = [];
+  let dupstackIdsToDelete: string[] = [];
+
+  dupstacks.forEach(async (dupstack) => {
+    const dupstackItems = dupstack.dup_stack_items;
+
+    const deletedDupstackItem = dupstackItems.find(
+      (dupstackItem) => dupstackItem.item_id === itemId
+    );
+    if (!deletedDupstackItem) {
+      return;
+    }
+
+    const deletedItemDupType = deletedDupstackItem?.dup_type;
+
+    if (deletedItemDupType === "FALSE_POSITIVE") {
+      dupstackItemsToDelete.push(deletedDupstackItem);
+      return;
+    }
+
+    const confidentAndReference = getDupstackConfidentsAndReference(dupstack);
+    const potentials = getDupstackPotentials(dupstack);
+
+    // If item is a reference, set next confident as reference. If no other confident, remove dup stack.
+    if (deletedItemDupType === "REFERENCE") {
+      const nextConfident = confidentAndReference.find(
+        (dupstackItem) => dupstackItem.dup_type === "CONFIDENT"
+      );
+
+      if (nextConfident) {
+        const { error } = await supabase
+          .from("dup_stack_items")
+          .update({ dup_type: "REFERENCE" })
+          .eq("dupstack_id", dupstack.id)
+          .eq("item_id", nextConfident.item_id);
+
+        if (error) {
+          throw error;
+        }
+
+        dupstackItemsToDelete.push(deletedDupstackItem);
+      } else {
+        dupstackIdsToDelete.push(dupstack.id);
+      }
+
+      return;
+    }
+
+    // If item is confident or potential, remove it from the stack.
+    if (
+      deletedItemDupType === "CONFIDENT" ||
+      deletedItemDupType == "POTENTIAL"
+    ) {
+      // If remaining dup stack contains only one item, remove the stack.
+      if (confidentAndReference.length + potentials.length === 2) {
+        dupstackIdsToDelete.push(dupstack.id);
+      } else {
+        dupstackItemsToDelete.push(deletedDupstackItem);
+      }
+
+      return;
+    }
+  });
+
+  console.log("dupstackItemsToDelete", dupstackItemsToDelete);
+  console.log("dupstackIdsToDelete", dupstackIdsToDelete);
+
+  // Remove the item from the items table
+  await Promise.all(
+    dupstackItemsToDelete.map(async (dupstackItem) => {
+      const { error: errorItems } = await supabase
+        .from("dup_stack_items")
+        .delete()
+        .eq("workspace_id", workspaceId)
+        .eq("dupstack_id", dupstackItem.dupstack_id)
+        .eq("item_id", itemId);
+
+      if (errorItems) {
+        captureException(errorItems);
+        return;
+      }
+    })
+  );
+
+  const { error: errorDupstacks } = await supabase
+    .from("dup_stacks")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .in("id", dupstackIdsToDelete);
+  if (errorDupstacks) {
+    captureException(errorDupstacks);
+  }
+}
+
+export async function getDupstacksOfItem(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  itemId: string
+) {
+  const { data: dupStackItems, error: errorDupStackItems } = await supabase
+    .from("dup_stack_items")
+    .select("dupstack_id")
+    .eq("workspace_id", workspaceId)
+    .eq("item_id", itemId);
+  if (errorDupStackItems) {
+    throw errorDupStackItems;
+  }
+
+  const dupstackIds = dupStackItems.map(
+    (dupStackItem) => dupStackItem.dupstack_id
+  );
+
+  if (dupstackIds.length === 0) {
+    return [];
+  }
+
+  const { data: dupStacks, error: errorDupStacks } = await supabase
+    .from("dup_stacks")
+    .select("*, dup_stack_items(*, item:items(*))")
+    .eq("workspace_id", workspaceId)
+    .in("id", dupstackIds);
+
+  if (errorDupStacks) {
+    throw errorDupStacks;
+  }
+
+  return dupStacks;
 }

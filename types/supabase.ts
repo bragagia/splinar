@@ -374,6 +374,7 @@ export type Database = {
           installation_similarities_done_batches: number
           installation_similarities_total_batches: number
           installation_status: Database["public"]["Enums"]["workspace_installation_status"]
+          last_poll: string | null
           refresh_token: string
           user_id: string
           user_mail: string
@@ -394,6 +395,7 @@ export type Database = {
           installation_similarities_done_batches?: number
           installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
+          last_poll?: string | null
           refresh_token: string
           user_id?: string
           user_mail: string
@@ -414,6 +416,7 @@ export type Database = {
           installation_similarities_done_batches?: number
           installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
+          last_poll?: string | null
           refresh_token?: string
           user_id?: string
           user_mail?: string
@@ -441,6 +444,14 @@ export type Database = {
           month: string
           count: number
         }[]
+      }
+      items_edit_property_json: {
+        Args: {
+          workspace_id_arg: string
+          item_distant_id_arg: string
+          json_update: Json
+        }
+        Returns: undefined
       }
       mark_items_without_similarities_as_dup_checked: {
         Args: {

@@ -6,7 +6,7 @@ import {
   updateSimilarities,
 } from "@/inngest/dedup/similarity/update";
 import { WorkspaceSimilaritiesBatchInstallStart } from "@/inngest/types";
-import { getItemTypesList, itemTypeT } from "@/lib/items_common";
+import { ItemTypeT, getItemTypesList } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
@@ -66,7 +66,7 @@ async function genericCountSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   isFreeTier: boolean,
-  itemType: itemTypeT
+  itemType: ItemTypeT
 ) {
   console.log("Countint", itemType);
   const { count: itemsCount, error: errorCount } = await supabase
@@ -98,7 +98,7 @@ async function genericInstallSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   isFreeTier: boolean,
-  itemType: itemTypeT
+  itemType: ItemTypeT
 ) {
   let batchStarted = 0;
   async function incrementBatchStarted() {

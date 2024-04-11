@@ -1,6 +1,6 @@
 import { inngest } from "@/inngest";
 import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
-import { getItemType, itemTypeT } from "@/lib/items_common";
+import { getItemTypeConfig, ItemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -8,11 +8,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export async function similaritiesUpdateBatch(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  table: itemTypeT,
+  table: ItemTypeT,
   batchAIds: string[],
   batchBIds?: string[]
 ) {
-  const itemType = getItemType(table);
+  const itemType = getItemTypeConfig(table);
 
   await genericSimilaritiesBatchEval(
     supabase,

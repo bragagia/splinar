@@ -6,6 +6,8 @@ import workspaceContactsFetch from "@/inngest/workspace-contacts-fetch";
 import workspaceDupsInstall from "@/inngest/workspace-dups-install";
 import workspaceInstall from "@/inngest/workspace-install";
 import workspaceInstallEnd from "@/inngest/workspace-install-end";
+import workspacePollingHubspot from "@/inngest/workspace-polling-hubspot";
+import workspaceRecurringUpdater from "@/inngest/workspace-recurring-updater";
 import workspaceSimilaritiesBatchInstall from "@/inngest/workspace-similarities-batch-install";
 import workspaceSimilaritiesLaunch from "@/inngest/workspace-similarities-launch";
 
@@ -20,6 +22,8 @@ export const functions = [
   workspaceSimilaritiesLaunch,
   dataCleaningJob,
   dataCleaningJobBatch,
+  workspaceRecurringUpdater,
+  workspacePollingHubspot,
 ];
 
 export { inngest } from "./client";

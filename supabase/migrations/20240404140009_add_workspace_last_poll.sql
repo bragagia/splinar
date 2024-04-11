@@ -1,0 +1,1 @@
+ALTER TABLE public.workspaces ADD COLUMN last_poll timestamp with time zone;

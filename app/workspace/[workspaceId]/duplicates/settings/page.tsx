@@ -17,8 +17,8 @@ import {
 import {
   DedupConfigT,
   ItemFieldConfigT,
-  getItemType,
-  itemTypeT,
+  ItemTypeT,
+  getItemTypeConfig,
 } from "@/lib/items_common";
 import { URLS } from "@/lib/urls";
 import Link from "next/link";
@@ -34,9 +34,9 @@ export default function WorkspaceSettingsPage() {
   const workspace = useWorkspace();
 
   const searchParams = useSearchParams();
-  const itemType = searchParams.get("itemType") as itemTypeT;
+  const itemType = searchParams.get("itemType") as ItemTypeT;
 
-  const itemTypeConfig = useMemo(() => getItemType(itemType), [itemType]);
+  const itemTypeConfig = useMemo(() => getItemTypeConfig(itemType), [itemType]);
 
   if (!itemTypeConfig) {
     return (

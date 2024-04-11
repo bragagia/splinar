@@ -5,15 +5,25 @@ import {
   StandardLinkButton,
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
-import { DedupConfigT } from "@/lib/items_common";
+import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
+import { newHubspotClient } from "@/lib/hubspot";
+import {
+  DedupConfigT,
+  itemPollUpdaterT,
+  listItemFields,
+} from "@/lib/items_common";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Tables, TablesInsert } from "@/types/supabase";
-import dayjs from "dayjs";
+import { PublicObjectSearchRequest } from "@hubspot/api-client/lib/codegen/crm/companies";
+import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
+
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 export const companiesDedupConfig: DedupConfigT = {
   hubspotSourceFields: [
@@ -736,4 +746,70 @@ export function companiesSimilarityCheck(
   // -> Ignore for now
 
   return similarities;
+}
+
+export async function companiesPollUpdater(
+  workspace: Tables<"workspaces">,
+  startFilter: Dayjs,
+  endFilter: Dayjs,
+  after?: string
+): Promise<itemPollUpdaterT> {
+  const hsClient = await newHubspotClient(workspace.refresh_token, "search");
+
+  const propertiesRes = await hsClient.crm.properties.coreApi.getAll("company");
+  const propertiesList = propertiesRes.results.map((property) => property.name);
+
+  const objectSearchRequest: PublicObjectSearchRequest = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: "hs_lastmodifieddate",
+            operator: "GTE",
+            value: startFilter.add(-30, "seconds").utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
+          },
+          {
+            propertyName: "hs_lastmodifieddate",
+            operator: "LTE",
+            value: endFilter.add(-30, "seconds").utc().toISOString(),
+          },
+        ],
+      },
+    ],
+    sorts: ["hs_object_id"],
+    properties: propertiesList,
+    limit: 100,
+    after: (after as any) || 0,
+  };
+
+  const res = await hsClient.crm.companies.searchApi.doSearch(
+    objectSearchRequest
+  );
+
+  console.log(res);
+
+  let dbCompanies = res.results.map((company) => {
+    let dbCompany: TablesInsert<"items"> = {
+      workspace_id: workspace.id,
+      distant_id: company.id,
+      item_type: "COMPANIES",
+      value: deleteNullKeys(company.properties),
+      dup_checked: false,
+      similarity_checked: false,
+      filled_score: 0,
+    };
+
+    dbCompany.filled_score = listItemFields(
+      dbCompany as Tables<"items">
+    ).length;
+
+    (dbCompany.value as any).filled_score = dbCompany.filled_score.toString();
+
+    return dbCompany;
+  });
+
+  return {
+    items: dbCompanies,
+    after: res.paging?.next?.after || null,
+  };
 }

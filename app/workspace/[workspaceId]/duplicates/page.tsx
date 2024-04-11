@@ -15,9 +15,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ItemConfig,
-  getItemType,
+  ItemTypeT,
+  getItemTypeConfig,
   getItemTypesList,
-  itemTypeT,
 } from "@/lib/items_common";
 import { URLS } from "@/lib/urls";
 import { DupStackWithItemsT } from "@/types/dupstacks";
@@ -48,7 +48,7 @@ export default function DuplicatesPage() {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
-  const [typesList, setTypesList] = useState<itemTypeT[]>([]);
+  const [typesList, setTypesList] = useState<ItemTypeT[]>([]);
   const [typeStates, setTypeStates] = useState<{
     [key: string]: TypeStateT;
   }>();
@@ -63,12 +63,12 @@ export default function DuplicatesPage() {
         count: null,
         confidentCount: null,
         isMerging: false,
-        itemConfig: getItemType(itemType),
+        itemConfig: getItemTypeConfig(itemType),
       };
     });
 
     setTypeStates(typeStates);
-    setTypesList(Object.keys(typeStates) as itemTypeT[]);
+    setTypesList(Object.keys(typeStates) as ItemTypeT[]);
   }, [supabase]);
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function DuplicatesPage() {
     );
   }
 
-  async function onMergeAll(itemType: itemTypeT) {
+  async function onMergeAll(itemType: ItemTypeT) {
     setTypeStates((cur) => {
       if (!cur) {
         return {};
@@ -230,7 +230,7 @@ export default function DuplicatesPage() {
           </TabsList>
 
           <div>
-            {(Object.keys(typeStates) as itemTypeT[]).map((typeStateKey, i) => {
+            {(Object.keys(typeStates) as ItemTypeT[]).map((typeStateKey, i) => {
               const typeState = typeStates[typeStateKey];
               const areAllConfidentsMergeable =
                 typeState.confidentCount &&
@@ -300,7 +300,7 @@ export default function DuplicatesPage() {
                   </p>
                 </div>
               ) : (
-                <DuplicatesInfiniteList itemsType={typeStateKey as itemTypeT} />
+                <DuplicatesInfiniteList itemsType={typeStateKey as ItemTypeT} />
               )}
             </TabsContent>
           );
@@ -310,7 +310,7 @@ export default function DuplicatesPage() {
   );
 }
 
-function DuplicatesInfiniteList({ itemsType }: { itemsType: itemTypeT }) {
+function DuplicatesInfiniteList({ itemsType }: { itemsType: ItemTypeT }) {
   const workspace = useWorkspace();
   const supabase = createClientComponentClient<Database>();
 
@@ -390,7 +390,7 @@ function DuplicatesInfiniteList({ itemsType }: { itemsType: itemTypeT }) {
 async function fetchNextPage(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  itemsType: itemTypeT,
+  itemsType: ItemTypeT,
   nextCursor: string | undefined
 ) {
   let query = supabase

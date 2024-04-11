@@ -1,4 +1,4 @@
-import { itemTypeT } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 import { EventSchemas } from "inngest";
 
 type WorkspaceInstallStart = {
@@ -13,7 +13,7 @@ export type WorkspaceSimilaritiesBatchInstallStart = {
   name: "workspace/similarities/batch-install.start";
   data: {
     workspaceId: string;
-    table: itemTypeT;
+    table: ItemTypeT;
     batchAIds: string[];
     batchBIds?: string[];
   };
@@ -38,7 +38,7 @@ export type ItemsMergeAllStart = {
   name: "items/merge-all.start";
   data: {
     workspaceId: string;
-    itemType: itemTypeT;
+    itemType: ItemTypeT;
     lastItemCreatedAt?: string;
   };
 };
@@ -65,6 +65,22 @@ export type WorkspaceFetchFinished = {
     workspaceId: string;
     after?: string;
   };
+};
+
+export type WorkspacePollingHubspotStart = {
+  name: "workspace/polling/hubspot.start";
+  data: {
+    workspaceId: string;
+    itemType: ItemTypeT;
+    startFilter: string;
+    endFilter: string;
+    after?: string;
+  };
+};
+
+export type WorkspaceRecurringUpdaterStart = {
+  name: "workspace/recurring-updater.start";
+  data: {};
 };
 
 export type DataCleaningMasterDailyStart = {
@@ -99,6 +115,8 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceSimilaritiesBatchInstallFinished
   | WorkspaceAnyDupsInstallFinished
   | WorkspaceFetchFinished
+  | WorkspacePollingHubspotStart
+  | WorkspaceRecurringUpdaterStart
   | ItemsMergeAllStart
   | DataCleaningMasterDailyStart
   | DataCleaningJobFullDBStart

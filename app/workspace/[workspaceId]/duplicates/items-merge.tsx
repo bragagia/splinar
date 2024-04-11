@@ -1,7 +1,7 @@
 "use server";
 
 import { newHubspotClient } from "@/lib/hubspot";
-import { getItemType } from "@/lib/items_common";
+import { getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
 import {
   DupStackWithItemsT,
@@ -85,9 +85,9 @@ export async function itemsMerge(
   const falsePositives = getDupstackFalsePositives(dupStack);
   const referenceItem = referenceDSItem.item;
 
-  const distantMergeFn = getItemType(dupStack.item_type).getDistantMergeFn(
-    hsClient
-  );
+  const distantMergeFn = getItemTypeConfig(
+    dupStack.item_type
+  ).getDistantMergeFn(hsClient);
 
   if (!referenceDSItem || !referenceItem) {
     throw new Error("Missing reference item");

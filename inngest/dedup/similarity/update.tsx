@@ -1,5 +1,5 @@
 import { WorkspaceSimilaritiesBatchInstallStart } from "@/inngest/types";
-import { itemTypeT } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
@@ -11,7 +11,7 @@ export async function updateSimilarities(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
   isFreeTier: boolean,
-  table: itemTypeT,
+  table: ItemTypeT,
   afterBatchCallback?: () => Promise<void>
 ) {
   let batchLength = 0;
@@ -92,7 +92,7 @@ async function markBatchInstalled(
 async function compareBatchWithAllInstalledBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  table: itemTypeT,
+  table: ItemTypeT,
   batchIds: string[],
   afterBatchCallback?: () => Promise<void>
 ) {

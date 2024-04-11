@@ -1,4 +1,4 @@
-import { getItemType, listItemFields } from "@/lib/items_common";
+import { getItemTypeConfig, listItemFields } from "@/lib/items_common";
 import { ItemWithSimilaritiesType } from "@/types/items";
 
 const simScoreFactorMap: { [key: string]: number } = {
@@ -21,7 +21,7 @@ export function areItemsDups(
     throw new Error("Comparing different item types");
   }
 
-  const itemType = getItemType(itemA.item_type);
+  const itemType = getItemTypeConfig(itemA.item_type);
   const config = itemType.dedupConfig;
 
   let confidentScore = 0;

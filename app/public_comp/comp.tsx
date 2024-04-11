@@ -31,6 +31,7 @@ const fakeWorkspace: Tables<"workspaces"> = {
   installation_items_total: 0,
   installation_dup_total: 0,
   installation_dup_done: 0,
+  last_poll: null,
 };
 
 const fakeDupstack: DupStackWithItemsT = {

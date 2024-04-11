@@ -3,18 +3,30 @@ import {
   LinkedinLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
+import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
 import { getCompanyColumns } from "@/lib/companies";
-import { DedupConfigT } from "@/lib/items_common";
+import { newHubspotClient } from "@/lib/hubspot";
+import {
+  DedupConfigT,
+  itemPollUpdaterT,
+  listItemFields,
+} from "@/lib/items_common";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Tables, TablesInsert } from "@/types/supabase";
-import dayjs from "dayjs";
+import {
+  PublicObjectSearchRequest,
+  SimplePublicObjectWithAssociations,
+} from "@hubspot/api-client/lib/codegen/crm/companies";
+import dayjs, { Dayjs } from "dayjs";
 
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
 
 import stringSimilarity from "string-similarity";
 
@@ -754,4 +766,87 @@ export function contactSimilarityCheck(
     Object.values(filtered);
 
   return filteredValues;
+}
+
+export async function contactsPollUpdater(
+  workspace: Tables<"workspaces">,
+  startFilter: Dayjs,
+  endFilter: Dayjs,
+  after?: string
+): Promise<itemPollUpdaterT> {
+  const hsClient = await newHubspotClient(workspace.refresh_token, "search");
+
+  const propertiesRes = await hsClient.crm.properties.coreApi.getAll("contact");
+  const propertiesList = propertiesRes.results.map((property) => property.name);
+
+  const objectSearchRequest: PublicObjectSearchRequest = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: "lastmodifieddate",
+            operator: "GTE",
+            value: startFilter.add(-30, "seconds").utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
+          },
+          {
+            propertyName: "lastmodifieddate",
+            operator: "LTE",
+            value: endFilter.add(-30, "seconds").utc().toISOString(),
+          },
+        ],
+      },
+    ],
+    sorts: ["hs_object_id"],
+    properties: propertiesList,
+    limit: 100,
+    after: (after as any) || 0,
+  };
+
+  const searchRes = await hsClient.crm.contacts.searchApi.doSearch(
+    objectSearchRequest
+  );
+
+  let detailRes: SimplePublicObjectWithAssociations[] = [];
+  for (let contact of searchRes.results) {
+    const res = await hsClient.crm.contacts.basicApi.getById(
+      contact.id,
+      propertiesList,
+      undefined,
+      ["companies"]
+    );
+    detailRes.push(res);
+  }
+
+  let dbContacts = detailRes.map((contact) => {
+    let contactCompanies: string[] | undefined =
+      contact.associations?.companies?.results
+        ?.filter((company) => company.type == "contact_to_company_unlabeled")
+        .map((company) => company.id);
+
+    let dbContact: TablesInsert<"items"> = {
+      workspace_id: workspace.id,
+      distant_id: contact.id,
+      item_type: "CONTACTS",
+      value: {
+        ...deleteNullKeys(contact.properties),
+        companies: contactCompanies,
+      },
+      similarity_checked: false,
+      dup_checked: false,
+      filled_score: 0, // Calculated below
+    };
+
+    dbContact.filled_score = listItemFields(
+      dbContact as Tables<"items">
+    ).length;
+
+    (dbContact.value as any).filled_score = dbContact.filled_score.toString();
+
+    return dbContact;
+  });
+
+  return {
+    items: dbContacts,
+    after: searchRes.paging?.next?.after || null,
+  };
 }

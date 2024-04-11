@@ -5,7 +5,17 @@ import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
-  { id: "workspace-contacts-fetch", retries: 0 },
+  {
+    id: "workspace-contacts-fetch",
+    retries: 0,
+    concurrency: [
+      {
+        scope: "account",
+        key: "event.data.workspaceId",
+        limit: 1,
+      },
+    ],
+  },
   { event: "workspace/contacts/fetch.start" },
   async ({ event, step, logger }) => {
     const { workspaceId } = event.data;

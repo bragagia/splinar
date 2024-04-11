@@ -15,7 +15,7 @@ import {
 import { delay } from "@/lib/delay";
 import {
   getItemStackMetadata,
-  getItemType,
+  getItemTypeConfig,
   getRowInfos,
 } from "@/lib/items_common";
 import { cn } from "@/lib/utils";
@@ -254,7 +254,7 @@ export function DupStackCard({
                 className="mt-2"
               >
                 Merge {confidentsAndReference.length}{" "}
-                {getItemType(dupStack.item_type).word}
+                {getItemTypeConfig(dupStack.item_type).word}
               </SpButton>
             </div>
           </CardContent>

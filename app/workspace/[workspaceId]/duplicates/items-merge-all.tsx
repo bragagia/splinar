@@ -1,14 +1,14 @@
 "use server";
 
 import { inngest } from "@/inngest";
-import { itemTypeT } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function itemsMergeAllSA(
   workspaceId: string,
-  ItemType: itemTypeT
+  ItemType: ItemTypeT
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
