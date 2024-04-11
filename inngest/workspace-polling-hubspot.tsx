@@ -1,8 +1,12 @@
 import { getItemTypeConfig } from "@/lib/items_common";
+import { captureException } from "@/lib/sentry";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { inngest } from "./client";
+
+dayjs.extend(isSameOrBefore);
 
 export default inngest.createFunction(
   {
@@ -42,25 +46,65 @@ export default inngest.createFunction(
     const itemConfig = getItemTypeConfig(itemType);
 
     const res = await itemConfig.pollUpdater(
+      supabaseAdmin,
       workspace,
       dayjs(startFilter),
       dayjs(endFilter),
       after
     );
 
-    // Upsert in supabase
-    const { error: errorItems } = await supabaseAdmin
-      .from("items")
-      .upsert(res.items, {
-        onConflict: "workspace_id, item_type, distant_id",
-      })
-      .select(); // TODO: Remove select ? Does it still work without ?
+    if (res.items.length > 0) {
+      console.log(
+        "Poll updated items distant_id: " + res.items.map((i) => i.distant_id)
+      );
 
-    if (errorItems) {
-      throw errorItems;
+      // Upsert in supabase
+      const { error: errorItems } = await supabaseAdmin
+        .from("items")
+        .upsert(res.items, {
+          onConflict: "workspace_id, item_type, distant_id",
+        })
+        .select(); // TODO: Remove select ? Does it still work without ?
+
+      if (errorItems) {
+        throw errorItems;
+      }
     }
 
-    if (res.after) {
+    if (res.after === "10000") {
+      // We have reached the limit of the API
+      // We need to continue polling, but we can't increase the page so we start a new search with the last known modified at timestamp
+
+      const newStartFilter = res.lastItemModifiedAt
+        ? dayjs(res.lastItemModifiedAt)
+        : dayjs(endFilter);
+
+      if (newStartFilter.isSameOrBefore(startFilter)) {
+        captureException(
+          new Error(
+            "Polling limit reached with same modified date as the first element, can't get the full range of modified items, workspace will need a reset: " +
+              workspaceId
+          )
+        ); // TODO:
+
+        await supabaseAdmin
+          .from("workspaces")
+          .update({ last_poll: endFilter, polling_status: "NONE" }) // We set next poll to begin at the theoric end of the current poll and we ignore the missing data we can't get
+          .eq("id", workspaceId);
+      } else {
+        // We start a new search with the last known modified at timestamp so the "after" parameter is reseted to zero
+        await inngest.send({
+          name: "workspace/polling/hubspot.start",
+          data: {
+            workspaceId,
+            itemType,
+            startFilter: newStartFilter.toISOString(),
+            endFilter,
+            after: undefined,
+          },
+        });
+      }
+    } else if (res.after) {
       await inngest.send({
         name: "workspace/polling/hubspot.start",
         data: {

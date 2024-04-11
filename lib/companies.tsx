@@ -17,11 +17,12 @@ import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
-import { Tables, TablesInsert } from "@/types/supabase";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { PublicObjectSearchRequest } from "@hubspot/api-client/lib/codegen/crm/companies";
 import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
 
+import { SupabaseClient } from "@supabase/supabase-js";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 
@@ -749,6 +750,7 @@ export function companiesSimilarityCheck(
 }
 
 export async function companiesPollUpdater(
+  supabase: SupabaseClient<Database>,
   workspace: Tables<"workspaces">,
   startFilter: Dayjs,
   endFilter: Dayjs,
@@ -766,12 +768,12 @@ export async function companiesPollUpdater(
           {
             propertyName: "hs_lastmodifieddate",
             operator: "GTE",
-            value: startFilter.add(-30, "seconds").utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
+            value: startFilter.utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
           },
           {
             propertyName: "hs_lastmodifieddate",
             operator: "LTE",
-            value: endFilter.add(-30, "seconds").utc().toISOString(),
+            value: endFilter.utc().toISOString(),
           },
         ],
       },
@@ -785,8 +787,6 @@ export async function companiesPollUpdater(
   const res = await hsClient.crm.companies.searchApi.doSearch(
     objectSearchRequest
   );
-
-  console.log(res);
 
   let dbCompanies = res.results.map((company) => {
     let dbCompany: TablesInsert<"items"> = {
@@ -811,5 +811,8 @@ export async function companiesPollUpdater(
   return {
     items: dbCompanies,
     after: res.paging?.next?.after || null,
+    lastItemModifiedAt:
+      (dbCompanies[dbCompanies.length - 1]?.value as any)
+        ?.hs_lastmodifieddate || null,
   };
 }

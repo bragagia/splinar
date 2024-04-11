@@ -16,11 +16,9 @@ import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
-import { Tables, TablesInsert } from "@/types/supabase";
-import {
-  PublicObjectSearchRequest,
-  SimplePublicObjectWithAssociations,
-} from "@hubspot/api-client/lib/codegen/crm/companies";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
+import { PublicObjectSearchRequest } from "@hubspot/api-client/lib/codegen/crm/companies";
+import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs, { Dayjs } from "dayjs";
 
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -769,6 +767,7 @@ export function contactSimilarityCheck(
 }
 
 export async function contactsPollUpdater(
+  supabase: SupabaseClient<Database>,
   workspace: Tables<"workspaces">,
   startFilter: Dayjs,
   endFilter: Dayjs,
@@ -791,12 +790,12 @@ export async function contactsPollUpdater(
           {
             propertyName: "lastmodifieddate",
             operator: "GTE",
-            value: startFilter.add(-30, "seconds").utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
+            value: startFilter.utc().toISOString(),
           },
           {
             propertyName: "lastmodifieddate",
             operator: "LTE",
-            value: endFilter.add(-30, "seconds").utc().toISOString(),
+            value: endFilter.utc().toISOString(),
           },
         ],
       },
@@ -807,28 +806,37 @@ export async function contactsPollUpdater(
     after: (after as any) || 0,
   };
 
-  const searchRes = await hsClientSearch.crm.contacts.searchApi.doSearch(
+  const res = await hsClientSearch.crm.contacts.searchApi.doSearch(
     objectSearchRequest
   );
 
-  const hsClient = await newHubspotClient(workspace.refresh_token, "default");
+  // Get existing contacts to add companies associations because they are missing from search results
 
-  let detailRes: SimplePublicObjectWithAssociations[] = [];
-  for (let contact of searchRes.results) {
-    const res = await hsClient.crm.contacts.basicApi.getById(
-      contact.id,
-      propertiesList,
-      undefined,
-      ["companies"]
+  const { data: existingDbContacts, error } = await supabase
+    .from("items")
+    .select()
+    .eq("workspace_id", workspace.id)
+    .eq("item_type", "CONTACTS")
+    .in(
+      "distant_id",
+      res.results.map((contact) => contact.id)
     );
-    detailRes.push(res);
+  if (error) {
+    throw error;
   }
 
-  let dbContacts = detailRes.map((contact) => {
+  const existingContactsByDistantId = existingDbContacts.reduce(
+    (acc, contact) => {
+      acc[contact.distant_id] = contact;
+      return acc;
+    },
+    {} as { [key: string]: Tables<"items"> }
+  );
+
+  let dbContacts = res.results.map((contact) => {
     let contactCompanies: string[] | undefined =
-      contact.associations?.companies?.results
-        ?.filter((company) => company.type == "contact_to_company_unlabeled")
-        .map((company) => company.id);
+      (existingContactsByDistantId[contact.id]?.value as any).companies ||
+      undefined;
 
     let dbContact: TablesInsert<"items"> = {
       workspace_id: workspace.id,
@@ -854,6 +862,9 @@ export async function contactsPollUpdater(
 
   return {
     items: dbContacts,
-    after: searchRes.paging?.next?.after || null,
+    after: res.paging?.next?.after || null,
+    lastItemModifiedAt:
+      (dbContacts[dbContacts.length - 1]?.value as any)?.lastmodifieddate ||
+      null,
   };
 }

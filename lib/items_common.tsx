@@ -34,6 +34,7 @@ export type ItemTypeT = "COMPANIES" | "CONTACTS";
 export type ItemConfig = {
   word: string;
   pollUpdater: (
+    supabase: SupabaseClient<Database>,
     workspace: Tables<"workspaces">,
     startFilter: Dayjs,
     endFilter: Dayjs,
@@ -52,6 +53,7 @@ export type ItemConfig = {
 export type itemPollUpdaterT = {
   items: TablesInsert<"items">[];
   after: string | null;
+  lastItemModifiedAt: string | null;
 };
 
 export function getItemTypesList(): ItemTypeT[] {
