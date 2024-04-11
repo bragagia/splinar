@@ -7,7 +7,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   { id: "workspace-recurring-updater", retries: 0 },
   [
-    { cron: "0-59/5 * * * *" }, // TZ=Europe/Paris
+    { cron: "0-59/15 * * * *" }, // TZ=Europe/Paris
     { event: "workspace/recurring-updater.start" },
   ],
   async ({ step, logger }) => {

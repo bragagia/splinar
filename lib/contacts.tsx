@@ -774,9 +774,14 @@ export async function contactsPollUpdater(
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
-  const hsClient = await newHubspotClient(workspace.refresh_token, "search");
+  const hsClientSearch = await newHubspotClient(
+    workspace.refresh_token,
+    "search"
+  );
 
-  const propertiesRes = await hsClient.crm.properties.coreApi.getAll("contact");
+  const propertiesRes = await hsClientSearch.crm.properties.coreApi.getAll(
+    "contact"
+  );
   const propertiesList = propertiesRes.results.map((property) => property.name);
 
   const objectSearchRequest: PublicObjectSearchRequest = {
@@ -802,9 +807,11 @@ export async function contactsPollUpdater(
     after: (after as any) || 0,
   };
 
-  const searchRes = await hsClient.crm.contacts.searchApi.doSearch(
+  const searchRes = await hsClientSearch.crm.contacts.searchApi.doSearch(
     objectSearchRequest
   );
+
+  const hsClient = await newHubspotClient(workspace.refresh_token, "default");
 
   let detailRes: SimplePublicObjectWithAssociations[] = [];
   for (let contact of searchRes.results) {

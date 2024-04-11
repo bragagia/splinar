@@ -41,43 +41,41 @@ export default inngest.createFunction(
 
     const itemConfig = getItemTypeConfig(itemType);
 
-    await step.run("workspace/polling/hubspot", async () => {
-      const res = await itemConfig.pollUpdater(
-        workspace,
-        dayjs(startFilter),
-        dayjs(endFilter),
-        after
-      );
+    const res = await itemConfig.pollUpdater(
+      workspace,
+      dayjs(startFilter),
+      dayjs(endFilter),
+      after
+    );
 
-      // Upsert in supabase
-      const { error: errorItems } = await supabaseAdmin
-        .from("items")
-        .upsert(res.items, {
-          onConflict: "workspace_id, item_type, distant_id",
-        })
-        .select();
+    // Upsert in supabase
+    const { error: errorItems } = await supabaseAdmin
+      .from("items")
+      .upsert(res.items, {
+        onConflict: "workspace_id, item_type, distant_id",
+      })
+      .select();
 
-      if (errorItems) {
-        throw errorItems;
-      }
+    if (errorItems) {
+      throw errorItems;
+    }
 
-      if (res.after) {
-        await inngest.send({
-          name: "workspace/polling/hubspot.start",
-          data: {
-            workspaceId,
-            itemType,
-            startFilter,
-            endFilter,
-            after: res.after,
-          },
-        });
-      } else {
-        await supabaseAdmin
-          .from("workspaces")
-          .update({ last_poll: endFilter })
-          .eq("id", workspaceId);
-      }
-    });
+    if (res.after) {
+      await inngest.send({
+        name: "workspace/polling/hubspot.start",
+        data: {
+          workspaceId,
+          itemType,
+          startFilter,
+          endFilter,
+          after: res.after,
+        },
+      });
+    } else {
+      await supabaseAdmin
+        .from("workspaces")
+        .update({ last_poll: endFilter })
+        .eq("id", workspaceId);
+    }
   }
 );
