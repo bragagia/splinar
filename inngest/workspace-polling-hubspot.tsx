@@ -54,7 +54,7 @@ export default inngest.createFunction(
       .upsert(res.items, {
         onConflict: "workspace_id, item_type, distant_id",
       })
-      .select();
+      .select(); // TODO: Remove select ? Does it still work without ?
 
     if (errorItems) {
       throw errorItems;
@@ -74,7 +74,7 @@ export default inngest.createFunction(
     } else {
       await supabaseAdmin
         .from("workspaces")
-        .update({ last_poll: endFilter })
+        .update({ last_poll: endFilter, polling_status: "NONE" })
         .eq("id", workspaceId);
     }
   }

@@ -7,7 +7,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   { id: "workspace-recurring-updater", retries: 0 },
   [
-    { cron: "0-59/15 * * * *" }, // TZ=Europe/Paris
+    { cron: "0-59/5 * * * *" }, // TZ=Europe/Paris
     { event: "workspace/recurring-updater.start" },
   ],
   async ({ step, logger }) => {
@@ -19,9 +19,23 @@ export default inngest.createFunction(
     const { data: workspaces, error: errorWorkspace } = await supabaseAdmin
       .from("workspaces")
       .select("id, last_poll, created_at")
-      .eq("installation_status", "DONE"); // TODO: Where paid
+      .eq("installation_status", "DONE")
+      .eq("polling_status", "NONE"); // TODO: Where paid
     if (errorWorkspace) {
       throw errorWorkspace;
+    }
+
+    const { error: errorUpdate } = await supabaseAdmin
+      .from("workspaces")
+      .update({
+        polling_status: "PENDING",
+      })
+      .in(
+        "id",
+        workspaces.map((w) => w.id)
+      );
+    if (errorUpdate) {
+      throw errorUpdate;
     }
 
     const endOfPoll = dayjs();

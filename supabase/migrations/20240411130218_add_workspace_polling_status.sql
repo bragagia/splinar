@@ -1,0 +1,1 @@
+ALTER TABLE public.workspaces ADD COLUMN polling_status workspace_operation_status DEFAULT 'NONE';

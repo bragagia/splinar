@@ -375,6 +375,9 @@ export type Database = {
           installation_similarities_total_batches: number
           installation_status: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll: string | null
+          polling_status:
+            | Database["public"]["Enums"]["workspace_operation_status"]
+            | null
           refresh_token: string
           user_id: string
           user_mail: string
@@ -396,6 +399,9 @@ export type Database = {
           installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll?: string | null
+          polling_status?:
+            | Database["public"]["Enums"]["workspace_operation_status"]
+            | null
           refresh_token: string
           user_id?: string
           user_mail: string
@@ -417,6 +423,9 @@ export type Database = {
           installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll?: string | null
+          polling_status?:
+            | Database["public"]["Enums"]["workspace_operation_status"]
+            | null
           refresh_token?: string
           user_id?: string
           user_mail?: string
