@@ -835,7 +835,7 @@ export async function contactsPollUpdater(
 
   let dbContacts = res.results.map((contact) => {
     let contactCompanies: string[] | undefined =
-      (existingContactsByDistantId[contact.id]?.value as any).companies ||
+      (existingContactsByDistantId[contact.id]?.value as any)?.companies ||
       undefined;
 
     let dbContact: TablesInsert<"items"> = {
