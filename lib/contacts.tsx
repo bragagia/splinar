@@ -812,6 +812,14 @@ export async function contactsPollUpdater(
 
   // Get existing contacts to add companies associations because they are missing from search results
 
+  if (res.results.length === 0) {
+    return {
+      items: [],
+      after: null,
+      lastItemModifiedAt: null,
+    };
+  }
+
   const { data: existingDbContacts, error } = await supabase
     .from("items")
     .select()
