@@ -778,7 +778,7 @@ export async function companiesPollUpdater(
         ],
       },
     ],
-    sorts: ["hs_object_id"],
+    sorts: ["hs_lastmodifieddate"],
     properties: propertiesList,
     limit: 100,
     after: (after as any) || 0,

@@ -800,7 +800,7 @@ export async function contactsPollUpdater(
         ],
       },
     ],
-    sorts: ["hs_object_id"],
+    sorts: ["lastmodifieddate"],
     properties: propertiesList,
     limit: 100,
     after: (after as any) || 0,
