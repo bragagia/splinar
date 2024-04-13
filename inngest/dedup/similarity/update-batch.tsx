@@ -82,13 +82,23 @@ async function compareBatchWithItself(
   let similarities: TablesInsert<"similarities">[] = [];
 
   batch.forEach((contactA, i) => {
-    batch.slice(0, i).forEach((contactB) => {
+    let contactASimilarities: TablesInsert<"similarities">[] = [];
+
+    for (let j = i + 1; j < batch.length; j++) {
+      let contactB = batch[j];
+
       let pairSimilarities = evalSimilarities(workspaceId, contactA, contactB);
 
       if (pairSimilarities && pairSimilarities.length > 0) {
-        similarities.push(...pairSimilarities);
+        contactASimilarities.push(...pairSimilarities);
       }
-    });
+
+      if (contactASimilarities.length > MAX_SIMILARITIES_PER_CONTACT) {
+        break;
+      }
+    }
+
+    similarities.push(...contactASimilarities);
   });
 
   return similarities;
