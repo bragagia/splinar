@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
   const rawBody = await request.text();
 
-  const URI = "https://blatantly-clean-grouse.ngrok-free.app/api/hubspot-hook";
+  const URI = "https://app.splinar.com/api/hubspot-hook"; // TODO: Env var
   const requestTimestamp = request.headers
     .get("X-HubSpot-Request-Timestamp")
     ?.toString();
