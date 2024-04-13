@@ -165,22 +165,20 @@ async function processHubspotEvent(
         return;
       }
 
-      await Promise.all(
-        items.map(async (item) => {
-          await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
+      for (const item of items) {
+        await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
 
-          const { error: errorDelete } = await supabaseAdmin
-            .from("items")
-            .delete()
-            .eq("id", item.id)
-            .eq("workspace_id", workspace.id);
+        const { error: errorDelete } = await supabaseAdmin
+          .from("items")
+          .delete()
+          .eq("id", item.id)
+          .eq("workspace_id", workspace.id);
 
-          if (errorDelete) {
-            captureException(errorDelete);
-            return;
-          }
-        })
-      );
+        if (errorDelete) {
+          captureException(errorDelete);
+          return;
+        }
+      }
 
       break;
 

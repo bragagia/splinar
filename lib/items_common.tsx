@@ -691,21 +691,18 @@ export async function handleItemDeletion(
   console.log("dupstackIdsToDelete", dupstackIdsToDelete);
 
   // Remove the item from the items table
-  await Promise.all(
-    dupstackItemsToDelete.map(async (dupstackItem) => {
-      const { error: errorItems } = await supabase
-        .from("dup_stack_items")
-        .delete()
-        .eq("workspace_id", workspaceId)
-        .eq("dupstack_id", dupstackItem.dupstack_id)
-        .eq("item_id", itemId);
+  for (let dupstackItem of dupstackItemsToDelete) {
+    const { error: errorItems } = await supabase
+      .from("dup_stack_items")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("dupstack_id", dupstackItem.dupstack_id)
+      .eq("item_id", itemId);
 
-      if (errorItems) {
-        captureException(errorItems);
-        return;
-      }
-    })
-  );
+    if (errorItems) {
+      captureException(errorItems);
+    }
+  }
 
   const { error: errorDupstacks } = await supabase
     .from("dup_stacks")

@@ -40,20 +40,19 @@ export default inngest.createFunction(
 
     const endOfPoll = dayjs().add(-30, "seconds").toISOString(); // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
 
-    await Promise.all(
-      workspaces.map(async (workspace) => {
-        for (const itemType of getItemTypesList()) {
-          await inngest.send({
-            name: "workspace/polling/hubspot.start",
-            data: {
-              workspaceId: workspace.id,
-              itemType: itemType,
-              startFilter: workspace.last_poll || workspace.created_at,
-              endFilter: endOfPoll,
-            },
-          });
-        }
-      })
-    );
+    // For each
+    for (const workspace of workspaces) {
+      for (const itemType of getItemTypesList()) {
+        await inngest.send({
+          name: "workspace/polling/hubspot.start",
+          data: {
+            workspaceId: workspace.id,
+            itemType: itemType,
+            startFilter: workspace.last_poll || workspace.created_at,
+            endFilter: endOfPoll,
+          },
+        });
+      }
+    }
   }
 );

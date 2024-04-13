@@ -118,18 +118,28 @@ export async function resolveNextDuplicatesStack(
     childsNewDuplicates.potential_ids.forEach((id) => {
       dupStack.potential_ids.push(id);
     });
-    await Promise.all(
-      childsNewDuplicates.confident_ids.map(async (id) => {
-        await addChildsToStack(id, false);
-        console.log("Added child to stack", id);
-      })
-    );
-    await Promise.all(
-      childsNewDuplicates.potential_ids.map(async (id) => {
-        await addChildsToStack(id, true);
-        console.log("Added child to stack", id);
-      })
-    );
+
+    // await Promise.all(
+    //   childsNewDuplicates.confident_ids.map(async (id) => {
+    //     await addChildsToStack(id, false);
+    //     console.log("Added child to stack", id);
+    //   })
+    // );
+    // await Promise.all(
+    //   childsNewDuplicates.potential_ids.map(async (id) => {
+    //     await addChildsToStack(id, true);
+    //     console.log("Added child to stack", id);
+    //   })
+    // );
+
+    for (let id of childsNewDuplicates.confident_ids) {
+      await addChildsToStack(id, false);
+      console.log("Added child to stack", id);
+    }
+    for (let id of childsNewDuplicates.potential_ids) {
+      await addChildsToStack(id, true);
+      console.log("Added child to stack", id);
+    }
   }
 
   function isAT(obj: any): obj is ItemWithSimilaritiesType {
@@ -375,7 +385,7 @@ export async function fetchSortedSimilar(
           similarContactsIdsToFetch.slice(i, i + SUPABASE_FILTER_MAX_SIZE)
         );
       if (error) {
-        console.log("error", error);
+        console.log("error fetching", error);
         throw error;
       }
 

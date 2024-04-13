@@ -95,51 +95,49 @@ export async function itemsMerge(
 
   if (referenceDSItem && dsItemsToMerge && dsItemsToMerge.length > 0) {
     // TODO: We should catch if there is an error, and still save the merged contacts
-    await Promise.all(
-      dsItemsToMerge.map(async (dsItemToMerge) => {
-        const itemToMerge = dsItemToMerge.item;
-        if (!itemToMerge) {
-          throw new Error("Missing item");
-        }
+    for (const dsItemToMerge of dsItemsToMerge) {
+      const itemToMerge = dsItemToMerge.item;
+      if (!itemToMerge) {
+        throw new Error("Missing item");
+      }
 
-        await distantMergeFn({
-          primaryObjectId: referenceItem.distant_id,
-          objectIdToMerge: itemToMerge.distant_id,
-        });
+      await distantMergeFn({
+        primaryObjectId: referenceItem.distant_id,
+        objectIdToMerge: itemToMerge.distant_id,
+      });
 
-        const { error } = await supabase
-          .from("items")
-          .update({
-            merged_in_distant_id: referenceItem.distant_id,
-            merged_at: dayjs().toISOString(),
-          })
-          .eq("id", itemToMerge.id)
-          .eq("workspace_id", workspace.id);
-        if (error) {
-          captureException(error);
-        }
+      const { error } = await supabase
+        .from("items")
+        .update({
+          merged_in_distant_id: referenceItem.distant_id,
+          merged_at: dayjs().toISOString(),
+        })
+        .eq("id", itemToMerge.id)
+        .eq("workspace_id", workspace.id);
+      if (error) {
+        captureException(error);
+      }
 
-        const { error: errorDeleteSims } = await supabase
-          .from("similarities")
-          .delete()
-          .or(`item_a_id.eq.${itemToMerge.id},item_b_id.eq.${itemToMerge.id}`)
-          .eq("workspace_id", workspace.id);
-        if (errorDeleteSims) {
-          captureException(errorDeleteSims);
-        }
+      const { error: errorDeleteSims } = await supabase
+        .from("similarities")
+        .delete()
+        .or(`item_a_id.eq.${itemToMerge.id},item_b_id.eq.${itemToMerge.id}`)
+        .eq("workspace_id", workspace.id);
+      if (errorDeleteSims) {
+        captureException(errorDeleteSims);
+      }
 
-        const { error: errorUpdateDupStack } = await supabase
-          .from("dup_stack_items")
-          .delete()
-          .eq("dupstack_id", dupStack.id)
-          .eq("item_id", itemToMerge.id)
-          .eq("workspace_id", workspace.id);
+      const { error: errorUpdateDupStack } = await supabase
+        .from("dup_stack_items")
+        .delete()
+        .eq("dupstack_id", dupStack.id)
+        .eq("item_id", itemToMerge.id)
+        .eq("workspace_id", workspace.id);
 
-        if (errorUpdateDupStack) {
-          captureException(errorUpdateDupStack);
-        }
-      })
-    );
+      if (errorUpdateDupStack) {
+        captureException(errorUpdateDupStack);
+      }
+    }
   }
 
   if (falsePositives.length === 0 && itemIdsToMarkFalsePositive.length === 0) {
