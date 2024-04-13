@@ -347,6 +347,8 @@ export async function fetchSortedSimilar(
     return acc;
   }, [] as string[]);
 
+  console.log("Similar contacts ids", similarContactsIds.length);
+
   let similarContactsIdsToFetch: string[] = [];
 
   similarContactsIds.forEach((id, i) => {
@@ -358,6 +360,8 @@ export async function fetchSortedSimilar(
       similarContactsIdsToFetch.push(id);
     }
   });
+
+  console.log("Similar contacts to fetch", similarContactsIdsToFetch.length);
 
   if (similarContactsIdsToFetch.length > 0) {
     let fetchedContactsRaw: ItemWithRawSimilaritiesType[] = [];
