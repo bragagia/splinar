@@ -63,6 +63,7 @@ export async function resolveNextDuplicatesStack(
       parentId
     );
     if (similarItems.length === 0) {
+      console.log("No similar items found");
       return;
     }
 
@@ -120,11 +121,13 @@ export async function resolveNextDuplicatesStack(
     await Promise.all(
       childsNewDuplicates.confident_ids.map(async (id) => {
         await addChildsToStack(id, false);
+        console.log("Added child to stack", id);
       })
     );
     await Promise.all(
       childsNewDuplicates.potential_ids.map(async (id) => {
         await addChildsToStack(id, true);
+        console.log("Added child to stack", id);
       })
     );
   }
@@ -136,6 +139,7 @@ export async function resolveNextDuplicatesStack(
 
   try {
     await addChildsToStack(referenceItem.id, false);
+    console.log("Added main child to stack", referenceItem.id);
   } catch (newReferenceItem) {
     if (isAT(newReferenceItem)) {
       console.log(
@@ -151,6 +155,7 @@ export async function resolveNextDuplicatesStack(
         newReferenceItem
       );
     } else {
+      console.log("Error in addChildsToStack", newReferenceItem);
       throw newReferenceItem;
     }
   }
@@ -474,6 +479,8 @@ async function markDupstackElementsAsDupChecked(
   dupstackIds: string[]
 ) {
   const startTime = performance.now();
+
+  console.log("Marking dupstack elements as dup_checked", dupstackIds.length);
 
   for (let i = 0; i < dupstackIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
     const { error: errorChecked } = await supabase
