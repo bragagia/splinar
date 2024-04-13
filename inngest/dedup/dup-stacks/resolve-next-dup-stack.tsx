@@ -324,6 +324,7 @@ export async function fetchSortedSimilar(
     similarItems: [] as ItemWithSimilaritiesType[],
   };
 
+  console.log("Get cached contacts");
   const similarContactsIds = parentContact.similarities.reduce((acc, item) => {
     const similarID =
       item.item_a_id === parentContactId ? item.item_b_id : item.item_a_id;
@@ -356,6 +357,11 @@ export async function fetchSortedSimilar(
       i < similarContactsIdsToFetch.length;
       i += SUPABASE_FILTER_MAX_SIZE
     ) {
+      console.log(
+        "Fetching similar contacts",
+        i,
+        similarContactsIdsToFetch.length
+      );
       const { data, error } = await supabase
         .from("items")
         .select(
@@ -369,11 +375,14 @@ export async function fetchSortedSimilar(
           similarContactsIdsToFetch.slice(i, i + SUPABASE_FILTER_MAX_SIZE)
         );
       if (error) {
+        console.log("error", error);
         throw error;
       }
 
       fetchedContactsRaw.push(...data);
     }
+
+    console.log("Done fetching");
 
     const fetchedContacts = fetchedContactsRaw.map((raw_contact) => {
       const { similarities_a, similarities_b, ...contact } = {
