@@ -55,6 +55,7 @@ export async function resolveNextDuplicatesStack(
     parentId: string,
     isChildOfPotentialDup: boolean
   ) {
+    console.log("Adding childs to stack", parentId, isChildOfPotentialDup);
     let { parentItem, similarItems } = await fetchSortedSimilar(
       supabase,
       workspaceId,
@@ -69,6 +70,8 @@ export async function resolveNextDuplicatesStack(
       confident_ids: [],
       potential_ids: [],
     };
+
+    console.log("Similar items: ", similarItems.length, "items");
 
     similarItems.forEach((similarItem) => {
       const isInDupstack =
@@ -403,6 +406,14 @@ async function createDupstack(
 ) {
   const startTime = performance.now();
 
+  console.log(
+    "Creating dupstack containting: ",
+    genericDupstack.confident_ids.length,
+    "confident and",
+    genericDupstack.potential_ids.length,
+    "potential dups"
+  );
+
   const dupstackId = uuid();
   const dupstack: TablesInsert<"dup_stacks"> = {
     id: dupstackId,
@@ -410,9 +421,9 @@ async function createDupstack(
     item_type: itemType,
   };
 
-  const dupstackContacts: TablesInsert<"dup_stack_items">[] = [];
+  const dupstackItems: TablesInsert<"dup_stack_items">[] = [];
 
-  dupstackContacts.push(
+  dupstackItems.push(
     ...genericDupstack.confident_ids.map((id, i) => {
       const ret: TablesInsert<"dup_stack_items"> = {
         item_id: id,
@@ -424,7 +435,7 @@ async function createDupstack(
     })
   );
 
-  dupstackContacts.push(
+  dupstackItems.push(
     ...genericDupstack.potential_ids.map((id, i) => {
       const ret: TablesInsert<"dup_stack_items"> = {
         item_id: id,
@@ -445,7 +456,7 @@ async function createDupstack(
 
   const { error: errorDupstackContact } = await supabase
     .from("dup_stack_items")
-    .insert(dupstackContacts);
+    .insert(dupstackItems);
   if (errorDupstackContact) {
     throw errorDupstackContact;
   }
