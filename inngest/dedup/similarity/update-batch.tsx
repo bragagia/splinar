@@ -94,6 +94,8 @@ async function compareBatchWithItself(
   return similarities;
 }
 
+const MAX_SIMILARITIES_PER_CONTACT = 20;
+
 async function compareBatchesPair(
   workspaceId: string,
   batchA: Tables<"items">[],
@@ -102,13 +104,23 @@ async function compareBatchesPair(
   let similarities: TablesInsert<"similarities">[] = [];
 
   batchA.forEach((contactA) => {
-    batchB.forEach((contactB) => {
+    let contactASimilarities: TablesInsert<"similarities">[] = [];
+
+    for (let i = 0; i < batchB.length; i++) {
+      let contactB = batchB[i];
+
       let pairSimilarities = evalSimilarities(workspaceId, contactA, contactB);
 
       if (pairSimilarities && pairSimilarities.length > 0) {
-        similarities.push(...pairSimilarities);
+        contactASimilarities.push(...pairSimilarities);
       }
-    });
+
+      if (contactASimilarities.length > MAX_SIMILARITIES_PER_CONTACT) {
+        break;
+      }
+    }
+
+    similarities.push(...contactASimilarities);
   });
 
   return similarities;
