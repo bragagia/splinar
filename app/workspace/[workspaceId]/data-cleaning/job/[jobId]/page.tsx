@@ -45,10 +45,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useDebounce from "@/lib/debounce";
 import { captureException } from "@/lib/sentry";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
-import { Database, Tables, TablesUpdate } from "@/types/supabase";
+import { Tables, TablesUpdate } from "@/types/supabase";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Document from "@tiptap/extension-document";
 import History from "@tiptap/extension-history";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -149,7 +149,7 @@ export default function DataCleaningJobPage({
   const router = useRouter();
 
   const workspace = useWorkspace();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
 
   const monaco = useMonaco();
 

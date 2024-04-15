@@ -1,9 +1,8 @@
 import { calcWorkspaceUsage } from "@/app/workspace/[workspaceId]/billing/calc-usage";
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { getStripe } from "@/lib/stripe";
-import { Database } from "@/types/supabase";
-import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 export default inngest.createFunction(
   {
@@ -22,10 +21,7 @@ export default inngest.createFunction(
     logger.info("# workspaceInstallEnd");
     const { workspaceId } = event.data;
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     const { data: workspace, error: errorWorkspace } = await supabaseAdmin
       .from("workspaces")

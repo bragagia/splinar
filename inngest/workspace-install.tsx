@@ -1,7 +1,7 @@
 import { fullFetch } from "@/inngest/dedup/fetch/install";
-import { Database, Tables } from "@/types/supabase";
-import { createClient } from "@supabase/supabase-js";
+import { Tables } from "@/types/supabase";
 import { inngest } from "./client";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 export default inngest.createFunction(
   {
@@ -20,10 +20,7 @@ export default inngest.createFunction(
     logger.info("# workspaceInstall");
     const { workspaceId, reset } = event.data;
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     const { data: workspace0, error: error0 } = await supabaseAdmin
       .from("workspaces")

@@ -1,18 +1,19 @@
 "use client";
 
 import { UserAuthForm } from "@/app/user-auth-form";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = newSupabaseBrowserClient();
 
   useEffect(() => {
     // Note: This code is important, because supabase is shit and when a user click on the email validation link, the shit validation doesn't work on SSR.
     // So this page must be on "use client" so that the getSession and redirect will happend on client side. Yay.
+    // TODO: That may be because i used getSession instead of getUser that would check status on server side
 
     supabase.auth.getSession().then(({ data, error }) => {
       if (!error && data.session?.user.id) {

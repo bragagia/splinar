@@ -19,13 +19,11 @@ import {
   getItemTypeConfig,
   getItemTypesList,
 } from "@/lib/items_common";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { DupStackWithItemsT } from "@/types/dupstacks";
 import { Database } from "@/types/supabase";
-import {
-  SupabaseClient,
-  createClientComponentClient,
-} from "@supabase/auth-helpers-nextjs";
+import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -46,7 +44,7 @@ function capitalizeFirstLetter(str: string) {
 
 export default function DuplicatesPage() {
   const workspace = useWorkspace();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
 
   const [typesList, setTypesList] = useState<ItemTypeT[]>([]);
   const [typeStates, setTypeStates] = useState<{
@@ -312,7 +310,7 @@ export default function DuplicatesPage() {
 
 function DuplicatesInfiniteList({ itemsType }: { itemsType: ItemTypeT }) {
   const workspace = useWorkspace();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
 
   const [dupStacks, setDupStacks] = useState<DupStackWithItemsT[] | null>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>();

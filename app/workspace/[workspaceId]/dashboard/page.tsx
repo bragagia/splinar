@@ -1,9 +1,7 @@
 import { Overview } from "@/app/workspace/[workspaceId]/dashboard/overview";
 import { Icons } from "@/components/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database } from "@/types/supabase";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
 
@@ -14,10 +12,7 @@ export default async function WorkspacePage({
 }) {
   const workspaceId = params.workspaceId;
 
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const { count: dupStackCount, error: errorDupStack } = await supabase
     .from("dup_stacks")

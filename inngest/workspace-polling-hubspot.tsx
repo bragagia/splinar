@@ -1,10 +1,9 @@
 import { getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
-import { Database } from "@/types/supabase";
-import { createClient } from "@supabase/supabase-js";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { inngest } from "./client";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 dayjs.extend(isSameOrBefore);
 
@@ -24,10 +23,7 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     const { workspaceId, itemType, startFilter, endFilter, after } = event.data;
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     const { data: workspace, error: errorWorkspace } = await supabaseAdmin
       .from("workspaces")

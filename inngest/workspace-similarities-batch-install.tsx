@@ -1,7 +1,6 @@
 import { similaritiesUpdateBatch } from "@/inngest/dedup/similarity/update-batch";
-import { Database } from "@/types/supabase";
-import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 export default inngest.createFunction(
   {
@@ -19,10 +18,7 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     logger.info("# similaritiesBatchEval");
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     await step.run("similaritiesBatchEval", async () => {
       await similaritiesUpdateBatch(

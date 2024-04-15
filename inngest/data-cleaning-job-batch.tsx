@@ -1,5 +1,5 @@
 import { Database } from "@/types/supabase";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
@@ -8,10 +8,7 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     const { workspaceId, jobId } = event.data;
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     const { data: workspace, error: errorWorkspace } = await supabaseAdmin
       .from("workspaces")
@@ -37,6 +34,7 @@ import { newHubspotClient } from "@/lib/hubspot";
 import { getItemTypeConfig, getItemValueAsArray } from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
 import stringSimilarity from "string-similarity";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 export async function runDataCleaningJobOnSubset(
   supabase: SupabaseClient<Database>,

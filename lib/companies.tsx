@@ -18,7 +18,10 @@ import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
-import { PublicObjectSearchRequest } from "@hubspot/api-client/lib/codegen/crm/companies";
+import {
+  FilterOperatorEnum,
+  PublicObjectSearchRequest,
+} from "@hubspot/api-client/lib/codegen/crm/companies";
 import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
 
@@ -767,12 +770,12 @@ export async function companiesPollUpdater(
         filters: [
           {
             propertyName: "hs_lastmodifieddate",
-            operator: "GTE",
+            operator: FilterOperatorEnum.Gte,
             value: startFilter.utc().toISOString(), // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
           },
           {
             propertyName: "hs_lastmodifieddate",
-            operator: "LTE",
+            operator: FilterOperatorEnum.Lte,
             value: endFilter.utc().toISOString(),
           },
         ],

@@ -1,8 +1,8 @@
 "use client";
 
 import { useUser } from "@/app/workspace/[workspaceId]/user-context";
-import { Database, Tables } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { Tables } from "@/types/supabase";
 import { usePathname } from "next/navigation";
 import {
   ReactNode,
@@ -40,7 +40,7 @@ export function WorkspaceProvider({
   children: ReactNode;
   value: Tables<"workspaces">;
 }) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const pathName = usePathname();
   const user = useUser();
 

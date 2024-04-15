@@ -1,10 +1,9 @@
 "use client";
 
 import { Icons } from "@/components/icons";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HTMLAttributes, useRef, useState } from "react";
@@ -15,7 +14,7 @@ import { Label } from "../components/ui/label";
 interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);

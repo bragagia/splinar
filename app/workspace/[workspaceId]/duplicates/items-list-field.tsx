@@ -2,9 +2,9 @@
 
 import { StandardLinkButton } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
-import { Database, Tables } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Tables } from "@/types/supabase";
 import { useEffect, useState } from "react";
 
 export function ItemsListField({
@@ -16,7 +16,7 @@ export function ItemsListField({
   nameFn: (item: Tables<"items">) => string;
   linkFn: (item: Tables<"items">) => string;
 }) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const workspace = useWorkspace();
 
   const [items, setItems] = useState<Tables<"items">[] | null>(null);

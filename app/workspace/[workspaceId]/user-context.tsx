@@ -1,7 +1,6 @@
 "use client";
 
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   ReactNode,
   createContext,
@@ -35,7 +34,7 @@ export function UserProvider({
   children: ReactNode;
   value: UserContextType;
 }) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
 
   const [user, setUser] = useState<UserContextType>(value);
 

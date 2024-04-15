@@ -1,18 +1,13 @@
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import WorkspaceSettingsPageClient from "@/app/workspace/[workspaceId]/settings/pageClient";
-import { Database } from "@/types/supabase";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function WorkspaceSettingsPage({
   params,
 }: {
   params: { workspaceId: string };
 }) {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const sub = await getWorkspaceCurrentSubscription(
     supabase,

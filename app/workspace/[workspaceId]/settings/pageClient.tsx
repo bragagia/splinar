@@ -22,9 +22,9 @@ import { Label } from "@/components/ui/label";
 import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
 import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
 import { getItemFieldsValues, listItemFields } from "@/lib/items_common";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
-import { Database, Tables } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Tables } from "@/types/supabase";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -35,7 +35,7 @@ export default function WorkspaceSettingsPageClient({
 }: {
   subscription: Tables<"workspace_subscriptions"> | null;
 }) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const workspace = useWorkspace();
   const router = useRouter();
   const user = useUser();

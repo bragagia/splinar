@@ -17,7 +17,10 @@ import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/uuid";
 import { DupStackItemWithItemT, DupStackWithItemsT } from "@/types/dupstacks";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
-import { PublicObjectSearchRequest } from "@hubspot/api-client/lib/codegen/crm/companies";
+import {
+  FilterOperatorEnum,
+  PublicObjectSearchRequest,
+} from "@hubspot/api-client/lib/codegen/crm/companies";
 import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs, { Dayjs } from "dayjs";
 
@@ -789,12 +792,12 @@ export async function contactsPollUpdater(
         filters: [
           {
             propertyName: "lastmodifieddate",
-            operator: "GTE",
+            operator: FilterOperatorEnum.Gte,
             value: startFilter.utc().toISOString(),
           },
           {
             propertyName: "lastmodifieddate",
-            operator: "LTE",
+            operator: FilterOperatorEnum.Lte,
             value: endFilter.utc().toISOString(),
           },
         ],

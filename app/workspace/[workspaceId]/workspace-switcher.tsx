@@ -10,9 +10,9 @@ import {
 
 import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
-import { Database, Tables } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Tables } from "@/types/supabase";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -57,7 +57,7 @@ export default function WorkspaceSwitcher({
   let currentWorkspace = useWorkspace();
 
   let router = useRouter();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
 
   const [allWorkspaces, setAllWorkspaces] = useState<
     Tables<"workspaces">[] | null

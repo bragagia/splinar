@@ -12,17 +12,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { captureException } from "@/lib/sentry";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { uuid } from "@/lib/uuid";
 import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
-import { Database, TablesInsert, TablesUpdate } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { TablesInsert, TablesUpdate } from "@/types/supabase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DataCleaningPage() {
   const workspace = useWorkspace();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const [jobs, setJobs] = useState<DataCleaningJobWithValidated[]>();
 
   useEffect(() => {

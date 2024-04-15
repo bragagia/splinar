@@ -14,14 +14,6 @@ export async function workspaceReset(
     cookies: () => cookieStore,
   });
 
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-  if (error || !session) {
-    throw error || new Error("missing session");
-  }
-
   // Check for workspace access right
   const { data: workspace, error: errorWorkspace } = await supabase
     .from("workspaces")

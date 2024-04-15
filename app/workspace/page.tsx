@@ -8,18 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
-import { Database } from "@/types/supabase";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 
 // TODO: Create a layout or something to ensure that user is logged in
 
 export default async function WorkspaceIndexPage() {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const { data: sessionData, error: sessionError } =
     await supabase.auth.getSession();

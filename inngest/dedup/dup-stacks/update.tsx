@@ -10,6 +10,7 @@ export async function updateDupStacks(
   intervalStop: number = 200
 ) {
   let counter = 0;
+  let now = performance.now();
 
   do {
     const hasFoundContact = await resolveNextDuplicatesStack(
@@ -26,7 +27,7 @@ export async function updateDupStacks(
     if (callbackOnInterval && counter % intervalCallback === 0) {
       await callbackOnInterval();
     }
-    if (counter % intervalStop === 0) {
+    if (counter % intervalStop === 0 || performance.now() - now >= 30000) {
       return true;
     }
   } while (true);

@@ -7,10 +7,9 @@ import {
   WorkspaceInstallationWall,
 } from "@/app/workspace/[workspaceId]/workspace-installation-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
-import { Database, Tables } from "@/types/supabase";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { Tables } from "@/types/supabase";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -23,10 +22,7 @@ export default async function WorkspaceLayout({
 }) {
   const { workspaceId } = params;
 
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const { data: workspaces, error } = await supabase
     .from("workspaces")
@@ -38,16 +34,15 @@ export default async function WorkspaceLayout({
     throw new Error("Missing workspace");
   }
 
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  if (sessionError || !sessionData.session) {
-    throw sessionError || new Error("Missing session");
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw userError || new Error("Missing user");
   }
 
   const { data: userRole, error: userRoleError } = await supabase
     .from("user_roles")
     .select()
-    .eq("user_id", sessionData.session.user.id)
+    .eq("user_id", userData.user.id)
     .limit(1);
   if (userRoleError) {
     throw userRoleError;
@@ -62,8 +57,8 @@ export default async function WorkspaceLayout({
   return (
     <UserProvider
       value={{
-        id: sessionData.session.user.id,
-        email: sessionData.session.user.email || "",
+        id: userData.user.id,
+        email: userData.user.email || "",
         role: userRole.length > 0 ? userRole[0].role : null,
       }}
     >

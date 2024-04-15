@@ -1,12 +1,9 @@
 "use client";
 
 import { Icons } from "@/components/icons";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
-import {
-  User,
-  createClientComponentClient,
-} from "@supabase/auth-helpers-nextjs";
+import { User } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -19,7 +16,7 @@ import {
 } from "../../../components/ui/dropdown-menu";
 
 export function UserNav() {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const router = useRouter();
   const [menuOpened, setMenuOpened] = useState(false);
   const [user, setUser] = useState<User | undefined>();

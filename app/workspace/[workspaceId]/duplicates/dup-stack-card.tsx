@@ -18,6 +18,7 @@ import {
   getItemTypeConfig,
   getRowInfos,
 } from "@/lib/items_common";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 import {
   DupStackItemWithItemT,
@@ -27,8 +28,6 @@ import {
   getDupstackPotentials,
   getDupstackReference,
 } from "@/types/dupstacks";
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type DupItemTypeType = DupStackItemWithItemT["dup_type"];
@@ -41,7 +40,7 @@ export function DupStackCard({
   isDemo?: boolean;
 }) {
   const workspace = useWorkspace();
-  const supabase = isDemo ? null : createClientComponentClient<Database>();
+  const supabase = isDemo ? null : newSupabaseBrowserClient();
 
   const [cachedDupStack, setCachedDupStack] =
     useState<DupStackWithItemsT>(dupStack);

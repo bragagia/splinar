@@ -1,9 +1,8 @@
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
 import { uuid } from "@/lib/uuid";
-import { Database, TablesInsert } from "@/types/supabase";
+import { TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const GRANT_TYPES = {
@@ -24,10 +23,7 @@ export default async function OAuthCallback({
     return <p>Missing hubspot code</p>;
   }
 
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const hubspotClient = new Client({});
 

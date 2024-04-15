@@ -18,10 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
@@ -76,7 +75,7 @@ export function WorkspaceInstallationCardFresh({ inApp }: { inApp: boolean }) {
   let router = useRouter();
   const workspace = useWorkspace();
 
-  let supabase = createClientComponentClient<Database>();
+  let supabase = newSupabaseBrowserClient();
 
   const nameRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

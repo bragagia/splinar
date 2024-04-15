@@ -1,9 +1,8 @@
 import { itemsMerge } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { newHubspotClient } from "@/lib/hubspot";
 import { getItemTypeConfig } from "@/lib/items_common";
-import { Database } from "@/types/supabase";
-import { createClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 const MAX_IT = 2;
 
@@ -25,10 +24,7 @@ export default inngest.createFunction(
 
     logger.info("# Items merge all", workspaceId);
 
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = newSupabaseRootClient();
 
     const { data: workspace, error: workspaceError } = await supabaseAdmin
       .from("workspaces")

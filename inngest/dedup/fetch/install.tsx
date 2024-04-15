@@ -54,7 +54,7 @@ export async function getHubspotStats(hsClientSearchLimited: Client) {
       sorts: [],
       properties: [],
       limit: 100,
-      after: 0,
+      after: "0",
     });
 
   console.log("contacts count: ", contactsTotal);
@@ -67,7 +67,7 @@ export async function getHubspotStats(hsClientSearchLimited: Client) {
       sorts: [],
       properties: [],
       limit: 100,
-      after: 0,
+      after: "0",
     });
 
   // TODO: error handling

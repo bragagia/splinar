@@ -2,10 +2,9 @@
 
 import { Icons } from "@/components/icons";
 import { Card } from "@/components/ui/card";
+import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SyntheticEvent, useRef, useState } from "react";
@@ -14,7 +13,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 
 export default function SignUpPage({}) {
-  const supabase = createClientComponentClient<Database>();
+  const supabase = newSupabaseBrowserClient();
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
