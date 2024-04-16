@@ -119,6 +119,7 @@ async function processHubspotEvent(
     case "contact.privacyDeletion":
       console.log("deleting: ", objectId, itemType);
 
+      // TODO: Separate deletion and privacy deletion so that we can request only for items that are not already merged
       const { data: item, error: itemError } = await supabaseAdmin
         .from("items")
         .select()
@@ -133,11 +134,19 @@ async function processHubspotEvent(
 
       await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
 
-      const { error: errorDelete } = await supabaseAdmin
+      const isPrivacyDeletion =
+        event.subscriptionType === "contact.privacyDeletion";
+
+      let deletionReq = supabaseAdmin
         .from("items")
         .delete()
         .eq("id", item.id)
         .eq("workspace_id", workspace.id);
+      if (!isPrivacyDeletion) {
+        deletionReq = deletionReq.is("merged_in_distant_id", null);
+      }
+
+      const { error: errorDelete } = await deletionReq;
 
       if (errorDelete) {
         captureException(errorDelete);
@@ -153,6 +162,7 @@ async function processHubspotEvent(
     case "product.merge":
     case "line_item.merge":
       const objectIds = event.mergedObjectIds?.map((id) => id.toString()) || [];
+      const mergedInId = event.primaryObjectId?.toString() || "";
 
       const { data: items, error: itemMergeError } = await supabaseAdmin
         .from("items")
@@ -168,14 +178,16 @@ async function processHubspotEvent(
       for (const item of items) {
         await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
 
-        const { error: errorDelete } = await supabaseAdmin
+        const { error: errorUpdate } = await supabaseAdmin
           .from("items")
-          .delete()
+          .update({
+            merged_in_distant_id: mergedInId,
+          })
           .eq("id", item.id)
           .eq("workspace_id", workspace.id);
 
-        if (errorDelete) {
-          captureException(errorDelete);
+        if (errorUpdate) {
+          captureException(errorUpdate);
           return;
         }
       }
