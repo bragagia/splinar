@@ -298,8 +298,7 @@ export default function DataCleaningJobPage({
         }),
       ],
       autofocus: false,
-      content: job?.title,
-
+      content: job?.title || "",
       onBlur({ editor, event }) {
         updateJob({
           title: editor.getText(),

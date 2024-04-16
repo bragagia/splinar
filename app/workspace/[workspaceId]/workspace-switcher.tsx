@@ -150,9 +150,9 @@ export default function WorkspaceSwitcher({
               <CommandEmpty>No workspace found.</CommandEmpty>
 
               <CommandGroup heading="Workspaces">
-                {filteredWorkspaces.map((workspace) => (
+                {filteredWorkspaces.map((workspace, i) => (
                   <CommandItem
-                    key={workspace.id}
+                    key={i}
                     onSelect={() => onSelectWorkspace(workspace.id)}
                     className="text-sm"
                   >

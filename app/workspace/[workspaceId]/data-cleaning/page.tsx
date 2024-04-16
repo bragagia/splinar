@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpButton } from "@/components/sp-button";
@@ -22,6 +23,7 @@ import { useEffect, useState } from "react";
 
 export default function DataCleaningPage() {
   const workspace = useWorkspace();
+  const user = useUser();
   const supabase = newSupabaseBrowserClient();
   const [jobs, setJobs] = useState<DataCleaningJobWithValidated[]>();
 
@@ -74,11 +76,13 @@ export default function DataCleaningPage() {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="absolute top-16 z-30 left-0 w-screen h-screen bg-gray-100/40 backdrop-blur-md">
-        <p className="mt-40 w-full text-center text-4xl font-bold text-gray-400">
-          Coming soon ⏳
-        </p>
-      </div>
+      {user.role !== "SUPERADMIN" && process.env.NODE_ENV !== "development" && (
+        <div className="absolute top-16 z-30 left-0 w-screen h-screen bg-gray-100/40 backdrop-blur-md">
+          <p className="mt-40 w-full text-center text-4xl font-bold text-gray-400">
+            Coming soon ⏳
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Data cleaning</h2>
