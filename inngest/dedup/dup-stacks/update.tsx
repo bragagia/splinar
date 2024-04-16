@@ -24,10 +24,16 @@ export async function updateDupStacks(
     }
 
     counter++;
-    if (callbackOnInterval && counter % intervalCallback === 0) {
+    const elapsed = performance.now() - now;
+
+    if (
+      callbackOnInterval &&
+      (counter % intervalCallback === 0 || elapsed >= 30000)
+    ) {
       await callbackOnInterval();
     }
-    if (counter % intervalStop === 0 || performance.now() - now >= 30000) {
+
+    if (counter % intervalStop === 0 || elapsed >= 30000) {
       return true;
     }
   } while (true);
