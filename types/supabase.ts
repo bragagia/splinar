@@ -442,7 +442,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      get_dupstack_next_reference: {
+        Row: {
+          item: Json | null
+          similarities: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_merged_items_by_months: {

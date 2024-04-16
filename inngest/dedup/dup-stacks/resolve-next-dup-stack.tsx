@@ -283,29 +283,31 @@ async function fetchNextReference(
   const startTime = performance.now();
 
   const { data, error } = await supabase
-    .from("items")
-    .select(
-      `*,
-      similarities_a:similarities!similarities_item_a_id_fkey(*), similarities_b:similarities!similarities_item_b_id_fkey(*)`
-    )
-    .is("merged_in_distant_id", null)
-    .eq("workspace_id", workspaceId)
-    .eq("similarity_checked", true)
-    .eq("dup_checked", false)
-    .order("filled_score", { ascending: false })
-    .limit(1);
+    .from("get_dupstack_next_reference")
+    .select("*");
   if (error) {
     throw error;
   }
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0 || !data[0]) {
     return undefined;
   }
 
-  const { similarities_a, similarities_b, ...contact } = {
-    ...data[0],
-    similarities: data[0].similarities_a.concat(
-      data[0].similarities_b
-    ) as Tables<"similarities">[],
+  const res = data[0];
+  if (
+    !res.item ||
+    !res.similarities ||
+    !Array.isArray(res.similarities) ||
+    !Array.isArray(res.item) ||
+    !res.item[0]
+  ) {
+    return undefined;
+  }
+
+  const item = res.item[0] as Tables<"items">;
+
+  const itemWithSim = {
+    ...item,
+    similarities: res.similarities as Tables<"similarities">[],
   };
 
   console.log(
@@ -314,7 +316,7 @@ async function fetchNextReference(
     "ms"
   );
 
-  return contact;
+  return itemWithSim;
 }
 
 export async function fetchSortedSimilar(
