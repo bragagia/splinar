@@ -282,9 +282,9 @@ async function fetchNextReference(
 ) {
   const startTime = performance.now();
 
-  const { data, error } = await supabase
-    .from("get_dupstack_next_reference")
-    .select("*");
+  const { data, error } = await supabase.rpc("get_dupstack_next_reference", {
+    arg_workspace_id: workspaceId,
+  });
   if (error) {
     throw error;
   }

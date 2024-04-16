@@ -442,15 +442,18 @@ export type Database = {
       }
     }
     Views: {
-      get_dupstack_next_reference: {
-        Row: {
-          item: Json | null
-          similarities: Json | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_dupstack_next_reference: {
+        Args: {
+          arg_workspace_id: string
+        }
+        Returns: {
+          item: Json
+          similarities: Json
+        }[]
+      }
       get_merged_items_by_months: {
         Args: {
           workspace_id_arg: string
