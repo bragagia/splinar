@@ -1,19 +1,15 @@
-import { updateDupStacks } from "@/inngest/dedup/dup-stacks/update";
+import {
+  OperationWorkspaceInstallOrUpdateMetadata,
+  workspaceOperationUpdateMetadata,
+} from "@/lib/operations";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
-
-export async function installDupStacks(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string
-) {
-  return await updateDupStacks(supabase, workspaceId, async () => {
-    await updateDupStackInstallationDone(supabase, workspaceId);
-  });
-}
+import dayjs from "dayjs";
 
 export async function updateDupStackInstallationTotal(
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  operationId: string
 ) {
   const { count: dupTotalContacts, error: errorContacts } = await supabase
     .from("items")
@@ -27,31 +23,36 @@ export async function updateDupStackInstallationTotal(
     throw errorContacts || new Error("missing count on contacts");
   }
 
-  const { error: errorUpdate } = await supabase
-    .from("workspaces")
-    .update({
-      installation_dup_total: dupTotalContacts,
-    })
-    .eq("id", workspaceId);
-  if (errorUpdate) {
-    throw errorUpdate;
-  }
+  await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+    supabase,
+    operationId,
+    {
+      steps: {
+        dup_stacks: {
+          startedAt: dayjs().toISOString(),
+          itemsTotal: dupTotalContacts,
+          itemsDone: 0,
+        },
+      },
+    }
+  );
 
   console.log("-> Items dup total: ", dupTotalContacts);
 }
 
-async function updateDupStackInstallationDone(
+export async function updateDupStackInstallationDone(
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  operationId: string
 ) {
-  const { data: workspace, error: errorWorkspace } = await supabase
-    .from("workspaces")
+  const { data: operation, error: errorOperation } = await supabase
+    .from("workspace_operations")
     .select()
-    .eq("id", workspaceId)
+    .eq("id", operationId)
     .limit(1)
     .single();
-  if (errorWorkspace || workspace === null) {
-    throw errorWorkspace || new Error("missing workspace");
+  if (errorOperation || operation === null) {
+    throw errorOperation || new Error("missing operation");
   }
 
   const { count: dupContactsRemaining, error: errorContacts } = await supabase
@@ -66,24 +67,28 @@ async function updateDupStackInstallationDone(
     throw errorContacts || new Error("missing count");
   }
 
-  const dupContactsDone =
-    workspace.installation_dup_total - dupContactsRemaining;
+  const metadata =
+    operation.metadata as OperationWorkspaceInstallOrUpdateMetadata;
 
-  const { error: errorUpdate } = await supabase
-    .from("workspaces")
-    .update({
-      installation_dup_done: dupContactsDone,
-    })
-    .eq("id", workspaceId);
-  if (errorUpdate) {
-    console.log(errorUpdate);
-    return 0;
-  }
+  const dupContactsDone =
+    (metadata.steps.dup_stacks?.itemsTotal || 0) - dupContactsRemaining;
+
+  await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+    supabase,
+    operationId,
+    {
+      steps: {
+        dup_stacks: {
+          itemsDone: dupContactsDone,
+        },
+      },
+    }
+  );
 
   console.log(
     "-> Dup stack items done:",
     dupContactsDone,
     "/",
-    workspace.installation_dup_total
+    metadata.steps.dup_stacks?.itemsTotal
   );
 }

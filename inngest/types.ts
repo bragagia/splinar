@@ -1,5 +1,8 @@
 import { ItemTypeT } from "@/lib/items_common";
 import { EventSchemas } from "inngest";
+import postmark from "postmark";
+
+// WORKSPACE INSTALL
 
 type WorkspaceInstallStart = {
   name: "workspace/install.start";
@@ -9,30 +12,81 @@ type WorkspaceInstallStart = {
   };
 };
 
-export type WorkspaceSimilaritiesBatchInstallStart = {
-  name: "workspace/similarities/batch-install.start";
+export type WorkspaceInstallFetchCompaniesStart = {
+  name: "workspace/install/fetch/companies.start";
   data: {
     workspaceId: string;
-    table: ItemTypeT;
-    batchAIds: string[];
-    batchBIds?: string[];
+    operationId: string;
+    after?: string;
   };
 };
 
-export type WorkspaceSimilaritiesBatchInstallFinished = {
-  name: "workspace/any/similarities/install.finished";
+export type WorkspaceInstallFetchContactsStart = {
+  name: "workspace/install/fetch/contacts.start";
   data: {
     workspaceId: string;
+    operationId: string;
+    after?: string;
+  };
+};
+
+export type WorkspaceInstallSimilaritiesStart = {
+  name: "workspace/install/similarities.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    after?: string;
+  };
+};
+
+export type WorkspaceInstallSimilaritiesBatchStart = {
+  name: "workspace/install/similarities/batch.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    itemType: ItemTypeT;
+    batchIds: string[];
+    comparedItemsIds?: string[];
+  };
+};
+
+export type WorkspaceInstallDupStacksStart = {
+  name: "workspace/install/dupstacks.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
     secondRun?: boolean;
   };
 };
 
-export type WorkspaceAnyDupsInstallFinished = {
-  name: "workspace/any/dups/install.finished";
+export type WorkspaceInstallEndStart = {
+  name: "workspace/install/end.start";
   data: {
     workspaceId: string;
+    operationId: string;
   };
 };
+
+// WORKSPACE UPDATE
+
+export type WorkspaceUpdateAllStart = {
+  name: "workspace/update/all.start";
+  data: {};
+};
+
+export type WorkspaceUpdatePollingHubspotStart = {
+  name: "workspace/update/polling/hubspot.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    itemType: ItemTypeT;
+    startFilter: string;
+    endFilter: string;
+    after?: string;
+  };
+};
+
+// MERGE ALL
 
 export type ItemsMergeAllStart = {
   name: "items/merge-all.start";
@@ -43,45 +97,7 @@ export type ItemsMergeAllStart = {
   };
 };
 
-export type WorkspaceFetchCompaniesStart = {
-  name: "workspace/companies/fetch.start";
-  data: {
-    workspaceId: string;
-    after?: string;
-  };
-};
-
-export type WorkspaceFetchContactsStart = {
-  name: "workspace/contacts/fetch.start";
-  data: {
-    workspaceId: string;
-    after?: string;
-  };
-};
-
-export type WorkspaceFetchFinished = {
-  name: "workspace/all/fetch.finished";
-  data: {
-    workspaceId: string;
-    after?: string;
-  };
-};
-
-export type WorkspacePollingHubspotStart = {
-  name: "workspace/polling/hubspot.start";
-  data: {
-    workspaceId: string;
-    itemType: ItemTypeT;
-    startFilter: string;
-    endFilter: string;
-    after?: string;
-  };
-};
-
-export type WorkspaceRecurringUpdaterStart = {
-  name: "workspace/recurring-updater.start";
-  data: {};
-};
+// DATA CLEANING
 
 export type DataCleaningMasterDailyStart = {
   name: "data-cleaning/master/daily.start";
@@ -107,18 +123,24 @@ export type DataCleaningJobBatchStart = {
   };
 };
 
+export type SendMailStart = {
+  name: "send-mail.start";
+  data: postmark.Message;
+};
+
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
-  | WorkspaceFetchCompaniesStart
-  | WorkspaceFetchContactsStart
-  | WorkspaceSimilaritiesBatchInstallStart
-  | WorkspaceSimilaritiesBatchInstallFinished
-  | WorkspaceAnyDupsInstallFinished
-  | WorkspaceFetchFinished
-  | WorkspacePollingHubspotStart
-  | WorkspaceRecurringUpdaterStart
+  | WorkspaceInstallFetchCompaniesStart
+  | WorkspaceInstallFetchContactsStart
+  | WorkspaceInstallSimilaritiesBatchStart
+  | WorkspaceInstallDupStacksStart
+  | WorkspaceInstallEndStart
+  | WorkspaceInstallSimilaritiesStart
+  | WorkspaceUpdatePollingHubspotStart
+  | WorkspaceUpdateAllStart
   | ItemsMergeAllStart
   | DataCleaningMasterDailyStart
   | DataCleaningJobFullDBStart
   | DataCleaningJobBatchStart
+  | SendMailStart
 >();

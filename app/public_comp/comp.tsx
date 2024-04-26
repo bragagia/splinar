@@ -22,17 +22,11 @@ const fakeWorkspace: Tables<"workspaces"> = {
   display_name: "Demo workspace",
   hub_id: "",
   installation_status: "DONE",
-  installation_fetched: true,
-  installation_similarities_total_batches: 0,
-  installation_similarities_done_batches: 0,
   contacts_operation_status: "NONE",
   companies_operation_status: "NONE",
-  installation_items_count: 0,
-  installation_items_total: 0,
-  installation_dup_total: 0,
-  installation_dup_done: 0,
   last_poll: null,
   polling_status: "NONE",
+  first_installed_at: "2023-10-17T19:49:45.033466+00:00",
 };
 
 const fakeDupstack: DupStackWithItemsT = {
@@ -49,6 +43,7 @@ const fakeDupstack: DupStackWithItemsT = {
       dup_type: "REFERENCE",
       item: {
         id: "66aca5b5-cc68-4628-aaff-2ec4da39120c",
+        id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
         workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
         distant_id: "8630894037",
@@ -84,6 +79,7 @@ const fakeDupstack: DupStackWithItemsT = {
       dup_type: "CONFIDENT",
       item: {
         id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
+        id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
         workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
         distant_id: "8630923485",
@@ -119,6 +115,7 @@ const fakeDupstack: DupStackWithItemsT = {
       dup_type: "CONFIDENT",
       item: {
         id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
+        id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
         workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
         distant_id: "8630936292",
@@ -154,6 +151,7 @@ const fakeDupstack: DupStackWithItemsT = {
       dup_type: "POTENTIAL",
       item: {
         id: "c39169ac-60cd-402e-aed4-71bbdc6d8797",
+        id_seq: 1,
         created_at: "2024-01-07T16:28:39.125803+00:00",
         workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
         distant_id: "8630947803",
@@ -189,6 +187,7 @@ const fakeDupstack: DupStackWithItemsT = {
       dup_type: "POTENTIAL",
       item: {
         id: "da7d198d-1f4c-490f-86f1-0fb98cf38110",
+        id_seq: 1,
         created_at: "2024-01-07T16:28:39.125803+00:00",
         workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
         distant_id: "8630947812",

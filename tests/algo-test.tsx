@@ -1,15 +1,19 @@
-import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
-import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
+import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
+import { evalSimilarities } from "@/inngest/workspace-install-similarities-batch/eval-similarities";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Tables } from "@/types/supabase";
+import dayjs from "dayjs";
 
 const VERBOSE = false;
 
 function AlgoTest() {
-  const baseContact: Tables<"items"> = {
-    id: "",
-    created_at: "",
+  let id = 0;
+
+  const baseContact = (): Tables<"items"> => ({
+    id: uuid(),
+    id_seq: ++id,
+    created_at: dayjs().toISOString(),
     workspace_id: "abcd",
     item_type: "CONTACTS",
     distant_id: "",
@@ -20,7 +24,7 @@ function AlgoTest() {
     dup_checked: false,
     filled_score: 0,
     value: "",
-  };
+  });
 
   const companyA = uuid();
   const companyB = uuid();
@@ -30,7 +34,7 @@ function AlgoTest() {
       1,
       "Same phone and same first name",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -42,7 +46,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -60,7 +64,7 @@ function AlgoTest() {
       2,
       "Same name but different email domains",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -72,7 +76,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -90,7 +94,7 @@ function AlgoTest() {
       3,
       "Same name but clearly different companies and email domain",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -102,7 +106,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -120,7 +124,7 @@ function AlgoTest() {
       4,
       "Same first name, email and company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -132,7 +136,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -150,7 +154,7 @@ function AlgoTest() {
       5,
       "Unlikely emails and same company, but not same person",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: undefined,
@@ -162,7 +166,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: undefined,
@@ -180,7 +184,7 @@ function AlgoTest() {
       6,
       "Homonyme same company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -192,7 +196,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -210,7 +214,7 @@ function AlgoTest() {
       7,
       "Homonyme without other info",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -222,7 +226,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -240,7 +244,7 @@ function AlgoTest() {
       8,
       "Homonyme and same mail but different company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -252,7 +256,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -270,7 +274,7 @@ function AlgoTest() {
       9,
       "Homonyme and same phone and unlikely email and not same company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -283,7 +287,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -301,7 +305,7 @@ function AlgoTest() {
       10,
       "Reverse fullname, same company, but unlikely email and no phone",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -313,7 +317,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Bragagia",
@@ -331,7 +335,7 @@ function AlgoTest() {
       11,
       "Same mail except extension, same company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -343,7 +347,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "",
@@ -361,7 +365,7 @@ function AlgoTest() {
       12,
       "Same company and phone, but different person",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -373,7 +377,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Vincent",
@@ -391,7 +395,7 @@ function AlgoTest() {
       13,
       "Same name and company, but unlikely email",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -403,7 +407,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -421,7 +425,7 @@ function AlgoTest() {
       14,
       "Same company and phone, but different fullname and no email",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -433,7 +437,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Vincent",
@@ -451,7 +455,7 @@ function AlgoTest() {
       15,
       "Same company, phone and name, but different email",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -463,7 +467,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -481,7 +485,7 @@ function AlgoTest() {
       16,
       "Same name and company and phone, and empty other columns",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -493,7 +497,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -511,7 +515,7 @@ function AlgoTest() {
       17,
       "Same phone, but different person without company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -523,7 +527,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Vincent",
@@ -541,7 +545,7 @@ function AlgoTest() {
       18,
       "Same name, but different email without phone in same company",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -553,7 +557,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -571,7 +575,7 @@ function AlgoTest() {
       19,
       "Same phone, but different email",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -583,7 +587,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "",
@@ -601,7 +605,7 @@ function AlgoTest() {
       20,
       "Same name, but different email",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -613,7 +617,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -631,7 +635,7 @@ function AlgoTest() {
       21,
       "Same mail and company, but different name and phone",
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Mathias",
@@ -643,7 +647,7 @@ function AlgoTest() {
         },
       },
       {
-        ...baseContact,
+        ...baseContact(),
         id: uuid(),
         value: {
           firstname: "Vincent",

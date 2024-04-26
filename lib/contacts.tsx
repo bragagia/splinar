@@ -3,11 +3,13 @@ import {
   LinkedinLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
-import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
+import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import { getCompanyColumns } from "@/lib/companies";
 import { newHubspotClient } from "@/lib/hubspot";
 import {
+  AreSimilaritiesSourceFieldsDifferent,
   DedupConfigT,
+  getItemTypeConfig,
   itemPollUpdaterT,
   listItemFields,
 } from "@/lib/items_common";
@@ -96,7 +98,7 @@ export const contactsDedupConfig: DedupConfigT = {
       displayName: "Phones",
       sources: ["phone", "mobilephone"],
       matchingMethod: "exact",
-      ifMatch: "potential",
+      ifMatch: "multiplier",
       ifDifferent: "reduce-confident-reduce-potential",
     },
     {
@@ -776,6 +778,8 @@ export async function contactsPollUpdater(
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
+  const itemTypeConfig = getItemTypeConfig("CONTACTS");
+
   const hsClientSearch = await newHubspotClient(
     workspace.refresh_token,
     "search"
@@ -861,6 +865,23 @@ export async function contactsPollUpdater(
       dup_checked: false,
       filled_score: 0, // Calculated below
     };
+
+    const hasASimilarityFieldBeenUpdated = AreSimilaritiesSourceFieldsDifferent(
+      itemTypeConfig,
+      existingContactsByDistantId[contact.id],
+      dbContact
+    );
+
+    if (
+      !hasASimilarityFieldBeenUpdated &&
+      existingContactsByDistantId[contact.id]
+    ) {
+      // Note: We don't set it to "true" because in some cases in may be currently to false and we don't want to override it
+      dbContact.similarity_checked =
+        existingContactsByDistantId[contact.id].similarity_checked;
+      dbContact.dup_checked =
+        existingContactsByDistantId[contact.id].dup_checked;
+    }
 
     dbContact.filled_score = listItemFields(
       dbContact as Tables<"items">

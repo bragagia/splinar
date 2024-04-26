@@ -175,21 +175,28 @@ async function processHubspotEvent(
         return;
       }
 
+      let itemsToDelete: string[] = [];
       for (const item of items) {
-        await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
+        if (!item.merged_in_distant_id) {
+          // Only delete item if not marked as merged locally
+          await handleItemDeletion(supabaseAdmin, workspace.id, item.id);
 
-        const { error: errorUpdate } = await supabaseAdmin
-          .from("items")
-          .update({
-            merged_in_distant_id: mergedInId,
-          })
-          .eq("id", item.id)
-          .eq("workspace_id", workspace.id);
-
-        if (errorUpdate) {
-          captureException(errorUpdate);
-          return;
+          itemsToDelete.push(item.id);
         }
+      }
+
+      if (itemsToDelete.length === 0) {
+        break;
+      }
+
+      const { error: errorDeleteMerge } = await supabaseAdmin
+        .from("items")
+        .delete()
+        .in("id", itemsToDelete);
+
+      if (errorDeleteMerge) {
+        captureException(errorDeleteMerge);
+        return;
       }
 
       break;

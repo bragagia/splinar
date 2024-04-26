@@ -146,6 +146,7 @@ export type ItemFieldConfigT = {
     | "prevent-confident-reduce-potential"
     | "reduce-confident-reduce-potential"
     | "reduce-confident"
+    | "prevent-confident"
     | "reduce-potential"
     | "null";
   linkType?:
@@ -747,4 +748,57 @@ export async function getDupstacksOfItem(
   }
 
   return dupStacks;
+}
+
+export function itemFieldValuesAreEqual(
+  a: string[] | null | undefined,
+  b: string[] | null | undefined
+) {
+  if (a === null || a === undefined || b === null || b === undefined) {
+    if (a === b) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function AreSimilaritiesSourceFieldsDifferent(
+  itemTypeConfig: ItemConfig,
+  prev: Tables<"items"> | null,
+  next: TablesInsert<"items">
+) {
+  if (!prev) {
+    return true;
+  }
+
+  const fieldNames = itemTypeConfig.dedupConfig.fields.reduce((acc, field) => {
+    acc.push(...field.sources);
+    return acc;
+  }, [] as string[]);
+
+  const uniqueFieldNames = fieldNames.filter(
+    (value, index, self) => self.indexOf(value) === index
+  );
+
+  return uniqueFieldNames.some((fieldName) => {
+    const areIdentical = itemFieldValuesAreEqual(
+      getItemValueAsArray(prev.value, [fieldName], "string"),
+      getItemValueAsArray(next.value, [fieldName], "string")
+    );
+
+    return !areIdentical;
+  });
 }

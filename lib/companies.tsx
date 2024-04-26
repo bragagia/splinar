@@ -5,10 +5,12 @@ import {
   StandardLinkButton,
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
-import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
+import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import { newHubspotClient } from "@/lib/hubspot";
 import {
+  AreSimilaritiesSourceFieldsDifferent,
   DedupConfigT,
+  getItemTypeConfig,
   itemPollUpdaterT,
   listItemFields,
 } from "@/lib/items_common";
@@ -97,7 +99,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["domain", "website"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-confident",
       linkType: "external",
     },
     {
@@ -106,7 +108,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["linkedin_company_page"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-confident",
       linkType: "linkedin",
     },
     {
@@ -115,7 +117,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["phone"],
       matchingMethod: "exact",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-confident",
     },
     // {
     //   id: "6896b00a-1e71-4919-96ee-dfdc2d32a2f9",
@@ -132,7 +134,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["facebook_company_page"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-confident",
       linkType: "facebook",
     },
     {
@@ -141,7 +143,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["twitterhandle"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-confident",
       linkType: "twitter",
     },
   ],
@@ -759,6 +761,8 @@ export async function companiesPollUpdater(
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
+  const itemTypeConfig = getItemTypeConfig("COMPANIES");
+
   const hsClient = await newHubspotClient(workspace.refresh_token, "search");
 
   const propertiesRes = await hsClient.crm.properties.coreApi.getAll("company");
@@ -791,6 +795,27 @@ export async function companiesPollUpdater(
     objectSearchRequest
   );
 
+  const { data: existingDbCompanies, error } = await supabase
+    .from("items")
+    .select()
+    .eq("workspace_id", workspace.id)
+    .eq("item_type", "COMPANIES")
+    .in(
+      "distant_id",
+      res.results.map((company) => company.id)
+    );
+  if (error) {
+    throw error;
+  }
+
+  const existingCompaniesByDistantId = existingDbCompanies.reduce(
+    (acc, company) => {
+      acc[company.distant_id] = company;
+      return acc;
+    },
+    {} as { [key: string]: Tables<"items"> }
+  );
+
   let dbCompanies = res.results.map((company) => {
     let dbCompany: TablesInsert<"items"> = {
       workspace_id: workspace.id,
@@ -801,6 +826,23 @@ export async function companiesPollUpdater(
       similarity_checked: false,
       filled_score: 0,
     };
+
+    const hasASimilarityFieldBeenUpdated = AreSimilaritiesSourceFieldsDifferent(
+      itemTypeConfig,
+      existingCompaniesByDistantId[company.id],
+      dbCompany
+    );
+
+    if (
+      !hasASimilarityFieldBeenUpdated &&
+      existingCompaniesByDistantId[company.id]
+    ) {
+      // Note: We don't set it to "true" because in some cases in may be currently to false and we don't want to override it
+      dbCompany.similarity_checked =
+        existingCompaniesByDistantId[company.id].similarity_checked;
+      dbCompany.dup_checked =
+        existingCompaniesByDistantId[company.id].dup_checked;
+    }
 
     dbCompany.filled_score = listItemFields(
       dbCompany as Tables<"items">

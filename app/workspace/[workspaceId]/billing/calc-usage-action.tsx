@@ -1,6 +1,6 @@
 "use server";
 
-import { getHubspotStats } from "@/inngest/dedup/fetch/install";
+import { getHubspotStats } from "@/inngest/workspace-install-fetch/install";
 import { newHubspotClient } from "@/lib/hubspot";
 import { Database } from "@/types/supabase";
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs";

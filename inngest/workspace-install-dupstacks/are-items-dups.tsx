@@ -92,6 +92,9 @@ export function areItemsDups(
           log(
             `# ${field.displayName} -> different / reduce-confident-reduce-potential`
           );
+        } else if (field.ifDifferent === "prevent-confident") {
+          confidentMalus += -1000;
+          log(`# ${field.displayName} -> different / prevent-confident`);
         } else if (field.ifDifferent === "reduce-confident") {
           confidentMalus += -1;
           log(`# ${field.displayName} -> different / reduce-confident`);
@@ -118,9 +121,9 @@ export function areItemsDups(
   const finalPotentialScore = potentialScore * multiplier + potentialMalus;
   log(`---> Final scores : [${finalConfidentScore}, ${finalPotentialScore}]`);
 
-  if (finalConfidentScore >= 1) {
+  if (finalConfidentScore > 0) {
     return "CONFIDENT";
-  } else if (finalPotentialScore >= 1) {
+  } else if (finalPotentialScore > 0) {
     return "POTENTIAL";
   } else {
     return false;

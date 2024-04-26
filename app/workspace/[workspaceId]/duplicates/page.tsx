@@ -19,6 +19,7 @@ import {
   getItemTypeConfig,
   getItemTypesList,
 } from "@/lib/items_common";
+import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { DupStackWithItemsT } from "@/types/dupstacks";
@@ -79,7 +80,8 @@ export default function DuplicatesPage() {
         .limit(0)
         .then(({ count, error }) => {
           if (error) {
-            throw error;
+            captureException(error);
+            return;
           }
 
           setTypeStates((cur) => {
@@ -102,7 +104,8 @@ export default function DuplicatesPage() {
         .limit(0)
         .then(({ count, error }) => {
           if (error) {
-            throw error;
+            captureException(error);
+            return;
           }
 
           setTypeStates((cur) => {
@@ -397,10 +400,10 @@ async function fetchNextPage(
     .limit(PAGE_SIZE)
     .eq("workspace_id", workspaceId)
     .eq("item_type", itemsType)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false }); // Note: dupstack cannot be created at the same time
 
   if (nextCursor) {
-    query = query.gt("created_at", nextCursor);
+    query = query.lt("created_at", nextCursor);
   }
 
   const { data, error } = await query;

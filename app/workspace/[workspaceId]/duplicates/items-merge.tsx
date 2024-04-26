@@ -67,6 +67,8 @@ export async function itemsMerge(
 ) {
   // TODO: We still receive dupstack as argument but we should remove that
 
+  // TODO: If there is another dupstack that contains one of the items here, we should remove them from the other dupstack and potentially recalculate those dupstacks
+
   const dupStackR = await supabase
     .from("dup_stacks")
     .select("*, dup_stack_items(*, item:items(*))")

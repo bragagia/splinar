@@ -1,13 +1,17 @@
 import { getItemTypesList } from "@/lib/items_common";
+import {
+  newWorkspaceOperation,
+  OperationWorkspaceInstallOrUpdateMetadata,
+} from "@/lib/operations";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 import dayjs from "dayjs";
 import { inngest } from "./client";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 export default inngest.createFunction(
-  { id: "workspace-recurring-updater", retries: 0 },
+  { id: "workspace-update-all", retries: 0 },
   [
     { cron: "0-59/30 * * * *" }, // TZ=Europe/Paris
-    { event: "workspace/recurring-updater.start" },
+    { event: "workspace/update/all.start" },
   ],
   async ({ step, logger }) => {
     const supabaseAdmin = newSupabaseRootClient();
@@ -36,13 +40,33 @@ export default inngest.createFunction(
 
     const endOfPoll = dayjs().add(-30, "seconds").toISOString(); // We subtract 30 seconds because hubspot doesn't refresh the lastmodifieddate instantly and we don't want to miss any data
 
+    const itemTypes = getItemTypesList();
+
     // For each
     for (const workspace of workspaces) {
-      for (const itemType of getItemTypesList()) {
+      const operation =
+        await newWorkspaceOperation<OperationWorkspaceInstallOrUpdateMetadata>(
+          supabaseAdmin,
+          workspace.id,
+          "WORKSPACE_UPDATE",
+          "PENDING",
+          {
+            steps: {
+              polling: {
+                startedAt: dayjs().toISOString(),
+                total: itemTypes.length,
+              },
+            },
+          },
+          itemTypes.length
+        );
+
+      for (const itemType of itemTypes) {
         await inngest.send({
-          name: "workspace/polling/hubspot.start",
+          name: "workspace/update/polling/hubspot.start",
           data: {
             workspaceId: workspace.id,
+            operationId: operation.id,
             itemType: itemType,
             startFilter: workspace.last_poll || workspace.created_at,
             endFilter: endOfPoll,

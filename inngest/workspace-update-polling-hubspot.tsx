@@ -1,15 +1,16 @@
 import { getItemTypeConfig } from "@/lib/items_common";
+import { workspaceOperationIncrementStepsDone } from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { inngest } from "./client";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 
 dayjs.extend(isSameOrBefore);
 
 export default inngest.createFunction(
   {
-    id: "workspace-polling-hubspot",
+    id: "workspace-update-polling-hubspot",
     retries: 0,
     concurrency: [
       {
@@ -19,9 +20,16 @@ export default inngest.createFunction(
       },
     ],
   },
-  { event: "workspace/polling/hubspot.start" },
+  { event: "workspace/update/polling/hubspot.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId, itemType, startFilter, endFilter, after } = event.data;
+    const {
+      workspaceId,
+      operationId,
+      itemType,
+      startFilter,
+      endFilter,
+      after,
+    } = event.data;
 
     const supabaseAdmin = newSupabaseRootClient();
 
@@ -65,6 +73,8 @@ export default inngest.createFunction(
       if (errorItems) {
         throw errorItems;
       }
+    } else {
+      console.log("No items to update");
     }
 
     if (res.after === "10000") {
@@ -74,6 +84,11 @@ export default inngest.createFunction(
       const newStartFilter = res.lastItemModifiedAt
         ? dayjs(res.lastItemModifiedAt)
         : dayjs(endFilter);
+
+      console.log(
+        "Polling limit reached, starting new search with new start filter: " +
+          newStartFilter.toISOString()
+      );
 
       if (newStartFilter.isSameOrBefore(startFilter)) {
         captureException(
@@ -90,9 +105,10 @@ export default inngest.createFunction(
       } else {
         // We start a new search with the last known modified at timestamp so the "after" parameter is reseted to zero
         await inngest.send({
-          name: "workspace/polling/hubspot.start",
+          name: "workspace/update/polling/hubspot.start",
           data: {
             workspaceId,
+            operationId,
             itemType,
             startFilter: newStartFilter.toISOString(),
             endFilter,
@@ -101,10 +117,13 @@ export default inngest.createFunction(
         });
       }
     } else if (res.after) {
+      console.log("Polling continue with after: " + res.after);
+
       await inngest.send({
-        name: "workspace/polling/hubspot.start",
+        name: "workspace/update/polling/hubspot.start",
         data: {
           workspaceId,
+          operationId,
           itemType,
           startFilter,
           endFilter,
@@ -112,6 +131,23 @@ export default inngest.createFunction(
         },
       });
     } else {
+      console.log("Polling end");
+
+      const remaining = await workspaceOperationIncrementStepsDone(
+        supabaseAdmin,
+        operationId
+      );
+
+      if (remaining === 0) {
+        await inngest.send({
+          name: "workspace/install/similarities.start",
+          data: {
+            workspaceId,
+            operationId,
+          },
+        });
+      }
+
       await supabaseAdmin
         .from("workspaces")
         .update({ last_poll: endFilter, polling_status: "NONE" })

@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "run-p next-dev inngest-dev stripe-dev",
-    "dev-turbo": "run-p next-dev-turbo inngest-dev stripe-dev",
+    "dev": "run-p inngest-dev stripe-dev next-dev",
+    "dev-turbo": "run-p inngest-dev stripe-dev next-dev-turbo",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "npx --yes tsx inngest/dedup/algo-test.tsx",
-    "next-dev": "next dev",
+    "next-dev": "NODE_OPTIONS='--no-deprecation' next dev",
     "next-dev-turbo": "next dev --turbo",
     "stripe-dev": "stripe listen --forward-to localhost:3000/api/stripe-hook",
-    "inngest-dev": "npx --yes inngest-cli@latest dev --no-discovery"
+    "inngest-dev": "npx --yes inngest-cli@latest dev --no-discovery -u http://localhost:3000/api/inngest"
   },
   "dependencies": {
     "@hubspot/api-client": "^11.1.0",
@@ -55,6 +55,7 @@
     "lucide-react": "^0.368.0",
     "nanoid": "^5.0.1",
     "next": "^14.2.1",
+    "postmark": "^4.0.2",
     "react": "^18",
     "react-dom": "^18",
     "react-infinite-scroll-component": "^6.1.0",
@@ -75,7 +76,7 @@
     "@types/uuid": "^9.0.7",
     "autoprefixer": "^10",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.1.0",
+    "eslint-config-next": "^14.2.2",
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
     "tailwindcss": "^3",

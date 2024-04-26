@@ -223,6 +223,7 @@ function FieldEditor({
           <SelectItem value="reduce-confident-reduce-potential">
             Reduce confident and potential
           </SelectItem>
+          <SelectItem value="prevent-confident">Prevent confident</SelectItem>
           <SelectItem value="reduce-confident">Reduce confident</SelectItem>
           <SelectItem value="reduce-potential">Reduce potential</SelectItem>
           <SelectItem value="null">Do nothing</SelectItem>

@@ -1,6 +1,6 @@
 import { inngest } from "@/inngest";
-import { deleteNullKeys } from "@/inngest/dedup/fetch/contacts";
-import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
+import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
+import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
@@ -14,6 +14,7 @@ export async function fetchCompanies(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  operationId: string,
   after?: string
 ) {
   let pageId = 0;
@@ -69,14 +70,15 @@ export async function fetchCompanies(
     pageId++;
     if (after) {
       if (pageId % UPDATE_COUNT_EVERY === 0) {
-        await updateInstallItemsCount(supabase, workspaceId);
+        await updateInstallItemsCount(supabase, workspaceId, operationId);
       }
 
       if (pageId % WORKER_LIMIT === 0) {
         await inngest.send({
-          name: "workspace/companies/fetch.start",
+          name: "workspace/install/fetch/companies.start",
           data: {
             workspaceId: workspaceId,
+            operationId: operationId,
             after: after,
           },
         });
@@ -87,12 +89,13 @@ export async function fetchCompanies(
   } while (after);
 
   // Final update
-  await updateInstallItemsCount(supabase, workspaceId);
+  await updateInstallItemsCount(supabase, workspaceId, operationId);
 
   await inngest.send({
-    name: "workspace/contacts/fetch.start",
+    name: "workspace/install/fetch/contacts.start",
     data: {
       workspaceId: workspaceId,
+      operationId: operationId,
     },
   });
 }

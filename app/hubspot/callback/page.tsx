@@ -63,11 +63,6 @@ export default async function OAuthCallback({
     user_mail: getRefreshTokenResponse.user,
     display_name: "",
     installation_status: "FRESH",
-    installation_dup_done: 0,
-    installation_dup_total: 0,
-    installation_fetched: false,
-    installation_similarities_done_batches: 0,
-    installation_similarities_total_batches: 0,
   };
 
   const { error } = await supabase.from("workspaces").insert(workspace);

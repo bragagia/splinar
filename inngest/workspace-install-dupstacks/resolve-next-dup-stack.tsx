@@ -1,4 +1,4 @@
-import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
+import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
 import { ItemTypeT } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
@@ -23,22 +23,60 @@ export async function resolveNextDuplicatesStack(
     [key: string]: ItemWithSimilaritiesType;
   } = {},
 
-  startWithItem?: ItemWithSimilaritiesType
+  startWithItem?: ItemWithSimilaritiesType,
+
+  isDemo: boolean = false
 ): Promise<boolean> {
+  console.log("## Resolving next dupstack");
+
   const startTime = performance.now();
 
   let referenceItem: ItemWithSimilaritiesType;
 
   if (startWithItem) {
+    console.log("Starting with item", startWithItem.id);
     referenceItem = startWithItem;
   } else {
-    const item = await fetchNextReference(supabase, workspaceId);
+    const { existingDupstackIds, item } = await fetchNextReference(
+      supabase,
+      workspaceId
+    );
 
     if (!item) {
       return false;
     }
 
+    if (existingDupstackIds.length > 0) {
+      console.log(
+        "Reference item already part of existing dupstacks",
+        existingDupstackIds
+      );
+      console.log(
+        "Deleting those dupstack and restart resolveNextDuplicatesStack"
+      );
+
+      if (!isDemo) {
+        await deleteExistingDupstacks(
+          supabase,
+          workspaceId,
+          itemsCacheById,
+          [item.id],
+          true
+        );
+
+        // Note: It is potentially an other item that will be the next reference
+        return await resolveNextDuplicatesStack(
+          supabase,
+          workspaceId,
+          itemsCacheById,
+          undefined,
+          isDemo
+        );
+      }
+    }
+
     referenceItem = item;
+    console.log("Reference item", referenceItem.id);
   }
   itemsCacheById[referenceItem.id] = referenceItem;
 
@@ -53,9 +91,16 @@ export async function resolveNextDuplicatesStack(
 
   async function addChildsToStack(
     parentId: string,
-    isChildOfPotentialDup: boolean
+    isChildOfPotentialDup: boolean,
+    depth: number = 0
   ) {
-    console.log("Adding childs to stack", parentId, isChildOfPotentialDup);
+    const prefix = "·".repeat(depth + 1);
+
+    console.log(
+      prefix + "Adding childs to stack",
+      parentId,
+      isChildOfPotentialDup
+    );
     let { parentItem, similarItems } = await fetchSortedSimilar(
       supabase,
       workspaceId,
@@ -63,7 +108,7 @@ export async function resolveNextDuplicatesStack(
       parentId
     );
     if (similarItems.length === 0) {
-      console.log("No similar items found");
+      console.log(prefix + "No similar items found");
       return;
     }
 
@@ -72,73 +117,76 @@ export async function resolveNextDuplicatesStack(
       potential_ids: [],
     };
 
-    console.log("Similar items: ", similarItems.length, "items");
+    console.log(prefix + "Similar items: ", similarItems.length, "items");
 
-    similarItems.forEach((similarItem) => {
+    for (let similarItem of similarItems) {
+      console.log("Checking similar item", similarItem.id);
+
       const isInDupstack =
         dupStack.confident_ids.find((id) => similarItem.id === id) ||
         dupStack.potential_ids.find((id) => similarItem.id === id);
 
       if (isInDupstack) {
-        return;
+        console.log("Item already in dupstack", similarItem.id);
+        continue;
       }
 
       let dupStatus = areItemsDups(parentItem, similarItem);
+      console.log("Dup status", dupStatus);
 
-      // TODO: This must be thought about when doing hook update
-      // if (dupStatus) {
-      //   const isMoreFilledThanReference =
-      //     similarItem.filled_score > referenceItem.filled_score;
+      if (dupStatus !== false) {
+        const isMoreFilledThanReference =
+          similarItem.filled_score > referenceItem.filled_score;
+        const isSameFilledThanReferenceAndIdIsLower =
+          similarItem.filled_score === referenceItem.filled_score &&
+          similarItem.id_seq < referenceItem.id_seq;
 
-      //   if (isMoreFilledThanReference) {
-      //     // Restart the whole function with similarContact as reference, because it has more data
-      //     throw similarItem;
-      //   }
-      // }
+        if (
+          isMoreFilledThanReference ||
+          isSameFilledThanReferenceAndIdIsLower
+        ) {
+          // We first check is this item is already part of an existing dupstack
+          const { data: existingDupstackIds, error } = await supabase
+            .from("dup_stack_items")
+            .select("dupstack_id")
+            .eq("workspace_id", workspaceId)
+            .eq("item_id", similarItem.id);
+          if (error) {
+            throw error;
+          }
 
-      if (dupStatus === "CONFIDENT") {
-        if (!isChildOfPotentialDup) {
-          childsNewDuplicates.confident_ids.push(similarItem.id);
-        } else {
-          // If we are a child of a potential dup, we are also a potential dup
-          childsNewDuplicates.potential_ids.push(similarItem.id);
+          // if it is not:
+          if (!existingDupstackIds || existingDupstackIds.length === 0) {
+            // Restart the whole function with similarContact as reference, because it has more data
+            throw similarItem;
+          }
         }
-      } else if (dupStatus === "POTENTIAL") {
-        // If we are a child of a potential dup, we don't add more potential dups
-        if (!isChildOfPotentialDup) {
+
+        if (dupStatus === "CONFIDENT") {
+          if (!isChildOfPotentialDup) {
+            childsNewDuplicates.confident_ids.push(similarItem.id);
+          } else {
+            // If we are a child of a potential dup, we are also a potential dup
+            childsNewDuplicates.potential_ids.push(similarItem.id);
+          }
+        } else if (dupStatus === "POTENTIAL") {
+          // If we are a child of a potential dup, we don't add more potential dups
+          //if (!isChildOfPotentialDup) {
           childsNewDuplicates.potential_ids.push(similarItem.id);
+          //}
         }
       }
-    });
+    }
 
     // We push all childs before calling recursive to prevent going into a deep and expensive call stack
-    childsNewDuplicates.confident_ids.forEach((id) => {
-      dupStack.confident_ids.push(id);
-    });
-    childsNewDuplicates.potential_ids.forEach((id) => {
-      dupStack.potential_ids.push(id);
-    });
-
-    // await Promise.all(
-    //   childsNewDuplicates.confident_ids.map(async (id) => {
-    //     await addChildsToStack(id, false);
-    //     console.log("Added child to stack", id);
-    //   })
-    // );
-    // await Promise.all(
-    //   childsNewDuplicates.potential_ids.map(async (id) => {
-    //     await addChildsToStack(id, true);
-    //     console.log("Added child to stack", id);
-    //   })
-    // );
+    dupStack.confident_ids.push(...childsNewDuplicates.confident_ids);
+    dupStack.potential_ids.push(...childsNewDuplicates.potential_ids);
 
     for (let id of childsNewDuplicates.confident_ids) {
-      await addChildsToStack(id, false);
-      console.log("Added child to stack", id);
+      await addChildsToStack(id, false, depth + 1);
     }
     for (let id of childsNewDuplicates.potential_ids) {
-      await addChildsToStack(id, true);
-      console.log("Added child to stack", id);
+      await addChildsToStack(id, true, depth + 1);
     }
   }
 
@@ -158,11 +206,14 @@ export async function resolveNextDuplicatesStack(
         "ms"
       );
 
+      console.log("##### Starting again with new reference");
+
       return await resolveNextDuplicatesStack(
         supabase,
         workspaceId,
         itemsCacheById,
-        newReferenceItem
+        newReferenceItem,
+        isDemo
       );
     } else {
       console.log("Error in addChildsToStack", newReferenceItem);
@@ -176,25 +227,28 @@ export async function resolveNextDuplicatesStack(
 
   const allDupsId = [...dupStack.confident_ids, ...dupStack.potential_ids];
 
-  if (!dupStackIsEmpty) {
-    // TODO: Make this work for updates
-    // await deleteExistingDupstacksAndMarkUnchecked(
-    //   supabase,
-    //   workspaceId,
-    //   contactsById,
-    //   allDupsId
-    // );
+  if (isDemo) {
+    console.log("Demo:", dupStack);
+  } else {
+    if (!dupStackIsEmpty) {
+      await deleteExistingDupstacks(
+        supabase,
+        workspaceId,
+        itemsCacheById,
+        dupStack.confident_ids
+      );
 
-    await createDupstack(
-      supabase,
-      workspaceId,
-      dupStack,
-      referenceItem.item_type
-    );
+      await createDupstack(
+        supabase,
+        workspaceId,
+        dupStack,
+        referenceItem.item_type
+      );
+    }
+
+    // Mark dupstack elements as dup_checked, at least the contact that was analysed
+    await markDupstackElementsAsDupChecked(supabase, workspaceId, allDupsId);
   }
-
-  // Mark dupstack elements as dup_checked, at least the contact that was analysed
-  await markDupstackElementsAsDupChecked(supabase, workspaceId, allDupsId);
 
   console.log(
     "########### [PERF] resolveNextDupStack:",
@@ -205,76 +259,118 @@ export async function resolveNextDuplicatesStack(
   return true;
 }
 
-// async function deleteExistingDupstacksAndMarkUnchecked(
-//   supabase: SupabaseClient<Database>,
-//   workspaceId: string,
-//   contactsById: {
-//     [key: string]: ContactWithCompaniesAndSimilaritiesType;
-//   },
-//   contactIds: string[]
-// ) {
-//   let ors = [] as string[];
-//   contactIds.forEach((contactId) => {
-//     ors.push('confident_contact_ids.cs.{"' + contactId + '"}');
-//     ors.push('potential_contact_ids.cs.{"' + contactId + '"}');
-//   });
+// Delete existing dupstacks that contains one of the provided items as confident/reference (and potential if ), and mark all those items as not dup_checked
+async function deleteExistingDupstacks(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  itemsCacheById: {
+    [key: string]: ItemWithSimilaritiesType;
+  },
+  itemIds: string[],
+  includePotential = false
+) {
+  const startTime = performance.now();
 
-//   const { data: existingDupStacks, error } = await supabase
-//     .from("dup_stacks")
-//     .select()
-//     .eq("workspace_id", workspaceId)
-//     .or(ors.join(","));
-//   if (error) {
-//     throw error;
-//   }
+  const { data: existingDupStacksIds, error } = await supabase
+    .from("dup_stack_items")
+    .select("dup_stacks!inner(id)")
+    .eq("workspace_id", workspaceId)
+    .in("item_id", itemIds)
+    .in(
+      "dup_type",
+      includePotential
+        ? ["REFERENCE", "CONFIDENT", "POTENTIAL"]
+        : ["REFERENCE", "CONFIDENT"]
+    );
+  if (error) {
+    throw error;
+  }
 
-//   if (!existingDupStacks || existingDupStacks.length === 0) {
-//     return;
-//   }
+  if (!existingDupStacksIds || existingDupStacksIds.length === 0) {
+    console.log(
+      "########### [PERF] resolveNextDupStack:",
+      Math.round(performance.now() - startTime),
+      "ms"
+    );
 
-//   const contactToMarkUnchecked = existingDupStacks
-//     .reduce((acc, dupstack) => {
-//       acc.push(...dupstack.confident_contact_ids);
+    return;
+  }
 
-//       if (dupstack.potential_contact_ids) {
-//         acc.push(...dupstack.potential_contact_ids);
-//       }
+  const uniqueExistingDupStacksIds = existingDupStacksIds.reduce(
+    (acc, dupstack) => {
+      if (acc.find((v) => v === dupstack.dup_stacks.id)) {
+        return acc;
+      }
 
-//       return acc;
-//     }, [] as string[])
-//     .filter((existingId) => {
-//       !contactIds.find((IdFromDupstack) => IdFromDupstack === existingId);
-//     });
+      acc.push(dupstack.dup_stacks.id);
+      return acc;
+    },
+    [] as string[]
+  );
 
-//   if (!contactToMarkUnchecked || contactToMarkUnchecked.length === 0) {
-//     return;
-//   }
+  const { data: existingDupStacksData, error: error1 } = await supabase
+    .from("dup_stacks")
+    .select("*, dup_stack_items(*)")
+    .eq("workspace_id", workspaceId)
+    .in("id", uniqueExistingDupStacksIds);
+  if (error1) {
+    throw error1;
+  }
 
-//   const { error: error2 } = await supabase
-//     .from("contacts")
-//     .update({ dup_checked: false })
-//     .eq("workspace_id", workspaceId)
-//     .in("id", contactToMarkUnchecked);
-//   if (error2) {
-//     throw error2;
-//   }
+  const existingDupStackItemsIds = existingDupStacksData.reduce(
+    (acc, dupstack) => {
+      acc.push(...dupstack.dup_stack_items.map((v) => v.item_id));
+      return acc;
+    },
+    [] as string[]
+  );
 
-//   const { error: error3 } = await supabase
-//     .from("dup_stacks")
-//     .delete()
-//     .in(
-//       "id",
-//       existingDupStacks.map((v) => v.id)
-//     )
-//     .eq("workspace_id", workspaceId);
-//   if (error3) {
-//     throw error3;
-//   }
+  console.log("Deleting existing dupstacks", uniqueExistingDupStacksIds.length);
 
-//   contactIds.forEach((id) => {
-//     contactsById[id].dup_checked = false;
-//   });
-// }
+  const { error: errorDeleteDupstack } = await supabase
+    .from("dup_stacks")
+    .delete()
+    .in("id", uniqueExistingDupStacksIds)
+    .eq("workspace_id", workspaceId);
+  if (errorDeleteDupstack) {
+    throw errorDeleteDupstack;
+  }
+
+  // We list items part of existing dupstacks but not part of the new one, in most of the cases it should be none
+  const itemsToMarkUnchecked = existingDupStackItemsIds.filter((existingId) => {
+    !itemIds.find((IdFromDupstack) => IdFromDupstack === existingId);
+  });
+  if (itemsToMarkUnchecked.length === 0) {
+    console.log(
+      "########### [PERF] resolveNextDupStack:",
+      Math.round(performance.now() - startTime),
+      "ms"
+    );
+
+    return;
+  }
+
+  console.log("Marking items as not dup_checked", itemsToMarkUnchecked.length);
+
+  const { error: error2 } = await supabase
+    .from("items")
+    .update({ dup_checked: false })
+    .eq("workspace_id", workspaceId)
+    .in("id", itemsToMarkUnchecked);
+  if (error2) {
+    throw error2;
+  }
+
+  itemIds.forEach((id) => {
+    itemsCacheById[id].dup_checked = false;
+  });
+
+  console.log(
+    "########### [PERF] deleteExistingDupstacks:",
+    Math.round(performance.now() - startTime),
+    "ms"
+  );
+}
 
 async function fetchNextReference(
   supabase: SupabaseClient<Database>,
@@ -289,7 +385,10 @@ async function fetchNextReference(
     throw error;
   }
   if (!data || data.length === 0 || !data[0]) {
-    return undefined;
+    return {
+      existingDupstackIds: undefined,
+      item: undefined,
+    };
   }
 
   const res = data[0];
@@ -300,7 +399,10 @@ async function fetchNextReference(
     !Array.isArray(res.item) ||
     !res.item[0]
   ) {
-    return undefined;
+    return {
+      existingDupstackIds: undefined,
+      item: undefined,
+    };
   }
 
   const item = res.item[0] as Tables<"items">;
@@ -310,13 +412,38 @@ async function fetchNextReference(
     similarities: res.similarities as Tables<"similarities">[],
   };
 
+  let uniqueDupstackIds: string[] = [];
+  if (
+    res.dup_stack_items &&
+    Array.isArray(res.dup_stack_items) &&
+    res.dup_stack_items.length > 0
+  ) {
+    const dup_stack_items =
+      res.dup_stack_items as (Tables<"dup_stack_items"> | null)[];
+
+    uniqueDupstackIds = dup_stack_items.reduce((acc, dup_stack_item) => {
+      if (
+        !dup_stack_item ||
+        acc.find((v) => v === dup_stack_item.dupstack_id)
+      ) {
+        return acc;
+      }
+
+      acc.push(dup_stack_item.dupstack_id);
+      return acc;
+    }, [] as string[]);
+  }
+
   console.log(
     "### [PERF] fetchNextContactReference:",
     Math.round(performance.now() - startTime),
     "ms"
   );
 
-  return itemWithSim;
+  return {
+    existingDupstackIds: uniqueDupstackIds,
+    item: itemWithSim,
+  };
 }
 
 export async function fetchSortedSimilar(

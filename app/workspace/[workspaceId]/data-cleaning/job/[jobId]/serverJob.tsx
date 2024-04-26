@@ -1,7 +1,10 @@
 "use server";
 
 import { JobExecutionOutputWithInput } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/page";
-import { getItemValueAsArray } from "@/lib/items_common";
+import {
+  getItemValueAsArray,
+  itemFieldValuesAreEqual,
+} from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
 import stringSimilarity from "string-similarity";
 
@@ -55,7 +58,7 @@ export async function customJobExecutorSA(
       thisOutputFieldsNames.forEach((fieldName) => {
         if (outputFieldsNames.indexOf(fieldName) === -1) {
           if (
-            !fieldValueAreEqual(
+            !itemFieldValuesAreEqual(
               itemFields[fieldName],
               itemOutput.fields[fieldName]
             )
@@ -98,29 +101,4 @@ function makeCodeAFunctionBody(code: string) {
   delete codeByLines[codeByLines.length - 1];
 
   return codeByLines.join("\n");
-}
-
-function fieldValueAreEqual(
-  a: string[] | null | undefined,
-  b: string[] | null | undefined
-) {
-  if (a === null || a === undefined || b === null || b === undefined) {
-    if (a === b) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) {
-      return false;
-    }
-  }
-
-  return true;
 }

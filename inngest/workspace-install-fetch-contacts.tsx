@@ -1,11 +1,15 @@
-import { fetchContacts } from "@/inngest/dedup/fetch/contacts";
+import { fetchContacts } from "@/inngest/workspace-install-fetch/contacts";
 import { newHubspotClient } from "@/lib/hubspot";
-import { inngest } from "./client";
+import {
+  OperationWorkspaceInstallOrUpdateMetadata,
+  WorkspaceOperationUpdateStatus,
+} from "@/lib/operations";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
+import { inngest } from "./client";
 
 export default inngest.createFunction(
   {
-    id: "workspace-contacts-fetch",
+    id: "workspace-install-fetch-contacts",
     retries: 0,
     concurrency: [
       {
@@ -14,10 +18,28 @@ export default inngest.createFunction(
         limit: 1,
       },
     ],
+    onFailure: async ({ event, error }) => {
+      const supabaseAdmin = newSupabaseRootClient();
+
+      await supabaseAdmin
+        .from("workspaces")
+        .update({
+          installation_status: "ERROR",
+        })
+        .eq("id", event.data.event.data.workspaceId);
+      await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
+        supabaseAdmin,
+        event.data.event.data.operationId,
+        "ERROR",
+        {
+          error: event.data.error,
+        }
+      );
+    },
   },
-  { event: "workspace/contacts/fetch.start" },
+  { event: "workspace/install/fetch/contacts.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId } = event.data;
+    const { workspaceId, operationId } = event.data;
 
     logger.info("# Workspace contacts fetch", workspaceId);
 
@@ -42,6 +64,7 @@ export default inngest.createFunction(
       hsClient,
       supabaseAdmin,
       workspace.id,
+      operationId,
       event.data.after
     );
 

@@ -180,6 +180,7 @@ export type Database = {
           dup_checked: boolean
           filled_score: number
           id: string
+          id_seq: number
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
           merged_at: string | null
           merged_in_distant_id: string | null
@@ -193,6 +194,7 @@ export type Database = {
           dup_checked: boolean
           filled_score: number
           id?: string
+          id_seq?: number
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
           merged_at?: string | null
           merged_in_distant_id?: string | null
@@ -206,6 +208,7 @@ export type Database = {
           dup_checked?: boolean
           filled_score?: number
           id?: string
+          id_seq?: number
           item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
           merged_at?: string | null
           merged_in_distant_id?: string | null
@@ -305,6 +308,63 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_operations: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          id: string
+          metadata: Json
+          ope_status: Database["public"]["Enums"]["workspace_operations_status"]
+          ope_type: Database["public"]["Enums"]["workspace_operations_type"]
+          started_at: string | null
+          steps_done: number
+          steps_total: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          metadata: Json
+          ope_status: Database["public"]["Enums"]["workspace_operations_status"]
+          ope_type: Database["public"]["Enums"]["workspace_operations_type"]
+          started_at?: string | null
+          steps_done: number
+          steps_total: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          metadata?: Json
+          ope_status?: Database["public"]["Enums"]["workspace_operations_status"]
+          ope_type?: Database["public"]["Enums"]["workspace_operations_type"]
+          started_at?: string | null
+          steps_done?: number
+          steps_total?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       workspace_subscriptions: {
@@ -364,15 +424,9 @@ export type Database = {
           created_at: string
           display_name: string
           domain: string
+          first_installed_at: string | null
           hub_id: string
           id: string
-          installation_dup_done: number
-          installation_dup_total: number
-          installation_fetched: boolean
-          installation_items_count: number
-          installation_items_total: number
-          installation_similarities_done_batches: number
-          installation_similarities_total_batches: number
           installation_status: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll: string | null
           polling_status:
@@ -388,15 +442,9 @@ export type Database = {
           created_at?: string
           display_name: string
           domain: string
+          first_installed_at?: string | null
           hub_id: string
           id?: string
-          installation_dup_done?: number
-          installation_dup_total?: number
-          installation_fetched: boolean
-          installation_items_count?: number
-          installation_items_total?: number
-          installation_similarities_done_batches?: number
-          installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll?: string | null
           polling_status?:
@@ -412,15 +460,9 @@ export type Database = {
           created_at?: string
           display_name?: string
           domain?: string
+          first_installed_at?: string | null
           hub_id?: string
           id?: string
-          installation_dup_done?: number
-          installation_dup_total?: number
-          installation_fetched?: boolean
-          installation_items_count?: number
-          installation_items_total?: number
-          installation_similarities_done_batches?: number
-          installation_similarities_total_batches?: number
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
           last_poll?: string | null
           polling_status?:
@@ -438,13 +480,139 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workspaces_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      users: {
+        Row: {
+          aud: string | null
+          banned_until: string | null
+          confirmation_sent_at: string | null
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          email_change: string | null
+          email_change_confirm_status: number | null
+          email_change_sent_at: string | null
+          email_change_token_current: string | null
+          email_change_token_new: string | null
+          email_confirmed_at: string | null
+          encrypted_password: string | null
+          id: string | null
+          instance_id: string | null
+          invited_at: string | null
+          is_anonymous: boolean | null
+          is_sso_user: boolean | null
+          is_super_admin: boolean | null
+          last_sign_in_at: string | null
+          phone: string | null
+          phone_change: string | null
+          phone_change_sent_at: string | null
+          phone_change_token: string | null
+          phone_confirmed_at: string | null
+          raw_app_meta_data: Json | null
+          raw_user_meta_data: Json | null
+          reauthentication_sent_at: string | null
+          reauthentication_token: string | null
+          recovery_sent_at: string | null
+          recovery_token: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id?: string | null
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean | null
+          is_sso_user?: boolean | null
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id?: string | null
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean | null
+          is_sso_user?: boolean | null
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_available_workspaces_for_user: {
+        Args: {
+          arg_user_id: string
+        }
+        Returns: string[]
+      }
       get_dupstack_next_reference: {
         Args: {
           arg_workspace_id: string
@@ -452,6 +620,7 @@ export type Database = {
         Returns: {
           item: Json
           similarities: Json
+          dup_stack_items: Json
         }[]
       }
       get_merged_items_by_months: {
@@ -480,6 +649,12 @@ export type Database = {
       similarities_increment_done_batches: {
         Args: {
           workspace_id_arg: string
+        }
+        Returns: number
+      }
+      workspace_operations_increment_steps_done: {
+        Args: {
+          operation_id_arg: string
         }
         Returns: number
       }
@@ -531,6 +706,11 @@ export type Database = {
         | "ERROR"
         | "INSTALLING"
       workspace_operation_status: "NONE" | "PENDING"
+      workspace_operations_status: "QUEUED" | "PENDING" | "DONE" | "ERROR"
+      workspace_operations_type:
+        | "WORKSPACE_INSTALL"
+        | "WORKSPACE_UPDATE"
+        | "MERGE_ALL"
       workspace_subscriptions_custom_type: "BETA"
       workspace_subscriptions_type: "STRIPE" | "CUSTOM"
     }

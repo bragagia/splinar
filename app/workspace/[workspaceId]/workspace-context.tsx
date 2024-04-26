@@ -33,6 +33,21 @@ export function useWorkspace() {
   return workspace;
 }
 
+type WorkspaceOperationsContextType = Tables<"workspace_operations">[];
+
+export const WorkspaceOperationsContext =
+  createContext<WorkspaceOperationsContextType | null>(null);
+
+export function useWorkspaceOperations() {
+  let workspaceOperations = useContext(WorkspaceOperationsContext);
+
+  if (!workspaceOperations) {
+    throw new Error("Missing workspaceOperations context");
+  }
+
+  return workspaceOperations;
+}
+
 export function WorkspaceProvider({
   children,
   value,
@@ -45,6 +60,9 @@ export function WorkspaceProvider({
   const user = useUser();
 
   const [workspace, setWorkspace] = useState<Tables<"workspaces">>(value);
+  const [workspaceOperations, setWorkspaceOperations] = useState<
+    Tables<"workspace_operations">[]
+  >([]);
 
   const forceUpdate = useCallback(async () => {
     const { data: workspaceUpdated, error } = await supabase
@@ -57,7 +75,18 @@ export function WorkspaceProvider({
       throw error;
     }
 
+    const { data: workspaceOperationsUpdated, error: operationError } =
+      await supabase
+        .from("workspace_operations")
+        .select()
+        .eq("workspace_id", workspace.id)
+        .eq("ope_status", "PENDING");
+    if (operationError) {
+      throw operationError;
+    }
+
     setWorkspace(workspaceUpdated);
+    setWorkspaceOperations(workspaceOperationsUpdated);
   }, [supabase, workspace.id]);
 
   useEffect(() => {
@@ -101,7 +130,9 @@ export function WorkspaceProvider({
       )}
 
       <WorkspaceContext.Provider value={workspaceWithTrigger}>
-        {children}
+        <WorkspaceOperationsContext.Provider value={workspaceOperations}>
+          {children}
+        </WorkspaceOperationsContext.Provider>
       </WorkspaceContext.Provider>
     </>
   );

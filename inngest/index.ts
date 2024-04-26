@@ -1,29 +1,31 @@
 import dataCleaningJob from "@/inngest/data-cleaning-job";
 import dataCleaningJobBatch from "@/inngest/data-cleaning-job-batch";
-import itemsMergeAll from "@/inngest/items-merge-all";
-import workspaceCompaniesFetch from "@/inngest/workspace-companies-fetch";
-import workspaceContactsFetch from "@/inngest/workspace-contacts-fetch";
-import workspaceDupsInstall from "@/inngest/workspace-dups-install";
+import sendMail from "@/inngest/send-mail";
 import workspaceInstall from "@/inngest/workspace-install";
+import workspaceInstallDupStacks from "@/inngest/workspace-install-dupstacks";
 import workspaceInstallEnd from "@/inngest/workspace-install-end";
-import workspacePollingHubspot from "@/inngest/workspace-polling-hubspot";
-import workspaceRecurringUpdater from "@/inngest/workspace-recurring-updater";
-import workspaceSimilaritiesBatchInstall from "@/inngest/workspace-similarities-batch-install";
-import workspaceSimilaritiesLaunch from "@/inngest/workspace-similarities-launch";
+import workspaceInstallFetchCompanies from "@/inngest/workspace-install-fetch-companies";
+import workspaceInstallFetchContacts from "@/inngest/workspace-install-fetch-contacts";
+import workspaceInstallSimilarities from "@/inngest/workspace-install-similarities";
+import workspaceInstallSimilaritiesBatch from "@/inngest/workspace-install-similarities-batch";
+import workspaceItemsMergeAll from "@/inngest/workspace-items-merge-all";
+import workspaceUpdateAll from "@/inngest/workspace-update-all";
+import workspaceUpdatePollingHubspot from "@/inngest/workspace-update-polling-hubspot";
 
 export const functions = [
   workspaceInstall,
-  workspaceSimilaritiesBatchInstall,
-  workspaceDupsInstall,
+  workspaceInstallSimilaritiesBatch,
+  workspaceInstallDupStacks,
   workspaceInstallEnd,
-  itemsMergeAll,
-  workspaceCompaniesFetch,
-  workspaceContactsFetch,
-  workspaceSimilaritiesLaunch,
+  workspaceItemsMergeAll,
+  workspaceInstallFetchCompanies,
+  workspaceInstallFetchContacts,
+  workspaceInstallSimilarities,
   dataCleaningJob,
   dataCleaningJobBatch,
-  workspaceRecurringUpdater,
-  workspacePollingHubspot,
+  workspaceUpdateAll,
+  workspaceUpdatePollingHubspot,
+  sendMail,
 ];
 
 export { inngest } from "./client";

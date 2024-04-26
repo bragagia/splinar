@@ -1,14 +1,14 @@
 import { itemsMerge } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { newHubspotClient } from "@/lib/hubspot";
 import { getItemTypeConfig } from "@/lib/items_common";
-import { inngest } from "./client";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
+import { inngest } from "./client";
 
 const MAX_IT = 2;
 
 export default inngest.createFunction(
   {
-    id: "items-merge-all",
+    id: "workspace-items-merge-all",
     retries: 0,
     concurrency: [
       {

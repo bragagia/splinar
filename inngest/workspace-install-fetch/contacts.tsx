@@ -1,5 +1,5 @@
 import { inngest } from "@/inngest";
-import { updateInstallItemsCount } from "@/inngest/dedup/fetch/install";
+import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
@@ -13,6 +13,7 @@ export async function fetchContacts(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  operationId: string,
   after?: string
 ) {
   let pageId = 0;
@@ -79,14 +80,15 @@ export async function fetchContacts(
 
     if (after) {
       if (pageId % UPDATE_COUNT_EVERY === 0) {
-        await updateInstallItemsCount(supabase, workspaceId);
+        await updateInstallItemsCount(supabase, workspaceId, operationId);
       }
 
       if (pageId % WORKER_LIMIT === 0) {
         await inngest.send({
-          name: "workspace/contacts/fetch.start",
+          name: "workspace/install/fetch/contacts.start",
           data: {
             workspaceId: workspaceId,
+            operationId: operationId,
             after: after,
           },
         });
@@ -97,18 +99,14 @@ export async function fetchContacts(
   } while (after);
 
   // Final update
-  await updateInstallItemsCount(supabase, workspaceId);
+  await updateInstallItemsCount(supabase, workspaceId, operationId);
 
   // End of general fetching
-  await supabase
-    .from("workspaces")
-    .update({ installation_fetched: true })
-    .eq("id", workspaceId);
-
   await inngest.send({
-    name: "workspace/all/fetch.finished",
+    name: "workspace/install/similarities.start",
     data: {
       workspaceId: workspaceId,
+      operationId: operationId,
     },
   });
 }

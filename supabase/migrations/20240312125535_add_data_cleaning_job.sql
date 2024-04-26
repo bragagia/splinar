@@ -131,6 +131,8 @@ CREATE POLICY "Allow workspace owners to read" ON public.data_cleaning_job_valid
         )
     );
 
+ALTER TABLE public.data_cleaning_job_validated ENABLE ROW LEVEL SECURITY;
+
 GRANT ALL ON TABLE public.data_cleaning_job_validated TO anon;
 GRANT ALL ON TABLE public.data_cleaning_job_validated TO authenticated;
 GRANT ALL ON TABLE public.data_cleaning_job_validated TO service_role;

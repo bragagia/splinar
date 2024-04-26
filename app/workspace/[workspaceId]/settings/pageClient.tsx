@@ -19,8 +19,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { areItemsDups } from "@/inngest/dedup/dup-stacks/are-items-dups";
-import { evalSimilarities } from "@/inngest/dedup/similarity/eval-similarities";
+import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
+import { resolveNextDuplicatesStack } from "@/inngest/workspace-install-dupstacks/resolve-next-dup-stack";
+import { evalSimilarities } from "@/inngest/workspace-install-similarities-batch/eval-similarities";
 import { getItemFieldsValues, listItemFields } from "@/lib/items_common";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
@@ -137,6 +138,42 @@ export default function WorkspaceSettingsPageClient({
 
     setDupCheckResult(res);
   }, [supabase, workspace.id, itemCheck1Val, itemCheck2Val]);
+
+  const onGenerateDupStack = useCallback(async () => {
+    if (!itemCheck1Val) {
+      return;
+    }
+
+    const { data: raw_item, error } = await supabase
+      .from("items")
+      .select(
+        `*, similarities_a:similarities!similarities_item_a_id_fkey(*), similarities_b:similarities!similarities_item_b_id_fkey(*)`
+      )
+      .is("merged_in_distant_id", null)
+      .eq("workspace_id", workspace.id)
+      .eq("distant_id", itemCheck1Val)
+      .limit(1)
+      .single();
+    if (error) {
+      console.log("error fetching", error);
+      throw error;
+    }
+
+    const { similarities_a, similarities_b, ...item } = {
+      ...raw_item,
+      similarities: raw_item.similarities_a.concat(
+        raw_item.similarities_b
+      ) as Tables<"similarities">[],
+    };
+
+    await resolveNextDuplicatesStack(
+      supabase,
+      workspace.id,
+      undefined,
+      item,
+      true
+    );
+  }, [supabase, workspace.id, itemCheck1Val]);
 
   return (
     <div className="flex-1 space-y-4 w-full">
@@ -290,13 +327,23 @@ export default function WorkspaceSettingsPageClient({
                   </div>
                 </Label>
 
-                <SpButton
-                  className="shrink-0"
-                  variant="full"
-                  onClick={onCheckDupStatus}
-                >
-                  Check dup status
-                </SpButton>
+                <div className="flex flex-col gap-2">
+                  <SpButton
+                    className="shrink-0"
+                    variant="full"
+                    onClick={onCheckDupStatus}
+                  >
+                    Check dup status
+                  </SpButton>
+
+                  <SpButton
+                    className="shrink-0"
+                    variant="full"
+                    onClick={onGenerateDupStack}
+                  >
+                    Generate dup stack
+                  </SpButton>
+                </div>
               </div>
 
               <div className="flex items-center justify-between space-x-2">

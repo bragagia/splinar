@@ -1,15 +1,22 @@
 import { inngest } from "@/inngest";
 import { newHubspotClient } from "@/lib/hubspot";
+import {
+  OperationWorkspaceInstallOrUpdateMetadata,
+  workspaceOperationUpdateMetadata,
+} from "@/lib/operations";
 import { Database } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 import dayjs from "dayjs";
 
 export async function fullFetch(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string
+  supabaseAdmin: SupabaseClient<Database>,
+  workspaceId: string,
+  operationId: string
 ) {
-  let { data: workspace, error: workspaceError } = await supabase
+  console.info("-> Fetching hubspot data");
+
+  let { data: workspace, error: workspaceError } = await supabaseAdmin
     .from("workspaces")
     .select()
     .eq("id", workspaceId)
@@ -28,19 +35,34 @@ export async function fullFetch(
   );
 
   // Update last poll before fetching to ensure we don't miss any updated data when polling
-  await supabase
+  await supabaseAdmin
     .from("workspaces")
     .update({
       last_poll: dayjs().toISOString(),
     })
     .eq("id", workspaceId);
 
-  await updateInstallTotals(supabase, hsClientSearchLimited, workspaceId);
+  const stats = await getHubspotStats(hsClientSearchLimited);
+
+  await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+    supabaseAdmin,
+    operationId,
+    {
+      steps: {
+        fetch: {
+          startedAt: dayjs().toISOString(),
+          itemsTotal: stats.companiesTotal + stats.contactsTotal,
+          itemsDone: 0,
+        },
+      },
+    }
+  );
 
   await inngest.send({
-    name: "workspace/companies/fetch.start",
+    name: "workspace/install/fetch/companies.start",
     data: {
       workspaceId: workspaceId,
+      operationId: operationId,
     },
   });
 }
@@ -77,27 +99,10 @@ export async function getHubspotStats(hsClientSearchLimited: Client) {
   return { companiesTotal, contactsTotal };
 }
 
-async function updateInstallTotals(
-  supabase: SupabaseClient<Database>,
-  hsClientSearchLimited: Client,
-  workspaceId: string
-) {
-  const stats = await getHubspotStats(hsClientSearchLimited);
-
-  const { error } = await supabase
-    .from("workspaces")
-    .update({
-      installation_items_total: stats.companiesTotal + stats.contactsTotal,
-    })
-    .eq("id", workspaceId);
-  if (error) {
-    throw error;
-  }
-}
-
 export async function updateInstallItemsCount(
   supabase: SupabaseClient<Database>,
-  workspaceId: string
+  workspaceId: string,
+  operationId: string
 ) {
   const items = await supabase
     .from("items")
@@ -109,13 +114,15 @@ export async function updateInstallItemsCount(
     throw items.error;
   }
 
-  const { error } = await supabase
-    .from("workspaces")
-    .update({
-      installation_items_count: items.count || 0,
-    })
-    .eq("id", workspaceId);
-  if (error) {
-    throw error;
-  }
+  await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+    supabase,
+    operationId,
+    {
+      steps: {
+        fetch: {
+          itemsDone: items.count || 0,
+        },
+      },
+    }
+  );
 }

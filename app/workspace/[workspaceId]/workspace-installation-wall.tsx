@@ -3,7 +3,10 @@
 import { calcWorkspaceDistantUsageDetailedAction } from "@/app/workspace/[workspaceId]/billing/calc-usage-action";
 import { SubscriptionOptions } from "@/app/workspace/[workspaceId]/billing/subscription-options";
 import { useUser } from "@/app/workspace/[workspaceId]/user-context";
-import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
+import {
+  useWorkspace,
+  useWorkspaceOperations,
+} from "@/app/workspace/[workspaceId]/workspace-context";
 import { workspaceInstall } from "@/app/workspace/[workspaceId]/workspace-install";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -18,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { OperationWorkspaceInstallOrUpdateMetadata } from "@/lib/operations";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { cn } from "@/lib/utils";
@@ -35,8 +39,7 @@ export function WorkspaceInstallationWall({
   if (
     user.role !== "SUPERADMIN" &&
     process.env.NODE_ENV !== "development" &&
-    workspace.installation_status !== "DONE" &&
-    workspace.installation_dup_done === 0
+    workspace.installation_status !== "DONE"
   ) {
     return (
       <div className="h-screen w-screen flex justify-center items-center">
@@ -198,6 +201,7 @@ export function WorkspaceInstallationCardFresh({ inApp }: { inApp: boolean }) {
 
 export function WorkspaceInstallationCardPendingInstalling() {
   const workspace = useWorkspace();
+  const operations = useWorkspaceOperations();
 
   useEffect(() => {
     // Force update at least every 5 seconds in case the supabase realtime hook break
@@ -212,66 +216,82 @@ export function WorkspaceInstallationCardPendingInstalling() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id]);
 
-  // TODO: Install.mode == "just_subscribed" -> :tada:
+  const operation = operations.find(
+    (operation) => operation.ope_type === "WORKSPACE_INSTALL"
+  );
 
-  // Fetch progress
-  let fetchProgress = 0;
-
-  if (workspace.installation_fetched) {
-    fetchProgress = 1;
+  let explanation = "";
+  let progressStarted = true;
+  let aggregateProgress = 0;
+  if (workspace.installation_status === "PENDING" || !operation) {
+    explanation = "Installation will start soon";
+    progressStarted = false;
   } else {
-    if (workspace.installation_items_total > 0) {
-      const total = workspace.installation_items_total;
+    const metadata =
+      operation.metadata as OperationWorkspaceInstallOrUpdateMetadata;
 
-      const count = workspace.installation_items_count;
+    // TODO: Install.mode == "just_subscribed" -> :tada:
+
+    // Fetch progress
+    let fetchProgress = 0;
+
+    if (metadata.steps.similarities) {
+      fetchProgress = 1;
+    } else if (metadata.steps.fetch && metadata.steps.fetch.itemsTotal > 0) {
+      const total = metadata.steps.fetch.itemsTotal;
+      const count = metadata.steps.fetch.itemsDone;
 
       fetchProgress = count / total;
     }
-  }
 
-  // Similarities progress
-  let similaritiesProgress = 0;
+    // Similarities progress
+    let similaritiesProgress = 0;
 
-  let similaritiesTotal = workspace.installation_similarities_total_batches;
+    if (metadata.steps.similarities && metadata.steps.similarities.total) {
+      if (metadata.steps.dup_stacks) {
+        similaritiesProgress = 1;
+      } else {
+        const similaritiesTotal = metadata.steps.similarities.total;
+        const similaritiesRemaining =
+          operation.steps_total - operation.steps_done;
+        const similaritiesDone = similaritiesTotal - similaritiesRemaining;
 
-  let similaritiesDone = workspace.installation_similarities_done_batches;
+        similaritiesProgress = similaritiesDone / similaritiesTotal;
+      }
+    }
 
-  if (similaritiesTotal > 0) {
-    similaritiesProgress = similaritiesDone / similaritiesTotal;
-  }
+    // Dup stack progress
+    let dupStackProgress = 0;
 
-  // Dup stack progress
-  let dupStackProgress = 0;
-  if (workspace.installation_dup_total > 0) {
-    dupStackProgress =
-      workspace.installation_dup_done / workspace.installation_dup_total;
-  }
+    if (metadata.steps.dup_stacks && metadata.steps.dup_stacks.itemsTotal > 0) {
+      dupStackProgress =
+        metadata.steps.dup_stacks.itemsDone /
+        metadata.steps.dup_stacks.itemsTotal;
+    }
 
-  // Dup Stack have started and explanation
+    // Dup Stack have started and explanation
+    const fetchTextProgress = Math.floor(fetchProgress * 100).toString() + "%";
 
-  const dupStackTextProgress =
-    Math.floor(dupStackProgress * 100).toString() + "%";
+    const similaritiesTextProgress =
+      Math.floor(similaritiesProgress * 100).toString() + "%";
 
-  // aggregate progress
-  let aggregateProgress =
-    (fetchProgress + similaritiesProgress + dupStackProgress) / 3;
+    const dupStackTextProgress =
+      Math.floor(dupStackProgress * 100).toString() + "%";
 
-  // Explanation
-  let explanation = "(1/3) Fetching your hubspot data";
+    // aggregate progress
+    aggregateProgress =
+      (fetchProgress + similaritiesProgress + dupStackProgress) / 3;
 
-  if (fetchProgress === 1) {
-    explanation = "(2/3) Checking for similarities in your data";
-  }
+    // Explanation
+    explanation = `(1/3) Fetching your hubspot data (${fetchTextProgress})`;
 
-  if (similaritiesProgress === 1) {
-    explanation = `(3/3) Preparing your duplicates for display (${dupStackTextProgress})`;
-  }
+    if (fetchProgress === 1) {
+      explanation = `(2/3) Checking for similarities in your data (${similaritiesTextProgress})`;
+    }
 
-  // Install is pending case
-  let progressStarted = true;
-  if (workspace.installation_status === "PENDING") {
-    explanation = "Installation will start soon";
-    progressStarted = false;
+    if (similaritiesProgress === 1) {
+      explanation = `(3/3) Preparing your duplicates for display (${dupStackTextProgress})`;
+    }
   }
 
   return (

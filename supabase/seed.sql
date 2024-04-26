@@ -71,6 +71,7 @@ INSERT INTO
         user_id,
         identity_data,
         provider,
+        provider_id,
         last_sign_in_at,
         created_at,
         updated_at
@@ -80,6 +81,7 @@ INSERT INTO
             id,
             format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
             'email',
+            uuid_generate_v4 (),
             current_timestamp,
             current_timestamp,
             current_timestamp
@@ -98,7 +100,7 @@ INSERT INTO
         display_name,
         hub_id,
         installation_status,
-        installation_fetched
+        first_installed_at
     )
 VALUES
     (
@@ -111,7 +113,7 @@ VALUES
         'Las Thunas',
         143540917,
         'FRESH',
-        false
+        null
     ),
     (
         '6a96d8e3-2fee-48c0-ac4d-8bcc7796f126',
@@ -123,7 +125,7 @@ VALUES
         'Les Pipes',
         143393290,
         'FRESH',
-        false
+        null
     ),
     (
         'ff999615-0a90-45b5-8232-6f97fa4226ad',
@@ -135,7 +137,7 @@ VALUES
         'Les Pipes du Superadmin',
         143393291, -- Fake Hub ID, won't work
         'FRESH',
-        false
+        null
     );
 
 INSERT INTO

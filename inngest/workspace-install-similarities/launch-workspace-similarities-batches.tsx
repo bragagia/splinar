@@ -1,30 +1,32 @@
-import { WorkspaceSimilaritiesBatchInstallStart } from "@/inngest/types";
+import { WorkspaceInstallSimilaritiesBatchStart } from "@/inngest/types";
+import { markBatchInstalledAndRemoveExistingSimilarities } from "@/inngest/workspace-install-similarities/mark-batch-installed";
 import { ItemTypeT } from "@/lib/items_common";
-import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 export const SIMILARITIES_BATCH_SIZE = 1000;
 export const FREE_TIER_BATCH_LIMIT = 5;
 
-export async function updateSimilarities(
+export async function launchWorkspaceSimilaritiesBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  operationId: string,
   isFreeTier: boolean,
-  table: ItemTypeT,
-  afterBatchCallback?: () => Promise<void>
+  itemType: ItemTypeT
 ) {
+  console.log("Starting", itemType, "sim check");
+
   let batchLength = 0;
   let count = 0;
 
-  let payloads: WorkspaceSimilaritiesBatchInstallStart[] = [];
+  let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
 
   do {
     let query = supabase
       .from("items")
       .select("id, distant_id")
       .is("merged_in_distant_id", null)
-      .eq("item_type", table)
+      .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
       .order("distant_id", { ascending: true })
@@ -42,28 +44,27 @@ export async function updateSimilarities(
     const batchIds = batch.map((o) => o.id);
 
     payloads.push({
-      name: "workspace/similarities/batch-install.start",
+      name: "workspace/install/similarities/batch.start",
       data: {
         workspaceId: workspaceId,
-        table: table,
-        batchAIds: batchIds,
+        operationId: operationId,
+        itemType: itemType,
+        batchIds: batchIds,
       },
     });
 
-    if (afterBatchCallback) {
-      await afterBatchCallback();
-    }
+    console.log(itemType + " similarities batch started: ", payloads.length);
 
     const payloadRet = await compareBatchWithAllInstalledBatches(
       supabase,
       workspaceId,
-      table,
-      batchIds,
-      afterBatchCallback
+      operationId,
+      itemType,
+      batchIds
     );
     payloads.push(...payloadRet);
 
-    await markBatchInstalled(supabase, batchIds);
+    await markBatchInstalledAndRemoveExistingSimilarities(supabase, batchIds);
 
     count++;
   } while (
@@ -74,44 +75,29 @@ export async function updateSimilarities(
   return payloads;
 }
 
-async function markBatchInstalled(
-  supabase: SupabaseClient<Database>,
-  batchIds: string[]
-) {
-  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
-    const { error } = await supabase
-      .from("items")
-      .update({ similarity_checked: true, dup_checked: false })
-      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
-    if (error) {
-      throw error;
-    }
-  }
-}
-
 async function compareBatchWithAllInstalledBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  table: ItemTypeT,
-  batchIds: string[],
-  afterBatchCallback?: () => Promise<void>
+  operationId: string,
+  itemType: ItemTypeT,
+  batchIds: string[]
 ) {
-  let payloads: WorkspaceSimilaritiesBatchInstallStart[] = [];
+  let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
 
-  let lastItemId: string | null = null;
+  let lastItemDistantId: string | null = null;
   do {
     let query = supabase
       .from("items")
       .select("id, distant_id")
       .is("merged_in_distant_id", null)
-      .eq("item_type", table)
+      .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
       .order("distant_id", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
-    if (lastItemId) {
-      query = query.gt("distant_id", lastItemId);
+    if (lastItemDistantId) {
+      query = query.gt("distant_id", lastItemDistantId);
     }
 
     const { data: installedBatch, error: errorInstalledBatch } = await query;
@@ -126,24 +112,26 @@ async function compareBatchWithAllInstalledBatches(
     const installedBatchIds = installedBatch.map((o) => o.id);
 
     payloads.push({
-      name: "workspace/similarities/batch-install.start",
+      name: "workspace/install/similarities/batch.start",
       data: {
         workspaceId: workspaceId,
-        table: table,
-        batchAIds: batchIds,
-        batchBIds: installedBatchIds,
+        operationId: operationId,
+        itemType: itemType,
+        batchIds: batchIds,
+        comparedItemsIds: installedBatchIds,
       },
     });
 
-    if (afterBatchCallback) {
-      await afterBatchCallback();
-    }
+    console.log(
+      itemType + " similarities batch started: INNER ",
+      payloads.length
+    );
 
-    lastItemId = installedBatch[installedBatch.length - 1].distant_id;
+    lastItemDistantId = installedBatch[installedBatch.length - 1].distant_id;
     if (installedBatch.length !== SIMILARITIES_BATCH_SIZE) {
-      lastItemId = null;
+      lastItemDistantId = null;
     }
-  } while (lastItemId);
+  } while (lastItemDistantId);
 
   return payloads;
 }
