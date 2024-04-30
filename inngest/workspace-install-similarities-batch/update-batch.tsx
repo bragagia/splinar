@@ -1,38 +1,55 @@
+import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
 import { evalSimilarities } from "@/inngest/workspace-install-similarities-batch/eval-similarities";
-import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
+import { ItemTypeT, itemBatchBoundaries } from "@/lib/items_common";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
+
+const MAX_DUPS_PER_ITEM_PER_BATCH = 5;
 
 export async function compareBatchWithItself(
   workspaceId: string,
   batch: Tables<"items">[]
 ) {
   let similarities: TablesInsert<"similarities">[] = [];
+  let itemIdsWithSims: string[] = [];
 
-  batch.forEach((contactA, i) => {
-    let contactASimilarities: TablesInsert<"similarities">[] = [];
+  batch.forEach((batchItem, i) => {
+    let batchItemSimilarities: TablesInsert<"similarities">[] = [];
+    let dupCount = 0;
 
     for (let j = i + 1; j < batch.length; j++) {
-      let contactB = batch[j];
+      let comparedItem = batch[j];
 
-      let pairSimilarities = evalSimilarities(workspaceId, contactA, contactB);
+      let pairSimilarities = evalSimilarities(
+        workspaceId,
+        batchItem,
+        comparedItem
+      );
 
-      if (pairSimilarities && pairSimilarities.length > 0) {
-        contactASimilarities.push(...pairSimilarities);
+      if (
+        pairSimilarities &&
+        pairSimilarities.length > 0 &&
+        areItemsDups(
+          { similarities: pairSimilarities, ...batchItem },
+          { similarities: pairSimilarities, ...comparedItem }
+        )
+      ) {
+        batchItemSimilarities.push(...pairSimilarities);
+        itemIdsWithSims.push(batchItem.id);
+        itemIdsWithSims.push(comparedItem.id);
+        dupCount++;
       }
 
-      if (contactASimilarities.length > MAX_SIMILARITIES_PER_CONTACT) {
+      if (dupCount >= MAX_DUPS_PER_ITEM_PER_BATCH) {
         break;
       }
     }
 
-    similarities.push(...contactASimilarities);
+    similarities.push(...batchItemSimilarities);
   });
 
-  return similarities;
+  return { similarities, itemIdsWithSims };
 }
-
-const MAX_SIMILARITIES_PER_CONTACT = 20;
 
 export async function compareBatchesPair(
   workspaceId: string,
@@ -40,9 +57,11 @@ export async function compareBatchesPair(
   comparedItems: Tables<"items">[]
 ) {
   let similarities: TablesInsert<"similarities">[] = [];
+  let itemIdsWithSims: string[] = [];
 
   batch.forEach((batchItem) => {
-    let batchSimilarities: TablesInsert<"similarities">[] = [];
+    let batchItemSimilarities: TablesInsert<"similarities">[] = [];
+    let dupCount = 0;
 
     for (let i = 0; i < comparedItems.length; i++) {
       let comparedItem = comparedItems[i];
@@ -53,39 +72,47 @@ export async function compareBatchesPair(
         comparedItem
       );
 
-      if (pairSimilarities && pairSimilarities.length > 0) {
-        batchSimilarities.push(...pairSimilarities);
+      if (
+        pairSimilarities &&
+        pairSimilarities.length > 0 &&
+        areItemsDups(
+          { similarities: pairSimilarities, ...batchItem },
+          { similarities: pairSimilarities, ...comparedItem }
+        )
+      ) {
+        batchItemSimilarities.push(...pairSimilarities);
+        itemIdsWithSims.push(batchItem.id);
+        itemIdsWithSims.push(comparedItem.id);
+        dupCount++;
       }
 
-      if (batchSimilarities.length > MAX_SIMILARITIES_PER_CONTACT) {
+      if (dupCount >= MAX_DUPS_PER_ITEM_PER_BATCH) {
         break;
       }
     }
 
-    similarities.push(...batchSimilarities);
+    similarities.push(...batchItemSimilarities);
   });
 
-  return similarities;
+  return { similarities, itemIdsWithSims };
 }
 
 export async function fetchBatchItems(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  batchIds: string[]
+  itemType: ItemTypeT,
+  boundaries: itemBatchBoundaries
 ) {
-  let batch: Tables<"items">[] = [];
-
-  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
-    const { data: batchSlice, error } = await supabase
-      .from("items")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
-    if (error || !batchSlice) {
-      throw error;
-    }
-
-    batch.push(...batchSlice);
+  const { data: batch, error } = await supabase
+    .from("items")
+    .select("*")
+    .is("merged_in_distant_id", null)
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", itemType)
+    .gte("id_seq", boundaries.startAt)
+    .lte("id_seq", boundaries.endAt);
+  if (error) {
+    throw error;
   }
 
   return batch;

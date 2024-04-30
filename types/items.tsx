@@ -1,17 +1,17 @@
-import { Tables } from "@/types/supabase";
+import { Tables, TablesInsert } from "@/types/supabase";
 import { MergeDeep } from "type-fest";
 
 export type ItemWithSimilaritiesType = MergeDeep<
   Tables<"items">,
   {
-    similarities: Tables<"similarities">[];
+    similarities: TablesInsert<"similarities">[];
   }
 >;
 
 export type ItemWithRawSimilaritiesType = MergeDeep<
   Tables<"items">,
   {
-    similarities_a: Tables<"similarities">[];
-    similarities_b: Tables<"similarities">[];
+    similarities_a: TablesInsert<"similarities">[];
+    similarities_b: TablesInsert<"similarities">[];
   }
 >;

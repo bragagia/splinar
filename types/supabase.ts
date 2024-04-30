@@ -191,7 +191,7 @@ export type Database = {
         Insert: {
           created_at?: string
           distant_id: string
-          dup_checked: boolean
+          dup_checked?: boolean
           filled_score: number
           id?: string
           id_seq?: number
@@ -640,17 +640,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_batch_installed_and_remove_existing_similarities: {
+        Args: {
+          arg_workspace_id: string
+          arg_item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          arg_id_seq_start: number
+          arg_id_seq_end: number
+        }
+        Returns: undefined
+      }
+      mark_items_to_dupcheck: {
+        Args: {
+          arg_workspace_id: string
+          arg_item_ids: string[]
+        }
+        Returns: undefined
+      }
       mark_items_without_similarities_as_dup_checked: {
         Args: {
           workspace_id_arg: string
         }
         Returns: undefined
-      }
-      similarities_increment_done_batches: {
-        Args: {
-          workspace_id_arg: string
-        }
-        Returns: number
       }
       workspace_operations_increment_steps_done: {
         Args: {

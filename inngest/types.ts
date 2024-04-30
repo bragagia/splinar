@@ -1,4 +1,4 @@
-import { ItemTypeT } from "@/lib/items_common";
+import { ItemTypeT, itemBatchBoundaries } from "@/lib/items_common";
 import { EventSchemas } from "inngest";
 import postmark from "postmark";
 
@@ -45,8 +45,8 @@ export type WorkspaceInstallSimilaritiesBatchStart = {
     workspaceId: string;
     operationId: string;
     itemType: ItemTypeT;
-    batchIds: string[];
-    comparedItemsIds?: string[];
+    batchBoundaries: itemBatchBoundaries;
+    comparedItemsBoundaries?: itemBatchBoundaries;
   };
 };
 

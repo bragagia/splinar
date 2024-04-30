@@ -2,6 +2,7 @@ import { DeepPartial } from "@/lib/deep_partial";
 import { mergeDeep } from "@/lib/merge_deep";
 import { captureException } from "@/lib/sentry";
 import { sleep } from "@/lib/sleep";
+import { uuid } from "@/lib/uuid";
 import {
   Database,
   Json,
@@ -109,6 +110,7 @@ export async function newWorkspaceOperation<T extends Json>(
   // TODO: Check if running operation for workspace and raise error
 
   const operation: TablesInsert<"workspace_operations"> = {
+    id: uuid(),
     workspace_id: workspaceId,
 
     created_at: dayjs().toISOString(),
@@ -201,7 +203,11 @@ async function _internalUpdateGeneric<T>(
 
   console.log(
     "OperationUpdate ->",
-    JSON.stringify({ ...constructedUpdate, metadata: metadataUpdate }, null, 2)
+    JSON.stringify(
+      { id: operationId, ...constructedUpdate, metadata: metadataUpdate },
+      null,
+      2
+    )
   );
 
   const { error: errorUpdate } = await supabaseAdmin

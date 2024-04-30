@@ -82,7 +82,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["email"],
       matchingMethod: "email",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-potential",
     },
     {
       id: "f4301d99-295c-4491-91e2-21335110f675",
@@ -90,7 +90,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["hs_linkedinid"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-potential",
       linkType: "linkedin",
     },
     {
@@ -99,7 +99,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["phone", "mobilephone"],
       matchingMethod: "exact",
       ifMatch: "multiplier",
-      ifDifferent: "reduce-confident-reduce-potential",
+      ifDifferent: "reduce-potential",
     },
     {
       id: "3982daff-7b19-4b65-914b-d2f02b54f7d9",
@@ -107,7 +107,7 @@ export const contactsDedupConfig: DedupConfigT = {
       sources: ["companies"],
       matchingMethod: "exact",
       ifMatch: "multiplier",
-      ifDifferent: "reduce-potential",
+      ifDifferent: "null",
       linkType: "item-reference",
     },
   ],
@@ -862,7 +862,6 @@ export async function contactsPollUpdater(
         companies: contactCompanies,
       },
       similarity_checked: false,
-      dup_checked: false,
       filled_score: 0, // Calculated below
     };
 
@@ -879,8 +878,6 @@ export async function contactsPollUpdater(
       // Note: We don't set it to "true" because in some cases in may be currently to false and we don't want to override it
       dbContact.similarity_checked =
         existingContactsByDistantId[contact.id].similarity_checked;
-      dbContact.dup_checked =
-        existingContactsByDistantId[contact.id].dup_checked;
     }
 
     dbContact.filled_score = listItemFields(

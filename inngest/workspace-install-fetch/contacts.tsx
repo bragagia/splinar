@@ -56,7 +56,6 @@ export async function fetchContacts(
           companies: contactCompanies,
         },
         similarity_checked: false,
-        dup_checked: false,
         filled_score: 0, // Calculated below
       };
 

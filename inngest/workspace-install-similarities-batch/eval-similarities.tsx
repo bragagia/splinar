@@ -88,14 +88,6 @@ export function evalSimilarities(
 
   const finalSimilarities = Object.values(dedupedSimilarities);
 
-  // If there is only one similarity and it's not exact, we don't return it because it's not enough to be identified as dup and it prevent cluttering the DB
-  if (
-    finalSimilarities.length === 1 &&
-    finalSimilarities[0].similarity_score !== "exact"
-  ) {
-    return [];
-  }
-
   return finalSimilarities;
 }
 
@@ -200,11 +192,13 @@ function evalSimilarityField(
     const aStrictFullName = cleanStringSpaces(
       aVal.map((part, i) => (bVal[i] ? part : null)).join(" ")
     );
+    const aValCount = aVal.filter((val) => val).length;
 
     const bFullName = cleanStringSpaces(bVal.join(" "));
     const bStrictFullName = cleanStringSpaces(
       bVal.map((part, i) => (aVal[i] ? part : null)).join(" ")
     );
+    const bValCount = bVal.filter((val) => val).length;
 
     const compareScore = stringSimilarity.compareTwoStrings(
       aFullName,
@@ -222,12 +216,20 @@ function evalSimilarityField(
       aFullName.length > 2 &&
       bFullName.length > 2
     ) {
-      if (aFullName == bFullName) {
+      if (
+        aFullName == bFullName &&
+        aValCount === fieldConfig.sources.length &&
+        bValCount === fieldConfig.sources.length
+      ) {
         addSimilarity(fieldConfig.id, aFullName, bFullName, "exact");
       } else {
-        if (compareScore > 0.9) {
+        if (
+          compareScore > 0.9 &&
+          aValCount === fieldConfig.sources.length &&
+          bValCount === fieldConfig.sources.length
+        ) {
           addSimilarity(fieldConfig.id, aFullName, bFullName, "similar");
-        } else if (compareScore > 0.8 || strictCompareScore > 0.9) {
+        } else if (compareScore > 0.8) {
           addSimilarity(fieldConfig.id, aFullName, bFullName, "potential");
         } else if (compareScore > 0.7 || strictCompareScore > 0.8) {
           addSimilarity(fieldConfig.id, aFullName, bFullName, "unlikely");

@@ -85,12 +85,6 @@ export default inngest.createFunction(
       throw error;
     }
 
-    await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
-      supabaseAdmin,
-      operationId,
-      "DONE"
-    );
-
     const subscription = await getWorkspaceCurrentSubscription(
       supabaseAdmin,
       workspaceId
@@ -124,6 +118,12 @@ export default inngest.createFunction(
       );
     }
 
+    await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
+      supabaseAdmin,
+      operationId,
+      "DONE"
+    );
+
     if (workspace.first_installed_at === null) {
       console.log("-> Sending first install success email :tada:");
 
@@ -142,7 +142,7 @@ export default inngest.createFunction(
         .select("*", { count: "exact", head: true })
         .eq("workspace_id", workspace.id)
         .limit(0);
-      if (errorDupCount || !count) {
+      if (errorDupCount || count === null) {
         captureException(errorDupCount || new Error("missing count"));
         return;
       }

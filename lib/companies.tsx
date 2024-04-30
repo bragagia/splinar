@@ -822,7 +822,6 @@ export async function companiesPollUpdater(
       distant_id: company.id,
       item_type: "COMPANIES",
       value: deleteNullKeys(company.properties),
-      dup_checked: false,
       similarity_checked: false,
       filled_score: 0,
     };
@@ -840,8 +839,6 @@ export async function companiesPollUpdater(
       // Note: We don't set it to "true" because in some cases in may be currently to false and we don't want to override it
       dbCompany.similarity_checked =
         existingCompaniesByDistantId[company.id].similarity_checked;
-      dbCompany.dup_checked =
-        existingCompaniesByDistantId[company.id].dup_checked;
     }
 
     dbCompany.filled_score = listItemFields(

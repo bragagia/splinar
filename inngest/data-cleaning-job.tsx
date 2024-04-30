@@ -1,6 +1,6 @@
 import { runDataCleaningJobOnSubset } from "@/inngest/data-cleaning-job-batch";
-import { inngest } from "./client";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
+import { inngest } from "./client";
 
 export default inngest.createFunction(
   { id: "data-cleaning-job-fulldb", retries: 0 },
@@ -33,6 +33,7 @@ export default inngest.createFunction(
       .select("id")
       .eq("workspace_id", workspaceId)
       .in("item_type", job.target_item_types)
+      .is("merged_in_distant_id", null)
       .limit(10);
     if (errorItems) {
       throw errorItems;

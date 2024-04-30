@@ -31,6 +31,7 @@ export function ItemsListField({
       .from("items")
       .select("*")
       .eq("workspace_id", workspace.id)
+      .is("merged_in_distant_id", null)
       .in("distant_id", itemsDistantIds)
       .then(({ data, error }) => {
         if (error) {

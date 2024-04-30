@@ -162,7 +162,7 @@ async function processHubspotEvent(
     case "product.merge":
     case "line_item.merge":
       const objectIds = event.mergedObjectIds?.map((id) => id.toString()) || [];
-      const mergedInId = event.primaryObjectId?.toString() || "";
+      const mergedInId = event.primaryObjectId?.toString() || ""; // TODO: Fetch its data to update it there instead of polling ?
 
       const { data: items, error: itemMergeError } = await supabaseAdmin
         .from("items")

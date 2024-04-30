@@ -1,6 +1,5 @@
 import { WorkspaceInstallSimilaritiesBatchStart } from "@/inngest/types";
-import { markBatchInstalledAndRemoveExistingSimilarities } from "@/inngest/workspace-install-similarities/mark-batch-installed";
-import { ItemTypeT } from "@/lib/items_common";
+import { ItemTypeT, itemBatchBoundaries } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
@@ -24,12 +23,12 @@ export async function launchWorkspaceSimilaritiesBatches(
   do {
     let query = supabase
       .from("items")
-      .select("id, distant_id")
+      .select("id_seq")
       .is("merged_in_distant_id", null)
       .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", false)
-      .order("distant_id", { ascending: true })
+      .order("id_seq", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
     const { data: batch, error: error } = await query;
@@ -41,7 +40,10 @@ export async function launchWorkspaceSimilaritiesBatches(
     }
     batchLength = batch.length;
 
-    const batchIds = batch.map((o) => o.id);
+    const batchBoundaries: itemBatchBoundaries = {
+      startAt: batch[0].id_seq,
+      endAt: batch[batch.length - 1].id_seq,
+    };
 
     payloads.push({
       name: "workspace/install/similarities/batch.start",
@@ -49,7 +51,7 @@ export async function launchWorkspaceSimilaritiesBatches(
         workspaceId: workspaceId,
         operationId: operationId,
         itemType: itemType,
-        batchIds: batchIds,
+        batchBoundaries: batchBoundaries,
       },
     });
 
@@ -60,11 +62,22 @@ export async function launchWorkspaceSimilaritiesBatches(
       workspaceId,
       operationId,
       itemType,
-      batchIds
+      batchBoundaries
     );
     payloads.push(...payloadRet);
 
-    await markBatchInstalledAndRemoveExistingSimilarities(supabase, batchIds);
+    const { error: errorMark } = await supabase.rpc(
+      "mark_batch_installed_and_remove_existing_similarities",
+      {
+        arg_workspace_id: workspaceId,
+        arg_item_type: itemType,
+        arg_id_seq_start: batchBoundaries.startAt,
+        arg_id_seq_end: batchBoundaries.endAt,
+      }
+    );
+    if (errorMark) {
+      throw errorMark;
+    }
 
     count++;
   } while (
@@ -80,24 +93,24 @@ async function compareBatchWithAllInstalledBatches(
   workspaceId: string,
   operationId: string,
   itemType: ItemTypeT,
-  batchIds: string[]
+  batchBoundaries: itemBatchBoundaries
 ) {
   let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
 
-  let lastItemDistantId: string | null = null;
+  let lastItemIdSeq: number | undefined = undefined;
   do {
     let query = supabase
       .from("items")
-      .select("id, distant_id")
+      .select("id_seq")
       .is("merged_in_distant_id", null)
       .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
       .eq("similarity_checked", true)
-      .order("distant_id", { ascending: true })
+      .order("id_seq", { ascending: true })
       .limit(SIMILARITIES_BATCH_SIZE);
 
-    if (lastItemDistantId) {
-      query = query.gt("distant_id", lastItemDistantId);
+    if (lastItemIdSeq) {
+      query = query.gt("id_seq", lastItemIdSeq);
     }
 
     const { data: installedBatch, error: errorInstalledBatch } = await query;
@@ -109,7 +122,10 @@ async function compareBatchWithAllInstalledBatches(
       break;
     }
 
-    const installedBatchIds = installedBatch.map((o) => o.id);
+    const comparedItemsBoundaries: itemBatchBoundaries = {
+      startAt: installedBatch[0].id_seq,
+      endAt: installedBatch[installedBatch.length - 1].id_seq,
+    };
 
     payloads.push({
       name: "workspace/install/similarities/batch.start",
@@ -117,8 +133,8 @@ async function compareBatchWithAllInstalledBatches(
         workspaceId: workspaceId,
         operationId: operationId,
         itemType: itemType,
-        batchIds: batchIds,
-        comparedItemsIds: installedBatchIds,
+        batchBoundaries: batchBoundaries,
+        comparedItemsBoundaries: comparedItemsBoundaries,
       },
     });
 
@@ -127,11 +143,11 @@ async function compareBatchWithAllInstalledBatches(
       payloads.length
     );
 
-    lastItemDistantId = installedBatch[installedBatch.length - 1].distant_id;
+    lastItemIdSeq = installedBatch[installedBatch.length - 1].id_seq;
     if (installedBatch.length !== SIMILARITIES_BATCH_SIZE) {
-      lastItemDistantId = null;
+      lastItemIdSeq = undefined;
     }
-  } while (lastItemDistantId);
+  } while (lastItemIdSeq);
 
   return payloads;
 }

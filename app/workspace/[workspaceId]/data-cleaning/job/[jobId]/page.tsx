@@ -259,6 +259,7 @@ export default function DataCleaningJobPage({
       .in("item_type", job?.target_item_types)
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
+      .is("merged_in_distant_id", null)
       .limit(50)
       .then(({ data, error }) => {
         if (error) {

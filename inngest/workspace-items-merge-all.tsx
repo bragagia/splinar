@@ -20,7 +20,7 @@ export default inngest.createFunction(
   },
   { event: "items/merge-all.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId } = event.data;
+    const { workspaceId, itemType } = event.data;
 
     logger.info("# Items merge all", workspaceId);
 
@@ -41,20 +41,15 @@ export default inngest.createFunction(
 
     if (!event.data.lastItemCreatedAt) {
       if (
-        getItemTypeConfig(event.data.itemType).getWorkspaceOperation(
-          workspace
-        ) === "PENDING"
+        getItemTypeConfig(itemType).getWorkspaceOperation(workspace) ===
+        "PENDING"
       ) {
         throw new Error("Operation running on workspace");
       }
 
       const { error: error } = await supabaseAdmin
         .from("workspaces")
-        .update(
-          getItemTypeConfig(event.data.itemType).setWorkspaceOperation(
-            "PENDING"
-          )
-        )
+        .update(getItemTypeConfig(itemType).setWorkspaceOperation("PENDING"))
         .eq("id", workspaceId);
       if (error) {
         throw error;
@@ -71,7 +66,7 @@ export default inngest.createFunction(
         .from("dup_stacks")
         .select("*, dup_stack_items(*, item:items(*))")
         .eq("workspace_id", workspaceId)
-        .eq("item_type", event.data.itemType)
+        .eq("item_type", itemType)
         .order("created_at", { ascending: true })
         .limit(50);
 
@@ -104,9 +99,7 @@ export default inngest.createFunction(
     if (finished) {
       const { error: errorWriteDone } = await supabaseAdmin
         .from("workspaces")
-        .update(
-          getItemTypeConfig(event.data.itemType).setWorkspaceOperation("NONE")
-        )
+        .update(getItemTypeConfig(itemType).setWorkspaceOperation("NONE"))
         .eq("id", workspaceId);
       if (errorWriteDone) {
         throw errorWriteDone;
@@ -118,7 +111,7 @@ export default inngest.createFunction(
         name: "items/merge-all.start",
         data: {
           workspaceId: workspaceId,
-          itemType: event.data.itemType,
+          itemType: itemType,
           lastItemCreatedAt: lastItemCreatedAt || undefined,
         },
       });

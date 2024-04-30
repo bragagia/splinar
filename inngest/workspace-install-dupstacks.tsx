@@ -138,15 +138,6 @@ export async function workspaceInstallDupstackFirstRun(
   operationId: string
 ) {
   console.info("-> First dupstack run");
-  console.info("-> Marking items without similarities as checked");
-
-  const { error } = await supabaseAdmin.rpc(
-    "mark_items_without_similarities_as_dup_checked",
-    { workspace_id_arg: workspaceId }
-  );
-  if (error) {
-    throw error;
-  }
 
   console.info("-> Updating installation total");
   await updateDupStackInstallationTotal(

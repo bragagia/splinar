@@ -44,7 +44,6 @@ export async function fetchCompanies(
         distant_id: company.id,
         item_type: "COMPANIES",
         value: deleteNullKeys(company.properties),
-        dup_checked: false,
         similarity_checked: false,
         filled_score: 0,
       };

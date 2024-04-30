@@ -19,6 +19,7 @@ export async function calcWorkspaceUsageDetailed(
     .select(undefined, { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
     .eq("item_type", "CONTACTS")
+    .is("merged_in_distant_id", null)
     .limit(0);
   if (errorContacts || contactsCount === null) {
     throw errorContacts || new Error("Missing contact count");
@@ -28,7 +29,7 @@ export async function calcWorkspaceUsageDetailed(
     .from("items")
     .select(undefined, { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
-    .eq("item_type", "COMPANIES")
+    .is("merged_in_distant_id", null)
     .limit(0);
   if (errorCompanies || companiesCount === null) {
     throw errorCompanies || new Error("Missing companies count");

@@ -4,7 +4,7 @@ import {
   OperationWorkspaceInstallOrUpdateMetadata,
 } from "@/lib/operations";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
-import { Tables } from "@/types/supabase";
+import { Tables, TablesUpdate } from "@/types/supabase";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
@@ -110,13 +110,11 @@ export default inngest.createFunction(
             .eq("workspace_id", workspaceId);
           if (error7) throw error7;
         } else {
-          let update: {
-            dup_checked: boolean;
-            similarity_checked: boolean | undefined;
-          } = {
-            dup_checked: false,
-            similarity_checked: undefined,
-          };
+          let update: TablesUpdate<"items"> = {};
+
+          if (reset === "dup_stacks") {
+            update.dup_checked = false;
+          }
 
           if (reset === "similarities_and_dup") {
             update.similarity_checked = false;
@@ -129,6 +127,14 @@ export default inngest.createFunction(
             .is("merged_in_distant_id", null)
             .eq("workspace_id", workspaceId);
           if (error9) throw error9;
+
+          if (reset === "dup_stacks") {
+            console.log("-> Marking item without similarities as dup_checked");
+            const { error: error10 } = await supabaseAdmin.rpc(
+              "mark_items_without_similarities_as_dup_checked"
+            );
+            if (error10) throw error10;
+          }
         }
       }
     });

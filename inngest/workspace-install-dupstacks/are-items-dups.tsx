@@ -123,7 +123,7 @@ export function areItemsDups(
 
   if (finalConfidentScore > 0) {
     return "CONFIDENT";
-  } else if (finalPotentialScore > 0) {
+  } else if (finalPotentialScore > 0.4) {
     return "POTENTIAL";
   } else {
     return false;

@@ -409,7 +409,9 @@ async function fetchNextReference(
 
   const itemWithSim = {
     ...item,
-    similarities: res.similarities as Tables<"similarities">[],
+    similarities: res.similarities.filter(
+      (sim) => sim
+    ) as Tables<"similarities">[], // Filter because if no similarities, it returns null
   };
 
   let uniqueDupstackIds: string[] = [];
@@ -464,17 +466,22 @@ export async function fetchSortedSimilar(
   };
 
   console.log("Get cached contacts");
-  const similarContactsIds = parentContact.similarities.reduce((acc, item) => {
-    const similarID =
-      item.item_a_id === parentContactId ? item.item_b_id : item.item_a_id;
+  const similarContactsIds = parentContact.similarities.reduce(
+    (acc, similarity) => {
+      const similarID =
+        similarity.item_a_id === parentContactId
+          ? similarity.item_b_id
+          : similarity.item_a_id;
 
-    if (acc.find((v) => v === similarID)) {
+      if (acc.find((v) => v === similarID)) {
+        return acc;
+      }
+
+      acc.push(similarID);
       return acc;
-    }
-
-    acc.push(similarID);
-    return acc;
-  }, [] as string[]);
+    },
+    [] as string[]
+  );
 
   console.log("Similar contacts ids", similarContactsIds.length);
 
