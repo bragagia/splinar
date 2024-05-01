@@ -108,7 +108,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["linkedin_company_page"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident",
+      ifDifferent: "reduce-confident-reduce-potential",
       linkType: "linkedin",
     },
     {
@@ -134,7 +134,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["facebook_company_page"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident",
+      ifDifferent: "reduce-confident-reduce-potential",
       linkType: "facebook",
     },
     {
@@ -143,7 +143,7 @@ export const companiesDedupConfig: DedupConfigT = {
       sources: ["twitterhandle"],
       matchingMethod: "url",
       ifMatch: "confident",
-      ifDifferent: "reduce-confident",
+      ifDifferent: "reduce-confident-reduce-potential",
       linkType: "twitter",
     },
   ],
