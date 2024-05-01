@@ -132,7 +132,7 @@ export default function SignUpPage({}) {
                     onClick={onSignUp}
                   >
                     {isLoading && (
-                      <Icons.spinner className="h-4 w-4 animate-spin text-black" />
+                      <Icons.spinner className="h-4 w-4 animate-spin text-black mr-2" />
                     )}
                     Sign up
                   </Button>

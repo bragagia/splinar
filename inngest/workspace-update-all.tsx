@@ -16,13 +16,22 @@ export default inngest.createFunction(
   async ({ step, logger }) => {
     const supabaseAdmin = newSupabaseRootClient();
 
+    // Only paid workspaces that have no operation runing
     const { data: workspaces, error: errorWorkspace } = await supabaseAdmin
       .from("workspaces")
-      .select("id, last_poll, created_at")
+      .select("id, last_poll, created_at, workspace_subscriptions!inner(id)")
+      .or(`canceled_at.is.null,canceled_at.gte.NOW()`, {
+        referencedTable: "workspace_subscriptions",
+      })
       .eq("installation_status", "DONE")
-      .eq("polling_status", "NONE"); // TODO: Where paid
+      .eq("polling_status", "NONE");
     if (errorWorkspace) {
       throw errorWorkspace;
+    }
+
+    if (workspaces.length === 0) {
+      logger.info("No workspace to update");
+      return;
     }
 
     const { error: errorUpdate } = await supabaseAdmin

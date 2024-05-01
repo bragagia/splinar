@@ -1,5 +1,5 @@
 import { WorkspaceInstallSimilaritiesBatchStart } from "@/inngest/types";
-import { ItemTypeT, itemBatchBoundaries } from "@/lib/items_common";
+import { ItemTypeT } from "@/lib/items_common";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
@@ -16,14 +16,23 @@ export async function launchWorkspaceSimilaritiesBatches(
   console.log("Starting", itemType, "sim check");
 
   let batchLength = 0;
-  let count = 0;
 
   let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
+  let installedBatchesIds = await listInstalledBatches(
+    supabase,
+    workspaceId,
+    itemType
+  );
+
+  if (isFreeTier && installedBatchesIds.length >= FREE_TIER_BATCH_LIMIT) {
+    console.log("Free tier limit reached");
+    return payloads;
+  }
 
   do {
     let query = supabase
       .from("items")
-      .select("id_seq")
+      .select("id, id_seq")
       .is("merged_in_distant_id", null)
       .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
@@ -40,10 +49,7 @@ export async function launchWorkspaceSimilaritiesBatches(
     }
     batchLength = batch.length;
 
-    const batchBoundaries: itemBatchBoundaries = {
-      startAt: batch[0].id_seq,
-      endAt: batch[batch.length - 1].id_seq,
-    };
+    const batchIds = batch.map((item) => item.id);
 
     payloads.push({
       name: "workspace/install/similarities/batch.start",
@@ -51,57 +57,56 @@ export async function launchWorkspaceSimilaritiesBatches(
         workspaceId: workspaceId,
         operationId: operationId,
         itemType: itemType,
-        batchBoundaries: batchBoundaries,
+        batchIds: batchIds,
       },
     });
 
     console.log(itemType + " similarities batch started: ", payloads.length);
 
-    const payloadRet = await compareBatchWithAllInstalledBatches(
-      supabase,
-      workspaceId,
-      operationId,
-      itemType,
-      batchBoundaries
-    );
-    payloads.push(...payloadRet);
+    for (let i = 0; i < installedBatchesIds.length; i++) {
+      payloads.push({
+        name: "workspace/install/similarities/batch.start",
+        data: {
+          workspaceId: workspaceId,
+          operationId: operationId,
+          itemType: itemType,
+          batchIds: batchIds,
+          comparedItemsIds: installedBatchesIds[i],
+        },
+      });
+    }
 
     const { error: errorMark } = await supabase.rpc(
       "mark_batch_installed_and_remove_existing_similarities",
       {
-        arg_workspace_id: workspaceId,
-        arg_item_type: itemType,
-        arg_id_seq_start: batchBoundaries.startAt,
-        arg_id_seq_end: batchBoundaries.endAt,
+        arg_item_ids: batchIds,
       }
     );
     if (errorMark) {
       throw errorMark;
     }
 
-    count++;
+    installedBatchesIds.push(batchIds);
   } while (
     batchLength === SIMILARITIES_BATCH_SIZE &&
-    (!isFreeTier || count < FREE_TIER_BATCH_LIMIT)
+    !(isFreeTier && installedBatchesIds.length >= FREE_TIER_BATCH_LIMIT)
   );
 
   return payloads;
 }
 
-async function compareBatchWithAllInstalledBatches(
+async function listInstalledBatches(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  operationId: string,
-  itemType: ItemTypeT,
-  batchBoundaries: itemBatchBoundaries
+  itemType: ItemTypeT
 ) {
-  let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
+  let list: string[][] = [];
 
   let lastItemIdSeq: number | undefined = undefined;
   do {
     let query = supabase
       .from("items")
-      .select("id_seq")
+      .select("id, id_seq")
       .is("merged_in_distant_id", null)
       .eq("item_type", itemType)
       .eq("workspace_id", workspaceId)
@@ -122,26 +127,10 @@ async function compareBatchWithAllInstalledBatches(
       break;
     }
 
-    const comparedItemsBoundaries: itemBatchBoundaries = {
-      startAt: installedBatch[0].id_seq,
-      endAt: installedBatch[installedBatch.length - 1].id_seq,
-    };
+    const installedBatchIds = installedBatch.map((item) => item.id);
+    list.push(installedBatchIds);
 
-    payloads.push({
-      name: "workspace/install/similarities/batch.start",
-      data: {
-        workspaceId: workspaceId,
-        operationId: operationId,
-        itemType: itemType,
-        batchBoundaries: batchBoundaries,
-        comparedItemsBoundaries: comparedItemsBoundaries,
-      },
-    });
-
-    console.log(
-      itemType + " similarities batch started: INNER ",
-      payloads.length
-    );
+    console.log(itemType + " similarities batch installed: ", list.length);
 
     lastItemIdSeq = installedBatch[installedBatch.length - 1].id_seq;
     if (installedBatch.length !== SIMILARITIES_BATCH_SIZE) {
@@ -149,5 +138,5 @@ async function compareBatchWithAllInstalledBatches(
     }
   } while (lastItemIdSeq);
 
-  return payloads;
+  return list;
 }

@@ -642,10 +642,7 @@ export type Database = {
       }
       mark_batch_installed_and_remove_existing_similarities: {
         Args: {
-          arg_workspace_id: string
-          arg_item_type: Database["public"]["Enums"]["dup_stack_item_type"]
-          arg_id_seq_start: number
-          arg_id_seq_end: number
+          arg_item_ids: string[]
         }
         Returns: undefined
       }

@@ -8,6 +8,8 @@ import {
   WorkspaceOperationUpdateStatus,
   workspaceOperationIncrementStepsDone,
 } from "@/lib/operations";
+import { captureException } from "@/lib/sentry";
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { TablesInsert } from "@/types/supabase";
 import { inngest } from "./client";
@@ -27,19 +29,19 @@ export default inngest.createFunction(
       const supabaseAdmin = newSupabaseRootClient();
 
       // !NOTE: In that failure handler, we need to mark items as not sim checked
-      const { workspaceId, operationId, itemType, batchBoundaries } =
-        event.data.event.data;
+      const { workspaceId, operationId, batchIds } = event.data.event.data;
 
-      const { error: updateError } = await supabaseAdmin
-        .from("items")
-        .update({ similarity_checked: false })
-        .eq("workspace_id", workspaceId)
-        .eq("item_type", itemType)
-        .is("merged_in_distant_id", null)
-        .gte("id_seq", batchBoundaries.startAt)
-        .lte("id_seq", batchBoundaries.endAt);
-      if (updateError) {
-        throw updateError;
+      for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+        const slice = batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE);
+
+        const { error } = await supabaseAdmin
+          .from("items")
+          .update({ similarity_checked: false })
+          .eq("workspace_id", event.data.event.data.workspaceId)
+          .in("id", slice);
+        if (error) {
+          captureException(error);
+        }
       }
 
       const { data: operation, error: errorOperation } = await supabaseAdmin
@@ -74,35 +76,24 @@ export default inngest.createFunction(
   },
   { event: "workspace/install/similarities/batch.start" },
   async ({ event, step, logger }) => {
-    const {
-      workspaceId,
-      operationId,
-      itemType,
-      batchBoundaries,
-      comparedItemsBoundaries,
-    } = event.data;
+    const { workspaceId, operationId, itemType, batchIds, comparedItemsIds } =
+      event.data;
 
     logger.info("# Workspace/install/similarities/batch.start", {
       workspaceId,
       operationId,
       itemType,
-      batchBoundaries,
-      comparedItemsBoundaries,
+      firstBatchId: batchIds[0],
     });
 
     const supabaseAdmin = newSupabaseRootClient();
 
-    const batch = await fetchBatchItems(
-      supabaseAdmin,
-      workspaceId,
-      itemType,
-      batchBoundaries
-    );
+    const batch = await fetchBatchItems(supabaseAdmin, workspaceId, batchIds);
 
     let similarities: TablesInsert<"similarities">[];
     let itemIdsWithSims: string[] = [];
 
-    if (!comparedItemsBoundaries) {
+    if (!comparedItemsIds) {
       const res = await compareBatchWithItself(workspaceId, batch);
       similarities = res.similarities;
       itemIdsWithSims = res.itemIdsWithSims;
@@ -110,8 +101,7 @@ export default inngest.createFunction(
       const comparedItems = await fetchBatchItems(
         supabaseAdmin,
         workspaceId,
-        itemType,
-        comparedItemsBoundaries
+        comparedItemsIds
       );
 
       const res = await compareBatchesPair(workspaceId, batch, comparedItems);

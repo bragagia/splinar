@@ -31,11 +31,6 @@ import dayjs, { Dayjs } from "dayjs";
 
 export type ItemTypeT = "COMPANIES" | "CONTACTS";
 
-export type itemBatchBoundaries = {
-  startAt: number;
-  endAt: number;
-};
-
 export type ItemConfig = {
   word: string;
   pollUpdater: (

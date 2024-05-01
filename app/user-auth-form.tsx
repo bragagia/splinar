@@ -102,7 +102,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
           <Button disabled={isLoading} className="mt-4" onClick={onLogin}>
             {isLoading && (
-              <Icons.spinner className="h-4 w-4 animate-spin text-black" />
+              <Icons.spinner className="h-4 w-4 animate-spin text-black mr-2" />
             )}
             Login
           </Button>

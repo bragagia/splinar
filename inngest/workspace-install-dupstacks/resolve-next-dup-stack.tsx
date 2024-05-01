@@ -362,7 +362,7 @@ async function deleteExistingDupstacks(
     throw error2;
   }
 
-  itemIds.forEach((id) => {
+  itemsToMarkUnchecked.forEach((id) => {
     itemsCacheById[id].dup_checked = false;
   });
 

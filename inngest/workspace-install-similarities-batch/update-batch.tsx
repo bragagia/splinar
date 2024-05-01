@@ -1,6 +1,6 @@
 import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
 import { evalSimilarities } from "@/inngest/workspace-install-similarities-batch/eval-similarities";
-import { ItemTypeT, itemBatchBoundaries } from "@/lib/items_common";
+import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -100,19 +100,21 @@ export async function compareBatchesPair(
 export async function fetchBatchItems(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
-  itemType: ItemTypeT,
-  boundaries: itemBatchBoundaries
+  batchIds: string[]
 ) {
-  const { data: batch, error } = await supabase
-    .from("items")
-    .select("*")
-    .is("merged_in_distant_id", null)
-    .eq("workspace_id", workspaceId)
-    .eq("item_type", itemType)
-    .gte("id_seq", boundaries.startAt)
-    .lte("id_seq", boundaries.endAt);
-  if (error) {
-    throw error;
+  let batch: Tables<"items">[] = [];
+
+  for (let i = 0; i < batchIds.length; i += SUPABASE_FILTER_MAX_SIZE) {
+    const { data: batchSlice, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .in("id", batchIds.slice(i, i + SUPABASE_FILTER_MAX_SIZE));
+    if (error || !batchSlice) {
+      throw error;
+    }
+
+    batch.push(...batchSlice);
   }
 
   return batch;
