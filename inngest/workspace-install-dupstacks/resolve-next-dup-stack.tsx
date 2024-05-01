@@ -61,7 +61,7 @@ export async function resolveNextDuplicatesStack(
           workspaceId,
           itemsCacheById,
           [item.id],
-          true
+          false
         );
 
         // Note: It is potentially an other item that will be the next reference
@@ -267,21 +267,22 @@ async function deleteExistingDupstacks(
     [key: string]: ItemWithSimilaritiesType;
   },
   itemIds: string[],
-  includePotential = false
+  onlyConfidents = true
 ) {
   const startTime = performance.now();
 
-  const { data: existingDupStacksIds, error } = await supabase
+  let query = supabase
     .from("dup_stack_items")
     .select("dup_stacks!inner(id)")
     .eq("workspace_id", workspaceId)
-    .in("item_id", itemIds)
-    .in(
-      "dup_type",
-      includePotential
-        ? ["REFERENCE", "CONFIDENT", "POTENTIAL"]
-        : ["REFERENCE", "CONFIDENT"]
-    );
+    .in("item_id", itemIds);
+
+  if (onlyConfidents) {
+    query = query.in("dup_type", ["REFERENCE", "CONFIDENT"]);
+  }
+
+  const { data: existingDupStacksIds, error } = await query;
+
   if (error) {
     throw error;
   }
