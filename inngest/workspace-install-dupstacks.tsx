@@ -74,7 +74,7 @@ export default inngest.createFunction(
     let counter = 0;
     let now = performance.now();
     const intervalCallback = 25;
-    const intervalStop = 200;
+    const intervalStop = 50;
     let hasMore = true;
 
     while (hasMore) {
@@ -96,7 +96,7 @@ export default inngest.createFunction(
       counter++;
       const elapsed = performance.now() - now;
 
-      if (counter % intervalCallback === 0 || elapsed >= 30000) {
+      if (counter % intervalCallback === 0 || elapsed >= 15000) {
         await updateDupStackInstallationDone(
           supabaseAdmin,
           workspaceId,
@@ -104,7 +104,7 @@ export default inngest.createFunction(
         );
       }
 
-      if (counter % intervalStop === 0 || elapsed >= 30000) {
+      if (counter % intervalStop === 0 || elapsed >= 15000) {
         break;
       }
     }
