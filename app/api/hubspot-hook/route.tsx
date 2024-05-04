@@ -99,7 +99,6 @@ async function processHubspotEvent(
       return;
   }
 
-  const objectId = event.objectId.toString();
   switch (event.subscriptionType) {
     case "contact.creation":
     case "company.creation":
@@ -117,7 +116,13 @@ async function processHubspotEvent(
     case "product.deletion":
     case "line_item.deletion":
     case "contact.privacyDeletion":
+      const objectId = event.objectId?.toString();
+
       console.log("deleting: ", objectId, itemType);
+      if (!objectId) {
+        console.log("Missing object id");
+        return;
+      }
 
       // TODO: Separate deletion and privacy deletion so that we can request only for items that are not already merged
       const { data: item, error: itemError } = await supabaseAdmin
@@ -356,7 +361,7 @@ type HubspotEvent = {
   /**
    * The ID of the object that was created, changed, or deleted. For contacts this is the contact ID; for companies, the company ID; for deals, the deal ID; and for conversations the thread ID.
    */
-  objectId: number;
+  objectId?: number;
   /**
    * This is only sent for property change subscriptions and is the name of the property that was changed.
    */
