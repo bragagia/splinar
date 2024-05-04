@@ -1,4 +1,29 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "CodeGPT.apiKey": "CodeGPT Plus Beta"
+  "CodeGPT.apiKey": "CodeGPT Plus Beta",
+  "restoreTerminals.terminals": [
+    {
+      "splitTerminals": [
+        {
+          "name": "inngest",
+          "commands": ["npm run inngest-dev"]
+        },
+        {
+          "name": "stripe",
+          "commands": ["npm run stripe-dev"]
+        }
+      ]
+    },
+    {
+      "splitTerminals": [
+        {
+          "name": "next",
+          "commands": ["npm run next-dev"]
+        },
+        {
+          "name": "cmd"
+        }
+      ]
+    }
+  ]
 }

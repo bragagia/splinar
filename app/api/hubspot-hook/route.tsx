@@ -128,6 +128,12 @@ async function processHubspotEvent(
         .eq("item_type", itemType)
         .single();
       if (itemError) {
+        if (itemError.code === "PGRST116") {
+          // No item found, it's already deleted
+          console.log("Item already deleted", objectId, itemType);
+          return;
+        }
+
         captureException(itemError);
         return;
       }
@@ -206,7 +212,62 @@ async function processHubspotEvent(
     case "deal.associationChange":
     case "ticket.associationChange":
     case "line_item.associationChange":
-      // Handle association change
+      const associationType = event.associationType;
+      const fromObjectId = event.fromObjectId?.toString();
+      const toObjectId = event.toObjectId?.toString();
+      const wasAssociationRemoved = event.associationRemoved;
+
+      if (associationType !== "CONTACT_TO_COMPANY") {
+        // Only handle contact-company associations for now
+        console.log("Ignoring association type", associationType);
+        return;
+      }
+
+      if (!fromObjectId || !toObjectId) {
+        console.log("Missing from/to object id");
+        return;
+      }
+
+      const { data: item2, error: itemError2 } = await supabaseAdmin
+        .from("items")
+        .select()
+        .eq("distant_id", fromObjectId)
+        .eq("workspace_id", workspace.id)
+        .eq("item_type", itemType)
+        .single();
+      if (itemError2) {
+        captureException(itemError2);
+        return;
+      }
+
+      const existingCompanies: string[] = (item2.value as any)?.companies || [];
+      let newCompanies = existingCompanies;
+
+      if (wasAssociationRemoved) {
+        newCompanies = newCompanies.filter((id) => id !== toObjectId);
+      } else {
+        newCompanies.push(toObjectId);
+      }
+
+      const { error } = await supabaseAdmin.rpc("items_edit_property_json", {
+        workspace_id_arg: workspace.id,
+        item_distant_id_arg: fromObjectId,
+        json_update: {
+          ["companies"]: newCompanies,
+        },
+      });
+      if (error) {
+        throw error;
+      }
+
+      console.log("event:", event);
+      console.log(
+        "Association changed",
+        fromObjectId,
+        "companies",
+        newCompanies
+      );
+
       break;
 
     case "contact.restore":
