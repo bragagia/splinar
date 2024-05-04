@@ -1,4 +1,9 @@
-import { ItemTypeT, handleItemDeletion } from "@/lib/items_common";
+import {
+  ItemTypeT,
+  getItemTypeConfig,
+  handleItemDeletion,
+  isThisASimilaritySourceField,
+} from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
 import { Database } from "@/types/supabase";
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
@@ -99,6 +104,7 @@ async function processHubspotEvent(
       return;
   }
 
+  const objectId = event.objectId?.toString();
   switch (event.subscriptionType) {
     case "contact.creation":
     case "company.creation":
@@ -116,8 +122,6 @@ async function processHubspotEvent(
     case "product.deletion":
     case "line_item.deletion":
     case "contact.privacyDeletion":
-      const objectId = event.objectId?.toString();
-
       console.log("deleting: ", objectId, itemType);
       if (!objectId) {
         console.log("Missing object id");
@@ -261,7 +265,10 @@ async function processHubspotEvent(
         json_update: {
           ["companies"]: newCompanies,
         },
-        should_update_similarities: true,
+        should_update_similarities: isThisASimilaritySourceField(
+          getItemTypeConfig(itemType),
+          "companies"
+        ),
       });
       if (error) {
         throw error;
@@ -292,25 +299,34 @@ async function processHubspotEvent(
     case "ticket.propertyChange":
     case "product.propertyChange":
     case "line_item.propertyChange":
-      // Handle property change
+      const property = event.propertyName;
+      const newValue = event.propertyValue;
 
-      // const objectId = event.objectId;
-      // const property = event.propertyName;
-      // const newValue = event.propertyValue;
+      if (!objectId) {
+        console.log("Missing object id");
+        return;
+      }
 
-      // const { error } = await supabaseAdmin.rpc("items_edit_property_json", {
-      //   workspace_id_arg: workspace.id,
-      //   item_distant_id_arg: objectId.toString(),
-      //   json_update: {
-      //     [property]: newValue,
-      //   },
-      // });
-      // if (error) {
-      //   throw error;
-      // }
+      const { error: error3 } = await supabaseAdmin.rpc(
+        "items_edit_property_json",
+        {
+          workspace_id_arg: workspace.id,
+          item_distant_id_arg: objectId,
+          arg_item_type: itemType,
+          json_update: {
+            [property]: newValue,
+          },
+          should_update_similarities: isThisASimilaritySourceField(
+            getItemTypeConfig(itemType),
+            property
+          ),
+        }
+      );
+      if (error3) {
+        throw error3;
+      }
 
-      // console.log("event:", event);
-      // console.log("Property changed", objectId, property, newValue);
+      console.log("Property changed", objectId, property, newValue);
 
       break;
   }

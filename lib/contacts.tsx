@@ -7,8 +7,8 @@ import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import { getCompanyColumns } from "@/lib/companies";
 import { newHubspotClient } from "@/lib/hubspot";
 import {
-  AreSimilaritiesSourceFieldsDifferent,
   DedupConfigT,
+  areSimilaritiesSourceFieldsDifferent,
   getItemTypeConfig,
   itemPollUpdaterT,
   listItemFields,
@@ -865,7 +865,7 @@ export async function contactsPollUpdater(
       filled_score: 0, // Calculated below
     };
 
-    const hasASimilarityFieldBeenUpdated = AreSimilaritiesSourceFieldsDifferent(
+    const hasASimilarityFieldBeenUpdated = areSimilaritiesSourceFieldsDifferent(
       itemTypeConfig,
       existingContactsByDistantId[contact.id],
       dbContact

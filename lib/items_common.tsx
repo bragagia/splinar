@@ -775,7 +775,7 @@ export function itemFieldValuesAreEqual(
   return true;
 }
 
-export function AreSimilaritiesSourceFieldsDifferent(
+export function areSimilaritiesSourceFieldsDifferent(
   itemTypeConfig: ItemConfig,
   prev: Tables<"items"> | null,
   next: TablesInsert<"items">
@@ -801,4 +801,20 @@ export function AreSimilaritiesSourceFieldsDifferent(
 
     return !areIdentical;
   });
+}
+
+export function isThisASimilaritySourceField(
+  itemTypeConfig: ItemConfig,
+  field: string
+) {
+  const fieldNames = itemTypeConfig.dedupConfig.fields.reduce((acc, field) => {
+    acc.push(...field.sources);
+    return acc;
+  }, [] as string[]);
+
+  const uniqueFieldNames = fieldNames.filter(
+    (value, index, self) => self.indexOf(value) === index
+  );
+
+  return uniqueFieldNames.some((fieldName) => fieldName === field);
 }
