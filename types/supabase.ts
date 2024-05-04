@@ -636,7 +636,9 @@ export type Database = {
         Args: {
           workspace_id_arg: string
           item_distant_id_arg: string
+          arg_item_type: Database["public"]["Enums"]["dup_stack_item_type"]
           json_update: Json
+          should_update_similarities?: boolean
         }
         Returns: undefined
       }

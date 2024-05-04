@@ -257,9 +257,11 @@ async function processHubspotEvent(
       const { error } = await supabaseAdmin.rpc("items_edit_property_json", {
         workspace_id_arg: workspace.id,
         item_distant_id_arg: fromObjectId,
+        arg_item_type: itemType,
         json_update: {
           ["companies"]: newCompanies,
         },
+        should_update_similarities: true,
       });
       if (error) {
         throw error;
