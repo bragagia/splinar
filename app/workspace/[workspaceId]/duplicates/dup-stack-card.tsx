@@ -116,7 +116,7 @@ export function DupStackCard({
     if (isDemo) {
       await delay(1500);
     } else {
-      await itemsMergeSA(workspace.id, cachedDupStack);
+      await itemsMergeSA(workspace.id, cachedDupStack, undefined, true);
     }
 
     setLoading(false);
@@ -243,18 +243,21 @@ export function DupStackCard({
                 )
               )}
 
-              <SpButton
-                variant="outline"
-                icon={Icons.merge}
-                onClick={onMerge}
-                disabled={
-                  !confidentsAndReference || confidentsAndReference.length <= 1
-                }
-                className="mt-2"
-              >
-                Merge {confidentsAndReference.length}{" "}
-                {getItemTypeConfig(dupStack.item_type).word}
-              </SpButton>
+              {(!potentials || potentials.length == 0) && (
+                <SpButton
+                  variant="outline"
+                  icon={Icons.merge}
+                  onClick={onMerge}
+                  disabled={
+                    !confidentsAndReference ||
+                    confidentsAndReference.length <= 1
+                  }
+                  className="mt-2"
+                >
+                  Merge {confidentsAndReference.length}{" "}
+                  {getItemTypeConfig(dupStack.item_type).word}
+                </SpButton>
+              )}
             </div>
           </CardContent>
 
@@ -288,6 +291,16 @@ export function DupStackCard({
                     />
                   </div>
                 ))}
+
+                <SpButton
+                  variant="outline"
+                  icon={Icons.merge}
+                  onClick={onMerge}
+                  className="mt-2"
+                >
+                  Merge {confidentsAndReference.length + potentials.length}{" "}
+                  {getItemTypeConfig(dupStack.item_type).word}
+                </SpButton>
               </div>
             </CardGrayedContent>
           )}
@@ -349,6 +362,9 @@ export function DupStackCard({
 
 function sortDupStackItems(items: DupStackItemWithItemT[]) {
   return items.sort((a, b) => {
+    if (a.dup_type === "REFERENCE") return -1;
+    if (b.dup_type === "REFERENCE") return 1;
+
     if (!a.item || !b.item) return 0;
 
     if (a.item?.filled_score !== b.item?.filled_score)

@@ -22,7 +22,8 @@ import { cookies } from "next/headers";
 export async function itemsMergeSA(
   workspaceId: string,
   dupStack: DupStackWithItemsT,
-  hsClient?: Client
+  hsClient?: Client,
+  mergePotentials: boolean = false
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -55,7 +56,7 @@ export async function itemsMergeSA(
     hsClient = await newHubspotClient(workspace.refresh_token);
   }
 
-  await itemsMerge(supabase, workspace, dupStack, hsClient, true);
+  await itemsMerge(supabase, workspace, dupStack, hsClient, mergePotentials);
 }
 
 export async function itemsMerge(
@@ -63,7 +64,7 @@ export async function itemsMerge(
   workspace: Tables<"workspaces">,
   dupStackFromFront: DupStackWithItemsT,
   hsClient: Client,
-  markPotentialAsFalsePositives: boolean = false
+  mergePotentials: boolean = false
 ) {
   // TODO: We still receive dupstack as argument but we should remove that
 
@@ -82,10 +83,18 @@ export async function itemsMerge(
   let dupStack = dupStackR.data;
 
   const referenceDSItem = getDupstackReference(dupStack);
-  const dsItemsToMerge = getDupstackConfidents(dupStack);
-  const itemIdsToMarkFalsePositive = getDupstackPotentials(dupStack);
-  const falsePositives = getDupstackFalsePositives(dupStack);
   const referenceItem = referenceDSItem.item;
+  const confidents = getDupstackConfidents(dupStack);
+  const potentials = getDupstackPotentials(dupStack);
+  const falsePositives = getDupstackFalsePositives(dupStack);
+
+  let dsItemsToMerge = confidents;
+  if (mergePotentials) {
+    dsItemsToMerge.push(...potentials);
+  }
+
+  const areItemsRemaining =
+    dupStack.dup_stack_items.length - (dsItemsToMerge.length + 1) > 0; // + 1 because the reference item is not in itemsToMerge
 
   const distantMergeFn = getItemTypeConfig(
     dupStack.item_type
@@ -142,7 +151,7 @@ export async function itemsMerge(
     }
   }
 
-  if (falsePositives.length === 0 && itemIdsToMarkFalsePositive.length === 0) {
+  if (!areItemsRemaining) {
     const { error: errorDeleteDupstack } = await supabase
       .from("dup_stacks")
       .delete()
@@ -152,24 +161,7 @@ export async function itemsMerge(
     if (errorDeleteDupstack) {
       captureException(errorDeleteDupstack);
     }
-  } else {
-    if (
-      markPotentialAsFalsePositives &&
-      itemIdsToMarkFalsePositive.length > 0
-    ) {
-      const { error } = await supabase
-        .from("dup_stack_items")
-        .update({ dup_type: "FALSE_POSITIVE" })
-        .eq("dupstack_id", dupStack.id)
-        .in(
-          "item_id",
-          itemIdsToMarkFalsePositive.map((dupStackItem) => dupStackItem.item_id)
-        )
-        .eq("workspace_id", workspace.id);
-
-      if (error) {
-        captureException(error);
-      }
-    }
   }
+  // else we keep the dupstack for now
+  // TODO: Store the false positives elswhere
 }

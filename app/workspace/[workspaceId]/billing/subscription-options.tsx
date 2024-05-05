@@ -39,24 +39,24 @@ export function SubscriptionOptions({
 
         <ul
           role="list"
-          className="mt-10 text-gray-600 text-sm gap-y-3 flex flex-col"
+          className="mt-10 text-gray-600 text-sm gap-y-4 flex flex-col"
         >
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Limited to your 5000 last contacts and companies
+            Limited to 10000 contacts and companies
           </li>
 
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Manually merge groups of duplicates
+            Manually merge duplicate groups
           </li>
 
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Mark items as false-positive
+            Easily identify and mark false positives
           </li>
 
-          {/* <li className="flex flex-row gap-3">
+          {/* <li className="flex flex-row gap-3 items-center">
                   <Icons.x className="text-gray-400 flex-none w-5 h-5" />
                   No contacts duplicates detection
                 </li> */}
@@ -110,40 +110,35 @@ export function SubscriptionOptions({
 
         <ul
           role="list"
-          className="mt-10 text-gray-600 text-sm gap-y-3 flex flex-col"
+          className="mt-10 text-gray-600 text-sm gap-y-4 flex flex-col"
         >
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
             Unlimited contacts and companies
           </li>
 
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Manually merge groups of duplicates
+            24/7 real-time synchronization with HubSpot
           </li>
 
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Auto merge all detected duplicates
+            Automatically merge confident duplicates
           </li>
 
-          <li className="flex flex-row gap-3">
-            <Icons.check className="text-purple-800 flex-none w-5 h-5" />
-            Mark items as false-positive
-          </li>
-
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <span className="text-purple-800 flex justify-center w-5 h-5 text-sm font-semibold">
               soon
             </span>
-            Custom rules
+            Customize deduplication rules
           </li>
 
-          <li className="flex flex-row gap-3">
+          <li className="flex flex-row gap-3 items-center">
             <span className="text-purple-800 flex justify-center w-5 h-5 text-sm font-semibold">
               soon
             </span>
-            24/7 instant synchronisation with HubSpot
+            Smart data cleansing jobs to maintain pristine data
           </li>
         </ul>
 

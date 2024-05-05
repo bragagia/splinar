@@ -382,7 +382,8 @@ function getItemStackFlagBestValue(
     .filter(
       (dup_stack_item) =>
         dup_stack_item.dup_type === "REFERENCE" ||
-        dup_stack_item.dup_type === "CONFIDENT"
+        dup_stack_item.dup_type === "CONFIDENT" ||
+        dup_stack_item.dup_type === "POTENTIAL"
     )
     .map((dupstackItem) => dupstackItem.item as Tables<"items">);
 

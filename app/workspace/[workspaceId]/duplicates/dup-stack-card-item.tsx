@@ -347,15 +347,6 @@ export function DupStackCardRow({
 
           {rowInfos.dup_type === "CONFIDENT" && (
             <>
-              <SpTooltip tooltip="Mark as false positive">
-                <SpIconButton
-                  variant="grayedGhost"
-                  className="invisible group-hover:visible"
-                  icon={Icons.thumbDown}
-                  onClick={() => onUpdateDupType("FALSE_POSITIVE")}
-                />
-              </SpTooltip>
-
               <SpTooltip tooltip="Set as reference in which all other items will be merged">
                 <SpIconButton
                   variant="grayedGhost"
@@ -364,11 +355,29 @@ export function DupStackCardRow({
                   onClick={() => onUpdateDupType("REFERENCE")}
                 />
               </SpTooltip>
+
+              <SpTooltip tooltip="Mark as false positive">
+                <SpIconButton
+                  variant="grayedGhost"
+                  className="invisible group-hover:visible"
+                  icon={Icons.thumbDown}
+                  onClick={() => onUpdateDupType("FALSE_POSITIVE")}
+                />
+              </SpTooltip>
             </>
           )}
 
           {rowInfos.dup_type === "POTENTIAL" && (
             <>
+              <SpTooltip tooltip="Set as reference in which all other items will be merged">
+                <SpIconButton
+                  variant="grayedGhost"
+                  className="invisible group-hover:visible"
+                  icon={Icons.arrowsPointingIn}
+                  onClick={() => onUpdateDupType("REFERENCE")}
+                />
+              </SpTooltip>
+
               <SpTooltip tooltip="Mark as false positive">
                 <SpIconButton
                   variant="grayedGhost"
@@ -377,13 +386,13 @@ export function DupStackCardRow({
                 />
               </SpTooltip>
 
-              <SpTooltip tooltip="Add to merge list">
+              {/* <SpTooltip tooltip="Add to merge list">
                 <SpIconButton
                   variant="grayedGhost"
                   icon={Icons.add}
                   onClick={() => onUpdateDupType("CONFIDENT")}
                 />
-              </SpTooltip>
+              </SpTooltip> */}
             </>
           )}
 
