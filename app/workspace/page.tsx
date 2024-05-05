@@ -1,3 +1,4 @@
+import { Icons } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,14 +39,35 @@ export default async function WorkspaceIndexPage() {
           <CardHeader>
             <CardTitle>Welcome to Splinar!</CardTitle>
             <CardDescription>
-              Let&apos;s add your first workspace
+              Let&apos;s connect your first workspace
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <p className="text-sm">
-              You will be redirected to HubSpot, please follow their
-              instructions.
+          <CardContent className="text-sm">
+            <p>
+              Click <b>Continue</b> to be securely redirected to HubSpot to
+              authenticate your account.
+            </p>
+
+            <ul className="mt-3 flex flex-col gap-2">
+              <li className="flex flex-row items-center gap-2">
+                <Icons.check className="text-purple-800 flex-none w-5 h-5" />
+                We won&apos;t modify data without your direct instructions
+              </li>
+              <li className="flex flex-row items-center gap-2">
+                <Icons.check className="text-purple-800 flex-none w-5 h-5" />{" "}
+                Disconnect Splinar at anytime from your HubSpot dashboard
+              </li>
+            </ul>
+
+            <p className="mt-3">
+              <b>Need Help?</b>{" "}
+              <a
+                className="text-blue-500 font-bold underline cursor-pointer"
+                href="mailto:support@splinar.com"
+              >
+                Contact Support
+              </a>
             </p>
           </CardContent>
 

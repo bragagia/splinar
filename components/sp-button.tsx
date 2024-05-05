@@ -61,6 +61,13 @@ const spButtonVariants = cva(
           "[--color-900:theme(colors.green.900)]",
           "[--color-text:theme(colors.black)]",
         ],
+        orange: [
+          "[--color-100:theme(colors.orange.100)]",
+          "[--color-400:theme(colors.orange.600)]",
+          "[--color-700:theme(colors.orange.700)]",
+          "[--color-900:theme(colors.orange.900)]",
+          "[--color-text:theme(colors.black)]",
+        ],
       },
       size: {
         icon: "p-1",

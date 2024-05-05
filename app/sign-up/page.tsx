@@ -65,9 +65,19 @@ export default function SignUpPage({}) {
                   Create an account
                 </h1>
 
-                <p className="text-sm text-muted-foreground">
-                  No need for a credit card
-                </p>
+                <div className="text-sm flex flex-col items-start text-left py-2">
+                  <ul className="mt-3 flex flex-col gap-2">
+                    <li className="flex flex-row items-center gap-2">
+                      <Icons.check className="text-purple-800 flex-none w-5 h-5" />
+                      No need for a credit card
+                    </li>
+
+                    <li className="flex flex-row items-center gap-2">
+                      <Icons.infos className="text-purple-800 flex-none w-5 h-5" />
+                      We will require a HubSpot account
+                    </li>
+                  </ul>
+                </div>
               </div>
 
               <form>

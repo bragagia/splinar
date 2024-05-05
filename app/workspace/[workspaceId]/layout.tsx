@@ -1,3 +1,4 @@
+import { EmailVerificationWarning } from "@/app/workspace/[workspaceId]/emailVerificationWarning";
 import { MainNav } from "@/app/workspace/[workspaceId]/main-nav";
 import { UserProvider } from "@/app/workspace/[workspaceId]/user-context";
 import { UserNav } from "@/app/workspace/[workspaceId]/user-nav";
@@ -63,6 +64,8 @@ export default async function WorkspaceLayout({
       }}
     >
       <WorkspaceProvider value={workspace as Tables<"workspaces">}>
+        <EmailVerificationWarning user={userData.user} />
+
         <WorkspaceInstallationWall>
           <div className="flex-col flex">
             <div className="border-b">
