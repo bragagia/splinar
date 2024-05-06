@@ -1,8 +1,10 @@
+import { Card, CardTitle } from "@/components/ui/card";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
 import { uuid } from "@/lib/uuid";
 import { TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const GRANT_TYPES = {
@@ -67,7 +69,19 @@ export default async function OAuthCallback({
 
   const { error } = await supabase.from("workspaces").insert(workspace);
   if (error) {
-    throw error;
+    return (
+      <div className="h-screen w-screen flex flex-row items-center justify-center bg-gray-50">
+        <Card className="m-4 p-4 w-96">
+          <CardTitle>
+            This HubSpot workspace is already linked to Splinar.
+          </CardTitle>
+
+          <div className="flex justify-center items-center text-blue-800 underline text-sm">
+            <Link href={URLS.workspaceIndex}>Go back</Link>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   redirect(URLS.workspace(workspaceId).dashboard);

@@ -1,0 +1,1 @@
+export const INNGEST_MAX_EVENT_PER_PAYLOAD = 4999;

@@ -1,6 +1,7 @@
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { WorkspaceInstallSimilaritiesBatchStart } from "@/inngest/types";
 import { launchWorkspaceSimilaritiesBatches } from "@/inngest/workspace-install-similarities/launch-workspace-similarities-batches";
+import { INNGEST_MAX_EVENT_PER_PAYLOAD } from "@/lib/inngest";
 import { getItemTypesList } from "@/lib/items_common";
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
@@ -146,7 +147,9 @@ export default inngest.createFunction(
       }
     );
 
-    await inngest.send(payloads);
+    for (var i = 0; i < payloads.length; i += INNGEST_MAX_EVENT_PER_PAYLOAD) {
+      await inngest.send(payloads.slice(i, i + INNGEST_MAX_EVENT_PER_PAYLOAD));
+    }
 
     logger.info("# workspaceSimilaritiesLaunch - END");
   }
