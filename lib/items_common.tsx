@@ -231,6 +231,23 @@ function getItemSourceValue<T extends FieldDataTypeT>(
   return null;
 }
 
+export function getItemSourceValueAsString(
+  itemValue: any,
+  sourceName: string
+): string | null {
+  const ret = getItemSourceValue(itemValue, sourceName, "string");
+
+  if (ret === null) {
+    return null;
+  }
+
+  if (Array.isArray(ret)) {
+    return ret.join(";");
+  }
+
+  return ret;
+}
+
 export function getItemValueAsArray<T extends FieldDataTypeT>(
   itemValue: any,
   sourceNames: string[],
@@ -752,8 +769,8 @@ export async function getDupstacksOfItem(
 }
 
 export function itemFieldValuesAreEqual(
-  a: string[] | null | undefined,
-  b: string[] | null | undefined
+  a: string[] | string | null | undefined,
+  b: string[] | string | null | undefined
 ) {
   if (a === null || a === undefined || b === null || b === undefined) {
     if (a === b) {
@@ -761,6 +778,14 @@ export function itemFieldValuesAreEqual(
     } else {
       return false;
     }
+  }
+
+  if (!Array.isArray(a)) {
+    a = [a];
+  }
+
+  if (!Array.isArray(b)) {
+    b = [b];
   }
 
   if (a.length !== b.length) {

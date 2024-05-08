@@ -2,7 +2,7 @@
 
 import { JobExecutionOutputWithInput } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/page";
 import {
-  getItemValueAsArray,
+  getItemSourceValueAsString,
   itemFieldValuesAreEqual,
 } from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
@@ -19,12 +19,12 @@ export async function customJobExecutorSA(
   let outputFieldsNames: string[] = [];
   let outputFieldsByItemId: {
     [key: string]: {
-      [key: string]: string[] | null | undefined;
+      [key: string]: string | null | undefined;
     };
   } = {};
   let inputFieldsByItemId: {
     [key: string]: {
-      [key: string]: string[] | null | undefined;
+      [key: string]: string | null | undefined;
     };
   } = {};
 
@@ -38,13 +38,12 @@ export async function customJobExecutorSA(
       }
 
       let itemFields: {
-        [key: string]: string[] | null | undefined;
+        [key: string]: string | null | undefined;
       } = {};
       Object.keys(item.value).forEach((fieldName) => {
-        itemFields[fieldName] = getItemValueAsArray(
+        itemFields[fieldName] = getItemSourceValueAsString(
           item.value,
-          [fieldName],
-          "string"
+          fieldName
         );
       });
 
@@ -76,12 +75,12 @@ export async function customJobExecutorSA(
       fieldsName: ["error"],
       outputFieldsByItemId: {
         "1": {
-          error: ["Your code seems invalid. Please check it and try again."],
+          error: "Your code seems invalid. Please check it and try again.",
         },
       },
       inputFieldsByItemId: {
         "1": {
-          error: [""],
+          error: "",
         },
       },
     };

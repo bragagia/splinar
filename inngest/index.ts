@@ -1,5 +1,6 @@
 import dataCleaningJob from "@/inngest/data-cleaning-job";
 import dataCleaningJobBatch from "@/inngest/data-cleaning-job-batch";
+import mondayRecap from "@/inngest/monday-recap";
 import sendMail from "@/inngest/send-mail";
 import workspaceInstall from "@/inngest/workspace-install";
 import workspaceInstallDupStacks from "@/inngest/workspace-install-dupstacks";
@@ -26,6 +27,7 @@ export const functions = [
   workspaceUpdateAll,
   workspaceUpdatePollingHubspot,
   sendMail,
+  mondayRecap,
 ];
 
 export { inngest } from "./client";
