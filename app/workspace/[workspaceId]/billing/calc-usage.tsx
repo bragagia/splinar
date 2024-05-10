@@ -29,6 +29,7 @@ export async function calcWorkspaceUsageDetailed(
     .from("items")
     .select(undefined, { count: "exact", head: true })
     .eq("workspace_id", workspaceId)
+    .eq("item_type", "COMPANIES")
     .is("merged_in_distant_id", null)
     .limit(0);
   if (errorCompanies || companiesCount === null) {
