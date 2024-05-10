@@ -112,7 +112,25 @@ async function processHubspotEvent(
     case "ticket.creation":
     case "product.creation":
     case "line_item.creation":
-      // Handle creation
+      console.log("creating: ", objectId, itemType);
+      if (!objectId) {
+        console.log("Missing object id");
+        return;
+      }
+
+      const { error: errorCreate } = await supabaseAdmin.from("items").insert({
+        workspace_id: workspace.id,
+        item_type: itemType,
+        distant_id: objectId,
+        filled_score: 0,
+        similarity_checked: true,
+        value: {},
+      });
+      if (errorCreate) {
+        captureException(errorCreate);
+        return;
+      }
+
       break;
 
     case "contact.deletion":
