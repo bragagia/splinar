@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/inngest/*.tsx": {
+      "memory": 3009,
+      "maxDuration": 300
+    }
+  }
+}
