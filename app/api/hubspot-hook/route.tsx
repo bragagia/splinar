@@ -10,6 +10,8 @@ import { SupabaseClient, createClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   console.log("HubSpot hook received");
   const supabaseAdmin = createClient<Database>(
