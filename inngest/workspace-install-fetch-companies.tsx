@@ -10,7 +10,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   {
     id: "workspace-install-fetch-companies",
-    retries: 0,
+    retries: 5,
     concurrency: [
       {
         scope: "account",

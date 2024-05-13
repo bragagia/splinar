@@ -147,7 +147,9 @@ export default inngest.createFunction(
       }
     );
 
+    console.log("Sending", payloads.length, "batches");
     for (var i = 0; i < payloads.length; i += INNGEST_MAX_EVENT_PER_PAYLOAD) {
+      console.log("Sending batch", i);
       await inngest.send(payloads.slice(i, i + INNGEST_MAX_EVENT_PER_PAYLOAD));
     }
 
