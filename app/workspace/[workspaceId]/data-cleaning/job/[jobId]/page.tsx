@@ -332,6 +332,20 @@ export default function DataCleaningJobPage({
     setJobValidated(undefined);
   };
 
+  const resetJobToLiveVersion = async () => {
+    if (!job || !jobValidated) {
+      return;
+    }
+
+    updateJob({
+      code: jobValidated.code,
+      mode: jobValidated.mode,
+      recurrence: jobValidated.recurrence,
+      target_item_types: jobValidated.target_item_types,
+    });
+    setJobIsPersisted(true);
+  };
+
   if (!job) {
     return <>loading</>;
   }
@@ -395,27 +409,28 @@ export default function DataCleaningJobPage({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent>
-              {jobValidated && (
-                <DropdownMenuItem asChild>
-                  <button
-                    className="w-full"
-                    onClick={async () => {
-                      await disableJob();
-                    }}
-                  >
-                    Pause job
-                  </button>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem asChild>
+                <button
+                  className="w-full disabled:pointer-events-none disabled:text-gray-300"
+                  disabled={!jobValidated}
+                  onClick={disableJob}
+                >
+                  Pause job
+                </button>
+              </DropdownMenuItem>
 
               <DropdownMenuItem asChild>
-                <SpConfirmButton
-                  classic
-                  className="w-full"
-                  onClick={async () => {
-                    await deleteJob();
-                  }}
+                <button
+                  className="w-full disabled:pointer-events-none disabled:text-gray-300"
+                  disabled={!jobValidated}
+                  onClick={resetJobToLiveVersion}
                 >
+                  Reset job to live version
+                </button>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+                <SpConfirmButton classic className="w-full" onClick={deleteJob}>
                   Delete job
                 </SpConfirmButton>
               </DropdownMenuItem>
