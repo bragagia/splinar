@@ -1,14 +1,17 @@
 import { inngest } from "@/inngest";
 import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
+import { splitArrayIntoChunks } from "@/lib/arrays";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
+import { SimplePublicObjectWithAssociations } from "@hubspot/api-client/lib/codegen/crm/companies";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const UPDATE_COUNT_EVERY = 3;
+const UPDATE_COUNT_EVERY = 6;
 const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
+const MAX_PROPERTIES_PER_REQUEST = 500; // Has been tested to work up to 615
 
 export async function fetchCompanies(
   hsClient: Client,
@@ -21,17 +24,53 @@ export async function fetchCompanies(
 
   const propertiesRes = await hsClient.crm.properties.coreApi.getAll("company");
   const propertiesList = propertiesRes.results.map((property) => property.name);
+  const propertiesListChunks = splitArrayIntoChunks(
+    propertiesList,
+    MAX_PROPERTIES_PER_REQUEST
+  );
 
   do {
     console.log("Fetching companies page ", after);
 
-    const res = await hsClient.crm.companies.basicApi.getPage(
-      100,
-      after,
-      propertiesList
-    );
+    let companies: SimplePublicObjectWithAssociations[] = [];
+    let nextAfter: string | undefined = undefined;
 
-    const companies = res.results;
+    for (const propertiesListChunk of propertiesListChunks) {
+      const res = await hsClient.crm.companies.basicApi.getPage(
+        100,
+        after,
+        propertiesListChunk
+      );
+
+      nextAfter = res.paging?.next?.after;
+
+      if (companies.length === 0) {
+        companies = res.results;
+      } else {
+        // Merge the results properties
+        res.results.forEach((company) => {
+          let existingCompany = companies.find((c) => c.id === company.id);
+
+          if (existingCompany) {
+            existingCompany.properties = {
+              ...existingCompany.properties,
+              ...company.properties,
+            };
+            // We don't merge associations as we only fetch companies
+            // existingCompany.associations = {
+            //   ...existingCompany.associations,
+            //   ...company.associations,
+            // };
+          } else {
+            throw new Error(
+              `Company ${company.id} not found in existing companies while merging chunks.`
+            );
+          }
+        });
+      }
+    }
+
+    after = nextAfter;
 
     if (!companies || companies.length === 0) {
       break;

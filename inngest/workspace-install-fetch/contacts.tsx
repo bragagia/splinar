@@ -1,13 +1,16 @@
 import { inngest } from "@/inngest";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
+import { splitArrayIntoChunks } from "@/lib/arrays";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
+import { SimplePublicObjectWithAssociations } from "@hubspot/api-client/lib/codegen/crm/companies";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const UPDATE_COUNT_EVERY = 3;
+const UPDATE_COUNT_EVERY = 6;
 const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
+const MAX_PROPERTIES_PER_REQUEST = 500; // Has been tested to work up to 615
 
 export async function fetchContacts(
   hsClient: Client,
@@ -20,21 +23,55 @@ export async function fetchContacts(
 
   const propertiesRes = await hsClient.crm.properties.coreApi.getAll("contact");
   const propertiesList = propertiesRes.results.map((property) => property.name);
+  const propertiesListChunks = splitArrayIntoChunks(
+    propertiesList,
+    MAX_PROPERTIES_PER_REQUEST
+  );
 
   do {
     console.log("Fetching contact page ", after);
 
-    const res = await hsClient.crm.contacts.basicApi.getPage(
-      100,
-      after,
-      propertiesList,
-      undefined,
-      ["companies"]
-    );
+    let contacts: SimplePublicObjectWithAssociations[] = [];
+    let nextAfter: string | undefined = undefined;
 
-    after = res.paging?.next?.after;
+    for (const propertiesListChunk of propertiesListChunks) {
+      const res = await hsClient.crm.contacts.basicApi.getPage(
+        100,
+        after,
+        propertiesListChunk,
+        undefined,
+        ["companies"]
+      );
 
-    const contacts = res.results;
+      nextAfter = res.paging?.next?.after;
+
+      if (contacts.length === 0) {
+        contacts = res.results;
+      } else {
+        // Merge the results properties
+        res.results.forEach((contact) => {
+          let existingContact = contacts.find((c) => c.id === contact.id);
+
+          if (existingContact) {
+            existingContact.properties = {
+              ...existingContact.properties,
+              ...contact.properties,
+            };
+            // We don't merge associations as we only fetch companies
+            // existingContact.associations = {
+            //   ...existingContact.associations,
+            //   ...contact.associations,
+            // };
+          } else {
+            throw new Error(
+              `Contact ${contact.id} not found in existing contacts while merging chunks.`
+            );
+          }
+        });
+      }
+    }
+
+    after = nextAfter;
 
     if (!contacts || contacts.length === 0) {
       break;
