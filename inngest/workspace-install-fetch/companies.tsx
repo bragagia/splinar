@@ -103,8 +103,6 @@ export async function fetchCompanies(
       throw error;
     }
 
-    after = res.paging?.next?.after;
-
     pageId++;
     if (after) {
       if (pageId % UPDATE_COUNT_EVERY === 0) {
