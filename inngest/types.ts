@@ -101,6 +101,7 @@ export type ItemsMergeAllStart = {
   data: {
     workspaceId: string;
     itemType: ItemTypeT;
+    includePotentials: boolean;
     lastItemCreatedAt?: string;
   };
 };

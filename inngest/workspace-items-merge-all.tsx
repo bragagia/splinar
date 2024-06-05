@@ -20,7 +20,8 @@ export default inngest.createFunction(
   },
   { event: "items/merge-all.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId, itemType } = event.data;
+    const { workspaceId, itemType, includePotentials, lastItemCreatedAt } =
+      event.data;
 
     logger.info("# Items merge all", workspaceId);
 
@@ -39,7 +40,7 @@ export default inngest.createFunction(
       throw new Error("Missing workspace");
     }
 
-    if (!event.data.lastItemCreatedAt) {
+    if (!lastItemCreatedAt) {
       if (
         getItemTypeConfig(itemType).getWorkspaceOperation(workspace) ===
         "PENDING"
@@ -60,7 +61,7 @@ export default inngest.createFunction(
 
     let counter = 0;
     let finished = false;
-    let lastItemCreatedAt: string | null = event.data.lastItemCreatedAt || null;
+    let newLastItemCreatedAt: string | null = lastItemCreatedAt || null;
     do {
       let query = supabaseAdmin
         .from("dup_stacks")
@@ -70,8 +71,8 @@ export default inngest.createFunction(
         .order("created_at", { ascending: true })
         .limit(50);
 
-      if (lastItemCreatedAt) {
-        query = query.gt("created_at", lastItemCreatedAt);
+      if (newLastItemCreatedAt) {
+        query = query.gt("created_at", newLastItemCreatedAt);
       }
 
       let { data: dupStacks, error: dupStacksError } = await query;
@@ -83,18 +84,24 @@ export default inngest.createFunction(
         break;
       }
 
-      lastItemCreatedAt = dupStacks[dupStacks.length - 1].created_at;
+      newLastItemCreatedAt = dupStacks[dupStacks.length - 1].created_at;
 
       for (let dupStack of dupStacks) {
         try {
-          await itemsMerge(supabaseAdmin, workspace, dupStack, hsClient);
+          await itemsMerge(
+            supabaseAdmin,
+            workspace,
+            dupStack,
+            hsClient,
+            includePotentials
+          );
         } catch (e) {
           console.log("Merge error:", e);
         }
       }
 
       counter++;
-    } while (lastItemCreatedAt && counter < MAX_IT);
+    } while (newLastItemCreatedAt && counter < MAX_IT);
 
     if (finished) {
       const { error: errorWriteDone } = await supabaseAdmin
@@ -112,7 +119,8 @@ export default inngest.createFunction(
         data: {
           workspaceId: workspaceId,
           itemType: itemType,
-          lastItemCreatedAt: lastItemCreatedAt || undefined,
+          includePotentials: includePotentials,
+          lastItemCreatedAt: newLastItemCreatedAt || undefined,
         },
       });
 

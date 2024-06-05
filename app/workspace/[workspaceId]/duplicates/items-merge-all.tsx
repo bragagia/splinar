@@ -8,7 +8,8 @@ import { cookies } from "next/headers";
 
 export async function itemsMergeAllSA(
   workspaceId: string,
-  ItemType: ItemTypeT
+  itemType: ItemTypeT,
+  includePotentials: boolean
 ) {
   const cookieStore = cookies();
   const supabase = createServerActionClient<Database>({
@@ -32,7 +33,8 @@ export async function itemsMergeAllSA(
     name: "items/merge-all.start",
     data: {
       workspaceId: workspaceId,
-      itemType: ItemType,
+      itemType: itemType,
+      includePotentials: includePotentials,
     },
   });
 }

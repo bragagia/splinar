@@ -5,7 +5,17 @@ import { DupStackCard } from "@/app/workspace/[workspaceId]/duplicates/dup-stack
 import { itemsMergeAllSA } from "@/app/workspace/[workspaceId]/duplicates/items-merge-all";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
-import { SpConfirmButton, SpIconButton } from "@/components/sp-button";
+import { SpButton, SpIconButton } from "@/components/sp-button";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +60,7 @@ export default function DuplicatesPage() {
   const [typesList, setTypesList] = useState<ItemTypeT[]>([]);
   const [typeStates, setTypeStates] = useState<{
     [key: string]: TypeStateT;
-  }>();
+  }>({});
 
   useEffect(() => {
     let typeStates: {
@@ -119,7 +129,7 @@ export default function DuplicatesPage() {
           });
         });
     });
-  }, [supabase, typesList, workspace.id]);
+  }, [supabase, typesList, workspace]);
 
   useEffect(() => {
     if (typesList.length === 0) {
@@ -177,7 +187,18 @@ export default function DuplicatesPage() {
     }
   }, [typesList, workspace.contacts_operation_status]);
 
-  if (!typeStates) {
+  // Force update the workspace every 5 seconds if there is a merge in progress
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Object.values(typeStates).some((typeState) => typeState.isMerging)) {
+        workspace.triggerUpdate();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [typeStates, workspace]);
+
+  if (Object.values(typeStates).length === 0) {
     return (
       <div className="w-full flex items-center justify-center h-52">
         <Icons.spinner className="h-6 w-6 animate-spin" />
@@ -185,7 +206,7 @@ export default function DuplicatesPage() {
     );
   }
 
-  async function onMergeAll(itemType: ItemTypeT) {
+  async function onMergeAll(itemType: ItemTypeT, includePotentials: boolean) {
     setTypeStates((cur) => {
       if (!cur) {
         return {};
@@ -196,7 +217,7 @@ export default function DuplicatesPage() {
       return { ...cur };
     });
 
-    await itemsMergeAllSA(workspace.id, itemType);
+    await itemsMergeAllSA(workspace.id, itemType, includePotentials);
   }
 
   return (
@@ -233,10 +254,7 @@ export default function DuplicatesPage() {
           <div>
             {(Object.keys(typeStates) as ItemTypeT[]).map((typeStateKey, i) => {
               const typeState = typeStates[typeStateKey];
-              const areAllConfidentsMergeable =
-                typeState.confidentCount &&
-                typeState.confidentCount > 0 &&
-                !typeState.isMerging;
+              const isBulkMergeAvailable = !typeState.isMerging;
 
               return (
                 <TabsContent
@@ -244,20 +262,11 @@ export default function DuplicatesPage() {
                   value={typeStateKey}
                   className="m-0 gap-2 flex flex-row"
                 >
-                  <SpConfirmButton
-                    variant="outline"
-                    icon={Icons.merge}
-                    onClick={() => onMergeAll(typeStateKey)}
-                    disabled={!areAllConfidentsMergeable}
-                  >
-                    Merge{" "}
-                    {typeState.confidentCount !== null ? (
-                      typeState.confidentCount
-                    ) : (
-                      <Icons.spinner className="inline-flex h-3 w-3 animate-spin" />
-                    )}{" "}
-                    confident {typeState.itemConfig.word} duplicates
-                  </SpConfirmButton>
+                  <BulkMergeButton
+                    disabled={!isBulkMergeAvailable}
+                    itemType={typeStateKey}
+                    mergeAllFn={onMergeAll}
+                  />
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -418,4 +427,86 @@ async function fetchNextPage(
   }
 
   return { newDupStacks: data, newNextCursor: newNextCursor };
+}
+
+function BulkMergeButton({
+  itemType,
+  disabled,
+  mergeAllFn,
+}: {
+  itemType: ItemTypeT;
+  disabled?: boolean;
+  mergeAllFn: (
+    itemType: ItemTypeT,
+    includePotentials: boolean
+  ) => Promise<void>;
+}) {
+  const itemConfig = getItemTypeConfig(itemType);
+  const [includePotentials, setIncludePotentials] = useState<boolean>(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  return (
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <DialogTrigger asChild>
+        <SpButton variant="outline" icon={Icons.merge} disabled={disabled}>
+          Bulk merge tool
+        </SpButton>
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Bulk merge tool</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-4">
+          <p>
+            Bulk merge all detected duplicates <b>{itemConfig.word}</b>,
+            including:
+          </p>
+
+          <div className="items-center flex space-x-2">
+            <Checkbox checked disabled id="confident_checkbox" />
+
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="confident_checkbox"
+                className="text-sm font-medium leading-none cursor-not-allowed opacity-70"
+              >
+                Confident duplicates
+              </label>
+            </div>
+          </div>
+
+          <div className="items-center flex space-x-2">
+            <Checkbox
+              checked={includePotentials}
+              onCheckedChange={() => setIncludePotentials(!includePotentials)}
+              id="potential_checkbox"
+            />
+
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="potential_checkbox"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Potential duplicates
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="submit"
+            onClick={async () => {
+              await mergeAllFn(itemType, includePotentials);
+              setModalOpen(false);
+            }}
+          >
+            Start bulk merge
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

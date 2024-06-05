@@ -21,7 +21,7 @@ import { cookies } from "next/headers";
 
 export async function itemsMergeSA(
   workspaceId: string,
-  dupStack: DupStackWithItemsT,
+  dupStackId: string,
   hsClient?: Client,
   mergePotentials: boolean = false
 ) {
@@ -43,14 +43,17 @@ export async function itemsMergeSA(
     throw new Error("Missing workspace");
   }
 
-  let { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  if (sessionError) {
-    throw sessionError;
+  const dupStackR = await supabase
+    .from("dup_stacks")
+    .select("*, dup_stack_items(*, item:items(*))")
+    .eq("workspace_id", workspace.id)
+    .eq("id", dupStackId)
+    .limit(1)
+    .single();
+  if (dupStackR.error) {
+    throw dupStackR.error;
   }
-  if (!sessionData.session) {
-    throw new Error("Missing user session");
-  }
+  let dupStack = dupStackR.data;
 
   if (!hsClient) {
     hsClient = await newHubspotClient(workspace.refresh_token);
@@ -62,25 +65,11 @@ export async function itemsMergeSA(
 export async function itemsMerge(
   supabase: SupabaseClient<Database>,
   workspace: Tables<"workspaces">,
-  dupStackFromFront: DupStackWithItemsT,
+  dupStack: DupStackWithItemsT,
   hsClient: Client,
   mergePotentials: boolean = false
 ) {
-  // TODO: We still receive dupstack as argument but we should remove that
-
   // TODO: If there is another dupstack that contains one of the items here, we should remove them from the other dupstack and potentially recalculate those dupstacks
-
-  const dupStackR = await supabase
-    .from("dup_stacks")
-    .select("*, dup_stack_items(*, item:items(*))")
-    .eq("workspace_id", workspace.id)
-    .eq("id", dupStackFromFront.id)
-    .limit(1)
-    .single();
-  if (dupStackR.error) {
-    throw dupStackR.error;
-  }
-  let dupStack = dupStackR.data;
 
   const referenceDSItem = getDupstackReference(dupStack);
   const referenceItem = referenceDSItem.item;

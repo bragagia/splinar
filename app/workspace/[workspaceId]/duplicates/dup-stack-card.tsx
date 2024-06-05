@@ -116,7 +116,7 @@ export function DupStackCard({
     if (isDemo) {
       await delay(1500);
     } else {
-      await itemsMergeSA(workspace.id, cachedDupStack, undefined, true);
+      await itemsMergeSA(workspace.id, cachedDupStack.id, undefined, true);
     }
 
     setLoading(false);
