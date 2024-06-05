@@ -1,6 +1,6 @@
 "use server";
 
-import { getItemTypeConfig } from "@/lib/items_common";
+import { bulkUpdateItems, getItemTypeConfig } from "@/lib/items_common";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
 import dayjs from "dayjs";
@@ -48,10 +48,20 @@ export async function serverAcceptJobLog(
 
   await itemTypeConfig.distantUpdateBulk(workspace, jobOutput);
 
+  await bulkUpdateItems(
+    supabaseAdmin,
+    workspace,
+    jobLog.item.item_type,
+    jobOutput
+  );
 
-  const { data, error } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("data_cleaning_job_logs")
     .update({ accepted_at: dayjs().toISOString() })
     .eq("id", jobLogId)
     .eq("workspace_id", workspaceId);
+
+  if (error) {
+    throw error;
+  }
 }

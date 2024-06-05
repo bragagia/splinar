@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX data_cleaning_job_logs_workspace_id_data_cleaning_job_id_item_id_index ON data_cleaning_job_logs (workspace_id, data_cleaning_job_id, item_id);

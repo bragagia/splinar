@@ -14,7 +14,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Card, CardHeader } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -22,12 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
 import { Tables } from "@/types/supabase";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -53,9 +55,7 @@ export default function DataCleaningReviewPage() {
   const [jobFilter, setJobFilter] = useState<string>(jobId ?? "all");
 
   const [jobLogs, setJobLogs] = useState<JobLogWithItem[] | null>([]);
-  const [nextCursor, setNextCursor] = useState<
-    { created_at: string; id: string } | undefined
-  >();
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState<boolean>(true);
 
   const [jobsById, setJobsById] = useState<JobsByIdT>();
@@ -92,18 +92,16 @@ export default function DataCleaningReviewPage() {
       .select("*, item:items(*)")
       .eq("workspace_id", workspace.id)
       .is("accepted_at", null)
-      .order("created_at", { ascending: false })
       .order("id", { ascending: false });
-
     if (jobFilter !== "all") {
       req = req.eq("data_cleaning_job_id", jobFilter);
     }
 
     if (nextCursor) {
-      req = req
-        .lte("created_at", nextCursor.created_at)
-        .lt("id", nextCursor.id);
+      req = req.lt("id", nextCursor);
     }
+
+    req = req.limit(PAGE_SIZE);
 
     const { data: newLogs, error } = await req;
     if (error) {
@@ -116,10 +114,7 @@ export default function DataCleaningReviewPage() {
     }
 
     setJobLogs((jobLogs ?? []).concat(newLogs));
-    setNextCursor({
-      created_at: newLogs[newLogs.length - 1].created_at,
-      id: newLogs[newLogs.length - 1].id,
-    });
+    setNextCursor(newLogs[newLogs.length - 1].id);
 
     if (newLogs.length !== PAGE_SIZE) {
       setHasMore(false);
@@ -220,17 +215,15 @@ export default function DataCleaningReviewPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4">
-              {jobLogs?.map((jobLog, i) => (
-                <JobLogCard
-                  key={i}
-                  workspace={workspace}
-                  jobLog={jobLog}
-                  jobsById={jobsById}
-                />
-              ))}
-            </div>
+          <div className="flex flex-col">
+            {jobLogs?.map((jobLog, i) => (
+              <JobLogCard
+                key={i}
+                workspace={workspace}
+                jobLog={jobLog}
+                jobsById={jobsById}
+              />
+            ))}
           </div>
         )}
       </InfiniteScroll>
@@ -247,42 +240,120 @@ function JobLogCard({
   jobLog: JobLogWithItem;
   jobsById: JobsByIdT;
 }) {
+  const [accepted, setAccepted] = useState<boolean>(false);
+
   if (!jobLog.item) {
     return;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-row-reverse items-center">
-          <SpButton
-            onClick={async () =>
-              await serverAcceptJobLog(jobLog.workspace_id, jobLog.id)
-            }
-          >
-            Accept
-          </SpButton>
+    <div className="w-full py-2 border-b border-gray-300">
+      <div className="flex flex-row items-center">
+        <div className="grid grid-cols-2 items-center w-full gap-2">
+          <div className="flex flex-row items-center gap-1 text-sm">
+            <div className="flex">
+              <Link
+                href={URLS.workspace(workspace.id).dataCleaningJob(
+                  jobLog.data_cleaning_job_id
+                )}
+              >
+                {jobsById[jobLog.data_cleaning_job_id]?.title}
+              </Link>
+            </div>
 
-          <div className="grid grid-cols-4 items-center">
-            <div>{jobsById[jobLog.data_cleaning_job_id]?.title}</div>
+            <Icons.chevronRight className="w-3 h-3" />
 
-            <div>
+            <div className="mt-1">
               <HubspotLinkButton
-                href={URLS.external.hubspotContact(
+                href={getItemTypeConfig(jobLog.item_type).getHubspotURL(
                   workspace.hub_id,
                   jobLog.item.distant_id
                 )}
               >
-                {(jobLog.item.value as any).firstname || jobLog.item.distant_id}
+                {(jobLog.item.value as any).firstname ||
+                  (jobLog.item.value as any).name ||
+                  jobLog.item.distant_id}
               </HubspotLinkButton>
             </div>
-
-            <div>{JSON.stringify(jobLog.prev_value)}</div>
-
-            <div>{JSON.stringify(jobLog.new_value)}</div>
           </div>
+
+          <ValueDiff
+            prev={jobLog.prev_value as ItemFieldsT}
+            next={jobLog.new_value as ItemFieldsT}
+          />
         </div>
-      </CardHeader>
-    </Card>
+
+        <div className="flex flex-row justify-center w-28">
+          {!accepted ? (
+            <SpButton
+              className="w-full"
+              onClick={async () => {
+                await serverAcceptJobLog(jobLog.workspace_id, jobLog.id);
+                setAccepted(true);
+              }}
+            >
+              Accept
+            </SpButton>
+          ) : (
+            <div className="flex flex-row items-center gap-1 text-gray-500">
+              <Icons.check className="h-4 w-4" />
+              <span className="text-xs font-light">Accepted</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export type ItemFieldsT = { [key: string]: string | null | undefined };
+
+function ValueDiff({
+  className,
+  prev,
+  next,
+}: {
+  className?: string;
+  prev: ItemFieldsT;
+  next: ItemFieldsT;
+}) {
+  return (
+    <div className={cn("flex flex-col", className)}>
+      {Object.entries(next).map(([fieldKey, fieldNextValue], i) => {
+        const fieldPrevValue = prev[fieldKey];
+
+        return (
+          <div key={i} className="flex flex-row items-center space-x-2">
+            <div className="text-sm text-gray-500 font-bold">{fieldKey}:</div>
+
+            <div className="flex flex-row gap-1 items-center text-sm">
+              <div className="flex flex-col space-y-2">
+                {fieldPrevValue === null || fieldPrevValue == undefined ? (
+                  "-"
+                ) : (
+                  <div>
+                    {fieldPrevValue || (
+                      <span className="text-gray-300">empty string</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Icons.arrowRight className="h-3 w-3" />
+
+              <div className="flex flex-col p-1 rounded-md">
+                {fieldNextValue === null ||
+                fieldNextValue === undefined ||
+                fieldNextValue === "" ? (
+                  <span className="text-gray-500 italic">Empty</span>
+                ) : (
+                  <span>{fieldNextValue}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

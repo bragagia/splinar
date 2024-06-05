@@ -16,8 +16,7 @@ export default inngest.createFunction(
   async ({ step, logger }) => {
     const supabaseAdmin = newSupabaseRootClient();
 
-    // Only paid workspaces that have no operation runing
-    const { data: workspaces, error: errorWorkspace } = await supabaseAdmin
+    let workspaceReq = supabaseAdmin
       .from("workspaces")
       .select("id, last_poll, created_at, workspace_subscriptions!inner(id)")
       .or(`canceled_at.is.null,canceled_at.gte.NOW()`, {
@@ -25,6 +24,17 @@ export default inngest.createFunction(
       })
       .eq("installation_status", "DONE")
       .eq("polling_status", "NONE");
+
+    if (process.env.NODE_ENV === "development") {
+      workspaceReq = supabaseAdmin
+        .from("workspaces")
+        .select("id, last_poll, created_at, workspace_subscriptions(id)")
+        .eq("installation_status", "DONE")
+        .eq("polling_status", "NONE");
+    }
+
+    // Only paid workspaces that have no operation runing
+    const { data: workspaces, error: errorWorkspace } = await workspaceReq;
     if (errorWorkspace) {
       throw errorWorkspace;
     }

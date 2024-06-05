@@ -88,6 +88,9 @@ export default inngest.createFunction(
         })
         .eq("workspace_id", workspace.id)
         .eq("jobs_creation_executed", false);
+      if (errorUpdateItems) {
+        throw errorUpdateItems;
+      }
     } else {
       let areItemsRemaining = true;
       while (areItemsRemaining && remainingAllowedSteps > 0) {
@@ -129,6 +132,9 @@ export default inngest.createFunction(
             "id",
             itemsCreated.map((item) => item.id)
           );
+        if (errorUpdateItems) {
+          throw errorUpdateItems;
+        }
 
         remainingAllowedSteps--;
       }
@@ -145,6 +151,9 @@ export default inngest.createFunction(
         })
         .eq("workspace_id", workspace.id)
         .eq("jobs_update_executed", false);
+      if (errorUpdateItems) {
+        throw errorUpdateItems;
+      }
     } else {
       // And continue with creation and update jobs
       let areItemsRemaining = true;
@@ -156,6 +165,7 @@ export default inngest.createFunction(
           .eq("jobs_update_executed", false)
           .is("merged_in_distant_id", null)
           .limit(100);
+        // TODO: Should filter by only itemType where there is at least one job
         if (errorItems) {
           throw errorItems;
         }
@@ -187,6 +197,9 @@ export default inngest.createFunction(
             "id",
             itemsUpdated.map((item) => item.id)
           );
+        if (errorUpdateItems) {
+          throw errorUpdateItems;
+        }
 
         remainingAllowedSteps--;
       }

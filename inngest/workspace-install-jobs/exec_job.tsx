@@ -122,7 +122,9 @@ async function createJobLogs(
 
   const { error } = await supabaseAdmin
     .from("data_cleaning_job_logs")
-    .insert(jobLogs);
+    .upsert(jobLogs, {
+      onConflict: "workspace_id,data_cleaning_job_id,item_id",
+    });
 
   if (error) {
     throw error;
