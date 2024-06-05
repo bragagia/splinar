@@ -4,6 +4,12 @@ import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpButton } from "@/components/sp-button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Card, CardTitle } from "@/components/ui/card";
 import {
   DataCleaningJobTemplateT,
@@ -13,11 +19,10 @@ import { ItemTypeT, getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
-import { uuid } from "@/lib/uuid";
 import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
-import { TablesInsert, TablesUpdate } from "@/types/supabase";
+import { TablesInsert } from "@/types/supabase";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_CODE = `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
@@ -63,35 +68,42 @@ export default function DataCleaningPage() {
       });
   }, [supabase, workspace.id]);
 
-  const createJob = async () => {
-    const newJob: TablesInsert<"data_cleaning_jobs"> = {
-      id: uuid(),
-      workspace_id: workspace.id,
-      title: "New job",
-      target_item_type: "CONTACTS",
-      recurrence: "each-new-and-updated",
-      mode: "standard",
-      code: DEFAULT_CODE,
-    };
+  const createJob = useCallback(
+    async (
+      newJob: TablesInsert<"data_cleaning_jobs"> = {
+        workspace_id: workspace.id,
+        title: "New job",
+        target_item_type: "CONTACTS",
+        recurrence: "each-new-and-updated",
+        mode: "standard",
+        code: DEFAULT_CODE,
+      }
+    ) => {
+      console.log(newJob);
 
-    const { data, error } = await supabase
-      .from("data_cleaning_jobs")
-      .insert(newJob)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from("data_cleaning_jobs")
+        .insert(newJob)
+        .select()
+        .single();
 
-    if (error) {
-      captureException(error);
-      return;
-    }
+      if (error) {
+        captureException(error);
+        return;
+      }
 
-    const newCreatedJob: DataCleaningJobWithValidated = {
-      ...data,
-      data_cleaning_job_validated: [],
-    };
+      router.push(URLS.workspace(workspace.id).dataCleaningJob(data.id));
+    },
+    [router, supabase, workspace.id]
+  );
 
-    setJobs((jobs) => (jobs ? [...jobs, newCreatedJob] : [newCreatedJob]));
-  };
+  if (jobs === undefined) {
+    return (
+      <div className="w-full flex items-center justify-center h-52">
+        <Icons.spinner className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -136,33 +148,37 @@ export default function DataCleaningPage() {
               <DataCleaningJob key={i} job={job} />
             ))}
 
-            <SpButton variant="outline" onClick={createJob} icon={Icons.add}>
+            <SpButton
+              variant="outline"
+              onClick={async () => await createJob()}
+              icon={Icons.add}
+            >
               Create custom job
             </SpButton>
           </div>
         </div>
 
         <Card className="bg-gray-50 p-4 mt-8">
-          <div className="flex flex-col space-y-2">
-            <h3 className="text-xl font-semibold mb-3">Templates</h3>
+          <div className="flex flex-col">
+            <h3 className="text-xl font-semibold">Templates</h3>
 
-            {Object.keys(jobsTemplate).map((targetItemType, i) => (
-              <div key={i} className="flex flex-col">
-                <h4 className="text-md font-medium mb-1">
-                  {getItemTypeConfig(targetItemType as ItemTypeT).word}
-                </h4>
+            <Accordion type="single" collapsible>
+              {Object.keys(jobsTemplate).map((targetItemType, i) => (
+                <div key={i} className="flex flex-col pt-6">
+                  <h4 className="text-md font-medium mb-1">
+                    {getItemTypeConfig(targetItemType as ItemTypeT).word}
+                  </h4>
 
-                {jobsTemplate[targetItemType as ItemTypeT].map((job, j) => (
-                  <DataCleaningJobTemplate
-                    key={j}
-                    job={{
-                      title: job.title,
-                      target_item_type: targetItemType as ItemTypeT,
-                    }}
-                  />
-                ))}
-              </div>
-            ))}
+                  {jobsTemplate[targetItemType as ItemTypeT].map((job, j) => (
+                    <DataCleaningJobTemplate
+                      key={j}
+                      job={job}
+                      createJob={createJob}
+                    />
+                  ))}
+                </div>
+              ))}
+            </Accordion>
           </div>
         </Card>
       </div>
@@ -212,36 +228,45 @@ function DataCleaningJob({ job }: { job: DataCleaningJobWithValidated }) {
 
 function DataCleaningJobTemplate({
   job,
+  createJob,
 }: {
-  job: TablesUpdate<"data_cleaning_jobs">;
+  job: DataCleaningJobTemplateT;
+  createJob: (newJob: TablesInsert<"data_cleaning_jobs">) => Promise<void>;
 }) {
   const workspace = useWorkspace();
-  const router = useRouter();
 
   return (
-    <SpButton
-      variant="ghost"
+    <AccordionItem
       className="group/job-button px-3 py-2"
-      onClick={() => {}}
+      value={job.target_item_type + job.title}
     >
-      <div className="flex flex-row justify-between items-center w-full font-normal">
-        <div className="flex flex-row items-baseline gap-2">
-          {job.recurrence && (
-            <span className=" inline-flex gap-1 items-center">
-              {job.recurrence} <Icons.arrowRight className="w-3 h-3" />
-            </span>
-          )}
+      <AccordionTrigger>
+        <span className="text-sm font-normal">{job.title}</span>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="flex flex-col">
+          <p className="text-gray-500 text-sm italic">{job.description}</p>
 
-          <span className="text-sm">{job.title}</span>
+          <div className="flex flex-row justify-end">
+            <SpButton
+              className="mt-4"
+              onClick={async () =>
+                await createJob({
+                  workspace_id: workspace.id,
+                  title: job.title,
+                  target_item_type: job.target_item_type,
+                  recurrence: job.recurrence,
+                  mode: job.mode,
+                  code: job.code,
+                })
+              }
+            >
+              Preview and install
+            </SpButton>
+          </div>
         </div>
-
-        <div className="flex flex-row items-center gap-2">
-          <span className="opacity-50 group-hover/job-button:opacity-100">
-            <Icons.add className="w-4 h-4 text-gray-600" />
-          </span>
-        </div>
-      </div>
-    </SpButton>
+      </AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -253,7 +278,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Standardize phone numbers into international format. Note that this job also helps to detect duplicates.",
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
       }`,
@@ -264,7 +289,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Move social page URLs from the website field to the social media field.",
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
       }`,
@@ -275,7 +300,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
         return item;
       }`,
@@ -288,7 +313,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Standardize full names into a single field. This job also helps to detect duplicates.",
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
       }`,
@@ -299,7 +324,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Standardize phone numbers into international format. Note that this job also helps to detect duplicates.",
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
       }`,
@@ -310,7 +335,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Remove the dynamic part of email addresses, such as the '+tag'",
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
   return item;
       }`,
@@ -321,7 +346,7 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
         "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
-      mode: "standard",
+      mode: "expert",
       code: `function customJob(item: HubSpotItem): HubSpotItem {
         return item;
       }`,
