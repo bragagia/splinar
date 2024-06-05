@@ -131,7 +131,8 @@ export default inngest.createFunction(
           if (reset === "dup_stacks") {
             console.log("-> Marking item without similarities as dup_checked");
             const { error: error10 } = await supabaseAdmin.rpc(
-              "mark_items_without_similarities_as_dup_checked"
+              "mark_items_without_similarities_as_dup_checked",
+              { workspace_id_arg: workspaceId }
             );
             if (error10) throw error10;
           }

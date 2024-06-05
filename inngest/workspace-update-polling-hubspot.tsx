@@ -1,7 +1,11 @@
 import { getItemTypeConfig } from "@/lib/items_common";
-import { workspaceOperationIncrementStepsDone } from "@/lib/operations";
+import {
+  workspaceOperationEndStepHelper,
+  workspaceOperationIncrementStepsDone,
+  workspaceOperationOnFailureHelper,
+  workspaceOperationStartStepHelper,
+} from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { inngest } from "./client";
@@ -19,28 +23,23 @@ export default inngest.createFunction(
         limit: 1,
       },
     ],
+    onFailure: async ({ event, error }) => {
+      await workspaceOperationOnFailureHelper(
+        event.data.event.data.operationId,
+        "workspace-update-polling-hubspot",
+        event.data.error
+      );
+    },
   },
   { event: "workspace/update/polling/hubspot.start" },
   async ({ event, step, logger }) => {
-    const {
-      workspaceId,
-      operationId,
-      itemType,
-      startFilter,
-      endFilter,
-      after,
-    } = event.data;
+    const { supabaseAdmin, workspace, operation } =
+      await workspaceOperationStartStepHelper(
+        event.data.operationId,
+        "workspace-update-polling-hubspot"
+      );
 
-    const supabaseAdmin = newSupabaseRootClient();
-
-    const { data: workspace, error: errorWorkspace } = await supabaseAdmin
-      .from("workspaces")
-      .select()
-      .eq("id", workspaceId)
-      .single();
-    if (errorWorkspace) {
-      throw errorWorkspace;
-    }
+    const { itemType, startFilter, endFilter, after } = event.data;
 
     if (workspace.installation_status !== "DONE") {
       console.log("Workspace not installed", workspace.id);
@@ -94,21 +93,21 @@ export default inngest.createFunction(
         captureException(
           new Error(
             "Polling limit reached with same modified date as the first element, can't get the full range of modified items, workspace will need a reset: " +
-              workspaceId
+              workspace.id
           )
         ); // TODO:
 
         await supabaseAdmin
           .from("workspaces")
           .update({ last_poll: endFilter, polling_status: "NONE" }) // We set next poll to begin at the theoric end of the current poll and we ignore the missing data we can't get
-          .eq("id", workspaceId);
+          .eq("id", workspace.id);
       } else {
         // We start a new search with the last known modified at timestamp so the "after" parameter is reseted to zero
         await inngest.send({
           name: "workspace/update/polling/hubspot.start",
           data: {
-            workspaceId,
-            operationId,
+            workspaceId: workspace.id,
+            operationId: operation.id,
             itemType,
             startFilter: newStartFilter.toISOString(),
             endFilter,
@@ -122,8 +121,8 @@ export default inngest.createFunction(
       await inngest.send({
         name: "workspace/update/polling/hubspot.start",
         data: {
-          workspaceId,
-          operationId,
+          workspaceId: workspace.id,
+          operationId: operation.id,
           itemType,
           startFilter,
           endFilter,
@@ -131,19 +130,19 @@ export default inngest.createFunction(
         },
       });
     } else {
-      console.log("Polling end");
+      console.log("Polling last step");
 
       const remaining = await workspaceOperationIncrementStepsDone(
         supabaseAdmin,
-        operationId
+        operation.id
       );
 
       if (remaining === 0) {
         await inngest.send({
-          name: "workspace/install/similarities.start",
+          name: "workspace/install/jobs.start",
           data: {
-            workspaceId,
-            operationId,
+            workspaceId: workspace.id,
+            operationId: operation.id,
           },
         });
       }
@@ -151,7 +150,12 @@ export default inngest.createFunction(
       await supabaseAdmin
         .from("workspaces")
         .update({ last_poll: endFilter, polling_status: "NONE" })
-        .eq("id", workspaceId);
+        .eq("id", workspace.id);
     }
+
+    await workspaceOperationEndStepHelper(
+      operation,
+      "workspace-update-polling-hubspot"
+    );
   }
 );

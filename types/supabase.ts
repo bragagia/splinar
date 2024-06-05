@@ -9,39 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      data_cleaning_job_validated: {
+      data_cleaning_job_logs: {
         Row: {
-          code: string
+          accepted_at: string | null
           created_at: string
           data_cleaning_job_id: string
-          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
-          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types: string[]
+          data_cleaning_job_validated_id: string
+          id: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          new_value: Json
+          prev_value: Json
           workspace_id: string
         }
         Insert: {
-          code: string
+          accepted_at?: string | null
           created_at?: string
           data_cleaning_job_id: string
-          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
-          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types: string[]
+          data_cleaning_job_validated_id: string
+          id?: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          new_value: Json
+          prev_value: Json
           workspace_id: string
         }
         Update: {
+          accepted_at?: string | null
+          created_at?: string
+          data_cleaning_job_id?: string
+          data_cleaning_job_validated_id?: string
+          id?: string
+          item_id?: string
+          item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
+          new_value?: Json
+          prev_value?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_cleaning_job_logs_data_cleaning_job_id_fkey"
+            columns: ["data_cleaning_job_id"]
+            isOneToOne: false
+            referencedRelation: "data_cleaning_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_cleaning_job_logs_data_cleaning_job_validated_id_fkey"
+            columns: ["data_cleaning_job_validated_id"]
+            isOneToOne: false
+            referencedRelation: "data_cleaning_job_validated"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_cleaning_job_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_cleaning_job_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_cleaning_job_validated: {
+        Row: {
+          auto_accept_changes: boolean
+          code: string
+          created_at: string
+          data_cleaning_job_id: string
+          deleted_at: string | null
+          errored_message: string | null
+          errored_on_item_id: string | null
+          errored_timeout_or_fatal: boolean
+          id: string
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          workspace_id: string
+        }
+        Insert: {
+          auto_accept_changes?: boolean
+          code: string
+          created_at?: string
+          data_cleaning_job_id: string
+          deleted_at?: string | null
+          errored_message?: string | null
+          errored_on_item_id?: string | null
+          errored_timeout_or_fatal?: boolean
+          id?: string
+          mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
+          recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
+          target_item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
+          workspace_id: string
+        }
+        Update: {
+          auto_accept_changes?: boolean
           code?: string
           created_at?: string
           data_cleaning_job_id?: string
+          deleted_at?: string | null
+          errored_message?: string | null
+          errored_on_item_id?: string | null
+          errored_timeout_or_fatal?: boolean
+          id?: string
           mode?: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
           recurrence?: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types?: string[]
+          target_item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
           workspace_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "data_cleaning_job_validated_data_cleaning_job_id_fkey"
             columns: ["data_cleaning_job_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "data_cleaning_jobs"
             referencedColumns: ["id"]
           },
@@ -58,33 +144,36 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          deleted_at: string | null
           id: string
           last_execution: string | null
           mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
           recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types: string[]
+          target_item_type: Database["public"]["Enums"]["dup_stack_item_type"]
           title: string
           workspace_id: string
         }
         Insert: {
           code: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_execution?: string | null
           mode: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
           recurrence: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types: string[]
+          target_item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
           title: string
           workspace_id: string
         }
         Update: {
           code?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_execution?: string | null
           mode?: Database["public"]["Enums"]["data_cleaning_jobs_mode"]
           recurrence?: Database["public"]["Enums"]["data_cleaning_jobs_recurrence"]
-          target_item_types?: string[]
+          target_item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
           title?: string
           workspace_id?: string
         }
@@ -182,9 +271,12 @@ export type Database = {
           id: string
           id_seq: number
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          jobs_creation_executed: boolean
+          jobs_update_executed: boolean
           merged_at: string | null
           merged_in_distant_id: string | null
           similarity_checked: boolean
+          updated_at: string
           value: Json
           workspace_id: string
         }
@@ -196,9 +288,12 @@ export type Database = {
           id?: string
           id_seq?: number
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
+          jobs_creation_executed?: boolean
+          jobs_update_executed?: boolean
           merged_at?: string | null
           merged_in_distant_id?: string | null
           similarity_checked: boolean
+          updated_at?: string
           value: Json
           workspace_id: string
         }
@@ -210,9 +305,12 @@ export type Database = {
           id?: string
           id_seq?: number
           item_type?: Database["public"]["Enums"]["dup_stack_item_type"]
+          jobs_creation_executed?: boolean
+          jobs_update_executed?: boolean
           merged_at?: string | null
           merged_in_distant_id?: string | null
           similarity_checked?: boolean
+          updated_at?: string
           value?: Json
           workspace_id?: string
         }
@@ -631,6 +729,14 @@ export type Database = {
           month: string
           count: number
         }[]
+      }
+      items_bulk_edit_properties_json: {
+        Args: {
+          workspace_id_arg: string
+          items_updates: Json[]
+          should_update_similarities?: boolean
+        }
+        Returns: undefined
       }
       items_edit_property_json: {
         Args: {

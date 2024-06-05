@@ -4,8 +4,12 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
+import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/exec_job";
 import { getCompanyColumns } from "@/lib/companies";
-import { newHubspotClient } from "@/lib/hubspot";
+import {
+  convertOutputPropertyToHubspotProperty,
+  newHubspotClient,
+} from "@/lib/hubspot";
 import {
   DedupConfigT,
   areSimilaritiesSourceFieldsDifferent,
@@ -862,6 +866,7 @@ export async function contactsPollUpdater(
         companies: contactCompanies,
       },
       similarity_checked: false,
+      jobs_update_executed: false, // Note: We force update to false, but we let creation to existing value or default (= false)
       filled_score: 0, // Calculated below
     };
 
@@ -896,4 +901,33 @@ export async function contactsPollUpdater(
       (dbContacts[dbContacts.length - 1]?.value as any)?.lastmodifieddate ||
       null,
   };
+}
+
+export async function updateBulkContacts(
+  workspace: Tables<"workspaces">,
+  jobOutput: JobOutputByItemId
+) {
+  const hsClient = await newHubspotClient(workspace.refresh_token);
+
+  for (const itemId of Object.keys(jobOutput)) {
+    const hubspotFieldUpdates = Object.keys(jobOutput[itemId].Next).reduce(
+      (acc, fieldName) => {
+        acc[fieldName] = convertOutputPropertyToHubspotProperty(
+          jobOutput[itemId].Next[fieldName]
+        );
+        return acc;
+      },
+      {} as { [key: string]: string }
+    );
+
+    console.log("[Hubspot] Updating item", itemId, "with", hubspotFieldUpdates);
+
+    // Note: In case of error, we actually don't want to catch it here
+    const res = await hsClient.crm.contacts.basicApi.update(
+      jobOutput[itemId].distantId,
+      {
+        properties: hubspotFieldUpdates,
+      }
+    );
+  }
 }

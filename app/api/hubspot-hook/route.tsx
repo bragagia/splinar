@@ -126,6 +126,8 @@ async function processHubspotEvent(
         distant_id: objectId,
         filled_score: 0,
         similarity_checked: true,
+        dup_checked: true,
+        jobs_executed: false,
         value: {},
       });
       if (errorCreate) {
@@ -197,7 +199,7 @@ async function processHubspotEvent(
     case "product.merge":
     case "line_item.merge":
       const objectIds = event.mergedObjectIds?.map((id) => id.toString()) || [];
-      const mergedInId = event.primaryObjectId?.toString() || ""; // TODO: Fetch its data to update it there instead of polling ?
+      const mergedInId = event.primaryObjectId?.toString() || ""; // TODO: Fetch its data to update it there instead of polling ? + update jobs_update_executed to false
 
       const { data: items, error: itemMergeError } = await supabaseAdmin
         .from("items")
@@ -265,6 +267,11 @@ async function processHubspotEvent(
         .eq("item_type", itemType)
         .single();
       if (itemError2) {
+        if (itemError2.code === "PGRST116") {
+          console.log("Item not found", fromObjectId, itemType);
+          return;
+        }
+
         captureException(itemError2);
         return;
       }
@@ -287,7 +294,7 @@ async function processHubspotEvent(
         },
         should_update_similarities: isThisASimilaritySourceField(
           getItemTypeConfig(itemType),
-          "companies"
+          ["companies"]
         ),
       });
       if (error) {
@@ -338,7 +345,7 @@ async function processHubspotEvent(
           },
           should_update_similarities: isThisASimilaritySourceField(
             getItemTypeConfig(itemType),
-            property
+            [property]
           ),
         }
       );

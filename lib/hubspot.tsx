@@ -1,4 +1,5 @@
 import * as hubspot from "@hubspot/api-client";
+import IConfiguration from "@hubspot/api-client/lib/src/configuration/IConfiguration";
 
 export function setHubspotClientSearchLimit(client: hubspot.Client) {
   client.config.limiterOptions = {
@@ -12,7 +13,7 @@ export async function newHubspotClient(
   refreshToken: string,
   limiter: "search" | "default" = "default"
 ) {
-  let tmpClient = new hubspot.Client({
+  const config: IConfiguration = {
     limiterOptions:
       limiter === "search"
         ? {
@@ -25,7 +26,10 @@ export async function newHubspotClient(
             maxConcurrent: 6,
             id: "hubspot-client-limiter",
           },
-  });
+    numberOfApiCallRetries: 3,
+  };
+
+  let tmpClient = new hubspot.Client(config);
 
   let client = await tmpClient.oauth.tokensApi
     .create(
@@ -58,4 +62,18 @@ export async function newHubspotClient(
   }
 
   return client;
+}
+
+export function convertOutputPropertyToHubspotProperty(
+  outputProperty: string[] | string | null | undefined
+): string {
+  if (outputProperty === null || outputProperty === undefined) {
+    return "";
+  }
+
+  if (typeof outputProperty === "string") {
+    return outputProperty;
+  }
+
+  return outputProperty.join(";");
 }

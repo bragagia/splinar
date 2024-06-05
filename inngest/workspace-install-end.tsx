@@ -3,10 +3,12 @@ import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/b
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
   WorkspaceOperationUpdateStatus,
+  workspaceOperationEndStepHelper,
+  workspaceOperationOnFailureHelper,
+  workspaceOperationStartStepHelper,
 } from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
 import { getStripe } from "@/lib/stripe";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { mailPostInstall } from "@/ressources/mails/post-install";
 import dayjs from "dayjs";
 import { inngest } from "./client";
@@ -23,71 +25,36 @@ export default inngest.createFunction(
       },
     ],
     onFailure: async ({ event, error }) => {
-      const supabaseAdmin = newSupabaseRootClient();
-
-      const { data: operation, error: errorOperation } = await supabaseAdmin
-        .from("workspace_operations")
-        .select()
-        .eq("id", event.data.event.data.operationId)
-        .limit(1)
-        .single();
-      if (errorOperation || !operation) {
-        throw errorOperation || new Error("missing operation");
-      }
-
-      if (operation.ope_type === "WORKSPACE_INSTALL") {
-        await supabaseAdmin
-          .from("workspaces")
-          .update({
-            installation_status: "ERROR",
-          })
-          .eq("id", event.data.event.data.workspaceId);
-      }
-
-      await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
+      await workspaceOperationOnFailureHelper(
         event.data.event.data.operationId,
-        "ERROR",
-        {
-          error: event.data.error,
-        }
+        "workspace-install-end",
+        event.data.error
       );
     },
   },
   { event: "workspace/install/end.start" },
   async ({ event, step, logger }) => {
-    logger.info("# workspaceInstallEnd");
-    const { workspaceId, operationId } = event.data;
-
-    const supabaseAdmin = newSupabaseRootClient();
-
-    const { data: workspace, error: errorWorkspace } = await supabaseAdmin
-      .from("workspaces")
-      .select("*, user:users!inner(*)")
-      .eq("id", workspaceId)
-      .limit(1)
-      .single();
-    if (errorWorkspace) {
-      throw errorWorkspace;
-    }
+    const { supabaseAdmin, workspace, operation } =
+      await workspaceOperationStartStepHelper(
+        event.data.operationId,
+        "workspace-install-end"
+      );
 
     logger.info("-> Marking as done");
-
-    // Note bis: No idea why i thought that, but letting that note here for now just in case
 
     const { error: error } = await supabaseAdmin
       .from("workspaces")
       .update({
         installation_status: "DONE",
       })
-      .eq("id", workspaceId);
+      .eq("id", workspace.id);
     if (error) {
       throw error;
     }
 
     const subscription = await getWorkspaceCurrentSubscription(
       supabaseAdmin,
-      workspaceId
+      workspace.id
     );
 
     if (
@@ -105,7 +72,7 @@ export default inngest.createFunction(
 
       const workspaceUsage = await calcWorkspaceUsage(
         supabaseAdmin,
-        workspaceId
+        workspace.id
       );
 
       await stripe.subscriptionItems.createUsageRecord(
@@ -120,7 +87,7 @@ export default inngest.createFunction(
 
     await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
       supabaseAdmin,
-      operationId,
+      operation.id,
       "DONE"
     );
 
@@ -132,7 +99,7 @@ export default inngest.createFunction(
         .update({
           first_installed_at: dayjs().toISOString(),
         })
-        .eq("id", workspaceId);
+        .eq("id", workspace.id);
       if (error) {
         captureException(error);
       }
@@ -147,12 +114,22 @@ export default inngest.createFunction(
         return;
       }
 
+      const { data: user, error: errorUser } = await supabaseAdmin
+        .from("users")
+        .select("*")
+        .eq("id", workspace.user_id)
+        .limit(1)
+        .single();
+      if (errorUser) {
+        throw errorUser;
+      }
+
       await inngest.send({
         name: "send-mail.start",
-        data: mailPostInstall(workspace.user, count),
+        data: mailPostInstall(user, count),
       });
     }
 
-    logger.info("# workspaceInstallEnd - END");
+    await workspaceOperationEndStepHelper(operation, "workspace-install-end");
   }
 );

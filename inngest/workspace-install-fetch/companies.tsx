@@ -84,6 +84,8 @@ export async function fetchCompanies(
         item_type: "COMPANIES",
         value: deleteNullKeys(company.properties),
         similarity_checked: false,
+        jobs_creation_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
+        jobs_update_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
         filled_score: 0,
       };
 

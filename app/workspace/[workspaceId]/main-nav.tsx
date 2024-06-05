@@ -26,7 +26,7 @@ export function MainNav({
           })
         }
       >
-        Overview
+        1. Health check
       </NavLink>
 
       <NavLink
@@ -37,7 +37,7 @@ export function MainNav({
           })
         }
       >
-        1. Data cleaning
+        2. Data cleaning
       </NavLink>
 
       <NavLink
@@ -48,7 +48,7 @@ export function MainNav({
           })
         }
       >
-        2. Duplicates
+        3. Duplicates
       </NavLink>
 
       <NavLink

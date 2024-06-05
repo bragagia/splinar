@@ -14,6 +14,7 @@ function AlgoTest() {
     id: uuid(),
     id_seq: ++id,
     created_at: dayjs().toISOString(),
+    updated_at: dayjs().toISOString(),
     workspace_id: "abcd",
     item_type: "CONTACTS",
     distant_id: "",
@@ -21,6 +22,8 @@ function AlgoTest() {
     merged_at: null,
 
     similarity_checked: false,
+    jobs_creation_executed: false,
+    jobs_update_executed: false,
     dup_checked: false,
     filled_score: 0,
     value: "",

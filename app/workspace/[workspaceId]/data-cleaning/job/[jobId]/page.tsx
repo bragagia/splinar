@@ -13,18 +13,21 @@ import {
   SpIconButton,
 } from "@/components/sp-button";
 import {
-  Card,
-  CardContent,
-  CardGrayedContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Card, CardContent, CardGrayedContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MultiSelect } from "@/components/ui/multiselect";
 import {
@@ -49,12 +52,7 @@ import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { Tables, TablesUpdate } from "@/types/supabase";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import Document from "@tiptap/extension-document";
-import History from "@tiptap/extension-history";
-import Paragraph from "@tiptap/extension-paragraph";
-import Text from "@tiptap/extension-text";
-import { EditorContent, Extension, useEditor } from "@tiptap/react";
-import Link from "next/link";
+import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -174,49 +172,16 @@ export default function DataCleaningJobPage({
       job.code === jobValidated.code &&
       job.mode === jobValidated.mode &&
       job.recurrence === jobValidated.recurrence &&
-      job.target_item_types.length === jobValidated.target_item_types.length &&
-      job.target_item_types.every(function (value, index) {
-        return value === jobValidated.target_item_types[index];
-      })
+      job.target_item_type === jobValidated.target_item_type
     );
   }, [job, jobValidated]);
-
-  const titleEditor = useEditor(
-    {
-      extensions: [
-        Document,
-        Paragraph,
-        Text,
-        History,
-        Extension.create({
-          addKeyboardShortcuts(this) {
-            return {
-              Enter: () => {
-                updateJob({
-                  title: this.editor.getText(),
-                });
-                this.editor.commands.blur();
-                return true;
-              },
-            };
-          },
-        }),
-      ],
-      autofocus: false,
-      content: "",
-      onBlur({ editor, event }) {
-        updateJob({
-          title: editor.getText(),
-        });
-      },
-    },
-    [params.jobId]
-  );
 
   useEffect(() => {
     supabase
       .from("data_cleaning_jobs")
       .select("*, data_cleaning_job_validated(*)")
+      .is("deleted_at", null)
+      .is("data_cleaning_job_validated.deleted_at", null)
       .eq("workspace_id", workspace.id)
       .eq("id", params.jobId)
       .single()
@@ -226,18 +191,12 @@ export default function DataCleaningJobPage({
           return;
         }
 
-        setJobValidated(data?.data_cleaning_job_validated || undefined);
+        setJobValidated(data.data_cleaning_job_validated[0] || undefined);
         const tmp: any = data;
         delete tmp.data_cleaning_job_validated;
         setJob(tmp);
       });
   }, [supabase, workspace.id, params.jobId]);
-
-  useEffect(() => {
-    if (titleEditor && job) {
-      titleEditor.commands.setContent(job.title);
-    }
-  }, [titleEditor, job]);
 
   useEffect(() => {
     if (!debouncedJob) {
@@ -272,7 +231,10 @@ export default function DataCleaningJobPage({
   };
 
   const deleteJob = async () => {
-    await supabase.from("data_cleaning_jobs").delete().eq("id", params.jobId);
+    await supabase
+      .from("data_cleaning_jobs")
+      .update({ deleted_at: dayjs().toISOString() })
+      .eq("id", params.jobId);
     router.push(URLS.workspace(workspace.id).dataCleaning);
   };
 
@@ -287,14 +249,14 @@ export default function DataCleaningJobPage({
   }, [sampleItems, job?.code]);
 
   useEffect(() => {
-    if (!job?.target_item_types) {
+    if (!job) {
       return;
     }
 
     supabase
       .from("items")
       .select("*")
-      .in("item_type", job?.target_item_types)
+      .eq("item_type", job.target_item_type)
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .is("merged_in_distant_id", null)
@@ -307,7 +269,7 @@ export default function DataCleaningJobPage({
 
         setSampleItems(data || []);
       });
-  }, [supabase, workspace.id, job?.target_item_types]);
+  }, [supabase, workspace.id, job]);
 
   useEffect(() => {
     if (!monaco) return;
@@ -341,7 +303,7 @@ export default function DataCleaningJobPage({
       code: jobValidated.code,
       mode: jobValidated.mode,
       recurrence: jobValidated.recurrence,
-      target_item_types: jobValidated.target_item_types,
+      target_item_type: jobValidated.target_item_type,
     });
     setJobIsPersisted(true);
   };
@@ -353,7 +315,25 @@ export default function DataCleaningJobPage({
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Data cleaning</h2>
+        <div>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  href={URLS.workspace(workspace.id).dataCleaning}
+                >
+                  Data cleaning
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+
+              <BreadcrumbSeparator />
+
+              <BreadcrumbItem>
+                <BreadcrumbPage>{job.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
         <div className="flex flex-row gap-3">
           {!(jobValidated && jobIsUpToDate) &&
@@ -441,48 +421,42 @@ export default function DataCleaningJobPage({
 
       <div className="flex flex-col space-y-4">
         <Card>
-          <CardHeader>
-            <div className="flex flex-row justify-between items-center">
-              <CardTitle className="tracking-tight">
-                <Link href={URLS.workspace(workspace.id).dataCleaning}>
-                  <Icons.chevronLeft className="h-6 w-6 inline mb-1 text-gray-400 font-light" />
-                  My jobs
-                </Link>
-
-                <span className="text-gray-400 font-light mx-2">/</span>
-
-                {titleEditor ? (
-                  <div className="py-1 px-2 rounded-lg border border-transparent hover:border-gray-700 hover:border-opacity-20 focus-within:border-gray-700 focus-within:border-opacity-50 focus:bg-white hover:bg-white focus-within:bg-white hover:focus-within:border-opacity-50 hover:focus-within:border-gray-700 inline-block">
-                    <EditorContent
-                      className="inline-block"
-                      editor={titleEditor}
-                    />
-                  </div>
-                ) : (
-                  <p>{job.title}</p>
-                )}
-              </CardTitle>
-            </div>
-          </CardHeader>
-
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex flex-col space-y-2">
+              <div className="flex flex-row items-center gap-2">
+                <Label className="w-28">Title:</Label>
+                <Input
+                  type="text"
+                  value={job.title}
+                  onChange={(e) => {
+                    updateJob({
+                      title: e.target.value,
+                    });
+                  }}
+                  className="w-96 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
               <div className="flex flex-row items-center gap-2">
                 <Label className="w-28">Targets:</Label>
 
                 <div className="w-96">
-                  <MultiSelect
-                    options={[
-                      { label: "Contacts", value: "CONTACTS" },
-                      { label: "Companies", value: "COMPANIES" },
-                    ]}
-                    selected={job.target_item_types}
-                    onChange={(newTarget) => {
+                  <Select
+                    onValueChange={(value: ItemTypeT) => {
                       updateJob({
-                        target_item_types: newTarget as ItemTypeT[],
+                        target_item_type: value,
                       });
                     }}
-                  />
+                    value={job.target_item_type}
+                  >
+                    <SelectTrigger className="w-96">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CONTACTS">Contacts</SelectItem>
+                      <SelectItem value="COMPANIES">Companies</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -502,13 +476,12 @@ export default function DataCleaningJobPage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="each-new">On each new item</SelectItem>
-                      <SelectItem value="each-new-and-updated">
-                        On each new/updated item
+                      <SelectItem value="each-new">
+                        On each created item
                       </SelectItem>
-                      <SelectItem value="every-day">Every day</SelectItem>
-                      <SelectItem value="every-week">Every week</SelectItem>
-                      <SelectItem value="every-month">Every month</SelectItem>
+                      <SelectItem value="each-new-and-updated">
+                        On each created or updated item
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

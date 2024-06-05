@@ -42,6 +42,9 @@ const fakeDupstack: DupStackWithItemsT = {
       workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
       dup_type: "REFERENCE",
       item: {
+        jobs_creation_executed: true,
+        jobs_update_executed: true,
+        updated_at: "2024-01-07T16:28:38.933315+00:00",
         id: "66aca5b5-cc68-4628-aaff-2ec4da39120c",
         id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
@@ -78,6 +81,9 @@ const fakeDupstack: DupStackWithItemsT = {
       workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
       dup_type: "CONFIDENT",
       item: {
+        jobs_creation_executed: true,
+        jobs_update_executed: true,
+        updated_at: "2024-01-07T16:28:38.933315+00:00",
         id: "2f22a02e-8665-439d-8f4b-1d042c9cc3a0",
         id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
@@ -114,6 +120,9 @@ const fakeDupstack: DupStackWithItemsT = {
       workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
       dup_type: "CONFIDENT",
       item: {
+        jobs_creation_executed: true,
+        jobs_update_executed: true,
+        updated_at: "2024-01-07T16:28:38.933315+00:00",
         id: "14a339a2-ae65-4d75-9a5d-554bcfc67be7",
         id_seq: 1,
         created_at: "2024-01-07T16:28:38.933315+00:00",
@@ -150,6 +159,9 @@ const fakeDupstack: DupStackWithItemsT = {
       workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
       dup_type: "POTENTIAL",
       item: {
+        jobs_creation_executed: true,
+        jobs_update_executed: true,
+        updated_at: "2024-01-07T16:28:38.933315+00:00",
         id: "c39169ac-60cd-402e-aed4-71bbdc6d8797",
         id_seq: 1,
         created_at: "2024-01-07T16:28:39.125803+00:00",
@@ -186,6 +198,9 @@ const fakeDupstack: DupStackWithItemsT = {
       workspace_id: "6a96d8e3-2fee-48c0-ac4d-8bcc7796f126",
       dup_type: "POTENTIAL",
       item: {
+        jobs_creation_executed: true,
+        jobs_update_executed: true,
+        updated_at: "2024-01-07T16:28:38.933315+00:00",
         id: "da7d198d-1f4c-490f-86f1-0fb98cf38110",
         id_seq: 1,
         created_at: "2024-01-07T16:28:39.125803+00:00",

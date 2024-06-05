@@ -6,10 +6,11 @@ import { getItemTypesList } from "@/lib/items_common";
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
   workspaceOperationAddStep,
+  workspaceOperationEndStepHelper,
+  workspaceOperationOnFailureHelper,
+  workspaceOperationStartStepHelper,
   workspaceOperationUpdateMetadata,
-  WorkspaceOperationUpdateStatus,
 } from "@/lib/operations";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 import dayjs from "dayjs";
 import { inngest } from "./client";
 
@@ -25,69 +26,40 @@ export default inngest.createFunction(
       },
     ],
     onFailure: async ({ event, error }) => {
-      const supabaseAdmin = newSupabaseRootClient();
-
-      const { data: operation, error: errorOperation } = await supabaseAdmin
-        .from("workspace_operations")
-        .select()
-        .eq("id", event.data.event.data.operationId)
-        .limit(1)
-        .single();
-      if (errorOperation || !operation) {
-        throw errorOperation || new Error("missing operation");
-      }
-
-      if (operation.ope_type === "WORKSPACE_INSTALL") {
-        await supabaseAdmin
-          .from("workspaces")
-          .update({
-            installation_status: "ERROR",
-          })
-          .eq("id", event.data.event.data.workspaceId);
-      }
-
-      await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
+      await workspaceOperationOnFailureHelper(
         event.data.event.data.operationId,
-        "ERROR",
-        {
-          error: event.data.error,
-        }
+        "workspace-install-similarities",
+        event.data.error
       );
     },
   },
   { event: "workspace/install/similarities.start" },
   async ({ event, step, logger }) => {
-    logger.info("# workspaceSimilaritiesLaunch");
-    const { workspaceId, operationId } = event.data;
+    const { secondRun } = event.data;
 
-    const supabaseAdmin = newSupabaseRootClient();
+    const { supabaseAdmin, workspace, operation } =
+      await workspaceOperationStartStepHelper<OperationWorkspaceInstallOrUpdateMetadata>(
+        event.data.operationId,
+        "workspace-install-similarities"
+      );
 
-    const { data: workspace, error: errorWorkspace } = await supabaseAdmin
-      .from("workspaces")
-      .select()
-      .eq("id", workspaceId)
-      .limit(1)
-      .single();
-    if (errorWorkspace || !workspace) {
-      throw errorWorkspace || new Error("missing workspace");
-    }
-
-    await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
-      supabaseAdmin,
-      operationId,
-      {
-        steps: {
-          similarities: {
-            startedAt: dayjs().toISOString(),
+    if (!secondRun) {
+      await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+        supabaseAdmin,
+        operation.id,
+        {
+          steps: {
+            similarities: {
+              startedAt: dayjs().toISOString(),
+            },
           },
-        },
-      }
-    );
+        }
+      );
+    }
 
     const workspaceSubscription = await getWorkspaceCurrentSubscription(
       supabaseAdmin,
-      workspaceId
+      workspace.id
     );
 
     let isFreeTier = false;
@@ -95,16 +67,23 @@ export default inngest.createFunction(
       isFreeTier = true;
     }
 
+    let hasMore = false;
     let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
     for (var itemType of getItemTypesList()) {
-      const ret = await launchWorkspaceSimilaritiesBatches(
-        supabaseAdmin,
-        workspaceId,
-        operationId,
-        isFreeTier,
-        itemType
-      );
-      payloads.push(...ret);
+      const { hasMore: hasMoreOfItemType, payloads: payloadsOfItemType } =
+        await launchWorkspaceSimilaritiesBatches(
+          supabaseAdmin,
+          workspace.id,
+          operation.id,
+          isFreeTier,
+          itemType
+        );
+
+      payloads.push(...payloadsOfItemType);
+
+      if (hasMoreOfItemType) {
+        hasMore = true;
+      }
     }
 
     if (payloads.length === 0) {
@@ -112,7 +91,7 @@ export default inngest.createFunction(
 
       await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
         supabaseAdmin,
-        operationId,
+        operation.id,
         {
           steps: {
             similarities: {
@@ -125,8 +104,8 @@ export default inngest.createFunction(
       await inngest.send({
         name: "workspace/install/dupstacks.start",
         data: {
-          workspaceId: workspaceId,
-          operationId: operationId,
+          workspaceId: workspace.id,
+          operationId: operation.id,
         },
       });
 
@@ -135,24 +114,43 @@ export default inngest.createFunction(
 
     await workspaceOperationAddStep<OperationWorkspaceInstallOrUpdateMetadata>(
       supabaseAdmin,
-      operationId,
+      operation.id,
       payloads.length,
       {
         steps: {
           similarities: {
-            total: payloads.length,
+            total:
+              payloads.length +
+              (operation.metadata.steps.similarities?.total || 0),
             batchesStartedAt: dayjs().toISOString(),
           },
         },
       }
     );
 
+    if (hasMore) {
+      logger.info("More similarities to launch");
+
+      await inngest.send({
+        name: "workspace/install/similarities.start",
+        data: {
+          workspaceId: workspace.id,
+          operationId: operation.id,
+          secondRun: true,
+        },
+      });
+    }
+
     console.log("Sending", payloads.length, "batches");
     for (var i = 0; i < payloads.length; i += INNGEST_MAX_EVENT_PER_PAYLOAD) {
-      console.log("Sending batch", i);
+      if (i > 0) console.log("Sending batches group ", i);
+
       await inngest.send(payloads.slice(i, i + INNGEST_MAX_EVENT_PER_PAYLOAD));
     }
 
-    logger.info("# workspaceSimilaritiesLaunch - END");
+    await workspaceOperationEndStepHelper(
+      operation,
+      "workspace-install-similarities"
+    );
   }
 );

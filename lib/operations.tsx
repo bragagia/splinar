@@ -2,6 +2,7 @@ import { DeepPartial } from "@/lib/deep_partial";
 import { mergeDeep } from "@/lib/merge_deep";
 import { captureException } from "@/lib/sentry";
 import { sleep } from "@/lib/sleep";
+import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { uuid } from "@/lib/uuid";
 import {
   Database,
@@ -26,6 +27,10 @@ export type OperationWorkspaceInstallOrUpdateMetadata = {
     polling?: {
       startedAt: string;
       total: number;
+    };
+    jobs?: {
+      startedAt: string;
+      jobCount: number;
     };
 
     // Common
@@ -217,4 +222,92 @@ async function _internalUpdateGeneric<T>(
   if (errorUpdate) {
     throw errorUpdate;
   }
+}
+
+export async function workspaceOperationOnFailureHelper(
+  operationId: string,
+  stepName: string,
+  errorData?: any
+) {
+  const supabaseAdmin = newSupabaseRootClient();
+
+  const { data: operation, error: errorOperation } = await supabaseAdmin
+    .from("workspace_operations")
+    .select()
+    .eq("id", operationId)
+    .limit(1)
+    .single();
+  if (errorOperation || !operation) {
+    throw errorOperation || new Error("missing operation");
+  }
+
+  if (operation.ope_type === "WORKSPACE_INSTALL") {
+    await supabaseAdmin
+      .from("workspaces")
+      .update({
+        installation_status: "ERROR",
+      })
+      .eq("id", operation.workspace_id);
+  }
+
+  await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
+    supabaseAdmin,
+    operationId,
+    "ERROR",
+    {
+      error: errorData,
+    }
+  );
+
+  console.log(
+    `##### FAILURE ${stepName} - Workspace: ${operation.workspace_id} - Operation: ${operation.id}`
+  );
+}
+
+export async function workspaceOperationStartStepHelper<T = Json>(
+  operationId: string,
+  stepName: string
+) {
+  const supabaseAdmin = newSupabaseRootClient();
+
+  const { data: operationDb, error: errorOperation } = await supabaseAdmin
+    .from("workspace_operations")
+    .select("*, workspace:workspaces!inner(*)")
+    .eq("id", operationId)
+    .limit(1)
+    .single();
+  if (errorOperation) {
+    throw errorOperation;
+  }
+
+  if (operationDb.ope_status === "ERROR") {
+    throw new Error(
+      `##### ABORT ${stepName} - Workspace: ${operationDb.workspace_id} - Operation: ${operationDb.id} -> Operation in error, aborting step`
+    );
+  }
+
+  const workspace = operationDb.workspace;
+  const operation = {
+    ...operationDb,
+    workspace: undefined,
+  };
+
+  console.log(
+    `##### START ${stepName} - Workspace: ${workspace.id} - Operation: ${operation.id}`
+  );
+
+  return {
+    supabaseAdmin,
+    operation: { ...operation, metadata: operation.metadata as T },
+    workspace,
+  };
+}
+
+export async function workspaceOperationEndStepHelper(
+  operation: Tables<"workspace_operations">,
+  stepName: string
+) {
+  console.log(
+    `##### END ${stepName} - Workspace: ${operation.workspace_id} - Operation: ${operation.id}`
+  );
 }

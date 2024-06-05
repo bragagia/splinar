@@ -13,6 +13,9 @@ export const URLS = {
     dashboard: `/workspace/${workspaceId}/dashboard`,
 
     dataCleaning: `/workspace/${workspaceId}/data-cleaning`,
+    dataCleaningReview: (filterByJobId?: string) =>
+      `/workspace/${workspaceId}/data-cleaning/review` +
+      (filterByJobId ? `?jobId=${filterByJobId}` : ""),
     dataCleaningJob: (jobId: string) =>
       `/workspace/${workspaceId}/data-cleaning/job/${jobId}`,
 

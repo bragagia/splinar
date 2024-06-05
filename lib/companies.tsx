@@ -6,7 +6,10 @@ import {
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
-import { newHubspotClient } from "@/lib/hubspot";
+import {
+  convertOutputPropertyToHubspotProperty,
+  newHubspotClient,
+} from "@/lib/hubspot";
 import {
   DedupConfigT,
   areSimilaritiesSourceFieldsDifferent,
@@ -27,6 +30,7 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
 
+import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/exec_job";
 import { SupabaseClient } from "@supabase/supabase-js";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
@@ -823,6 +827,7 @@ export async function companiesPollUpdater(
       item_type: "COMPANIES",
       value: deleteNullKeys(company.properties),
       similarity_checked: false,
+      jobs_update_executed: false, // Note: We force update to false, but we let creation to existing value or default (= false)
       filled_score: 0,
     };
 
@@ -857,4 +862,33 @@ export async function companiesPollUpdater(
       (dbCompanies[dbCompanies.length - 1]?.value as any)
         ?.hs_lastmodifieddate || null,
   };
+}
+
+export async function updateBulkCompanies(
+  workspace: Tables<"workspaces">,
+  jobOutput: JobOutputByItemId
+) {
+  const hsClient = await newHubspotClient(workspace.refresh_token);
+
+  for (const itemId of Object.keys(jobOutput)) {
+    const hubspotFieldUpdates = Object.keys(jobOutput[itemId].Next).reduce(
+      (acc, fieldName) => {
+        acc[fieldName] = convertOutputPropertyToHubspotProperty(
+          jobOutput[itemId].Next[fieldName]
+        );
+        return acc;
+      },
+      {} as { [key: string]: string }
+    );
+
+    console.log("[Hubspot] Updating item", itemId, "with", hubspotFieldUpdates);
+
+    // Note: In case of error, we actually don't want to catch it here
+    const res = await hsClient.crm.companies.basicApi.update(
+      jobOutput[itemId].distantId,
+      {
+        properties: hubspotFieldUpdates,
+      }
+    );
+  }
 }

@@ -5,6 +5,7 @@ import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 export const SIMILARITIES_BATCH_SIZE = 1000;
 export const FREE_TIER_BATCH_LIMIT = 5;
+const MAX_PAYLOADS_PER_EXEC = 2000;
 
 export async function launchWorkspaceSimilaritiesBatches(
   supabase: SupabaseClient<Database>,
@@ -18,6 +19,21 @@ export async function launchWorkspaceSimilaritiesBatches(
   let batchLength = 0;
 
   let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
+
+  const { error: errorNoItemsToCheck } = await supabase
+    .from("items")
+    .select("id")
+    .is("merged_in_distant_id", null)
+    .eq("item_type", itemType)
+    .eq("workspace_id", workspaceId)
+    .eq("similarity_checked", false)
+    .limit(1)
+    .single();
+  if (errorNoItemsToCheck) {
+    console.log("No items to check", itemType);
+    return { hasMore: false, payloads };
+  }
+
   let installedBatchesIds = await listInstalledBatches(
     supabase,
     workspaceId,
@@ -26,7 +42,7 @@ export async function launchWorkspaceSimilaritiesBatches(
 
   if (isFreeTier && installedBatchesIds.length >= FREE_TIER_BATCH_LIMIT) {
     console.log("Free tier limit reached");
-    return payloads;
+    return { hasMore: false, payloads };
   }
 
   do {
@@ -86,13 +102,17 @@ export async function launchWorkspaceSimilaritiesBatches(
       throw errorMark;
     }
 
+    if (payloads.length >= MAX_PAYLOADS_PER_EXEC) {
+      return { hasMore: true, payloads };
+    }
+
     installedBatchesIds.push(batchIds);
   } while (
     batchLength === SIMILARITIES_BATCH_SIZE &&
     !(isFreeTier && installedBatchesIds.length >= FREE_TIER_BATCH_LIMIT)
   );
 
-  return payloads;
+  return { hasMore: false, payloads };
 }
 
 async function listInstalledBatches(

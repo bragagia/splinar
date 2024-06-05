@@ -1,5 +1,3 @@
-import dataCleaningJob from "@/inngest/data-cleaning-job";
-import dataCleaningJobBatch from "@/inngest/data-cleaning-job-batch";
 import mondayRecap from "@/inngest/monday-recap";
 import sendMail from "@/inngest/send-mail";
 import workspaceInstall from "@/inngest/workspace-install";
@@ -7,6 +5,7 @@ import workspaceInstallDupStacks from "@/inngest/workspace-install-dupstacks";
 import workspaceInstallEnd from "@/inngest/workspace-install-end";
 import workspaceInstallFetchCompanies from "@/inngest/workspace-install-fetch-companies";
 import workspaceInstallFetchContacts from "@/inngest/workspace-install-fetch-contacts";
+import workspaceInstallJobs from "@/inngest/workspace-install-jobs";
 import workspaceInstallSimilarities from "@/inngest/workspace-install-similarities";
 import workspaceInstallSimilaritiesBatch from "@/inngest/workspace-install-similarities-batch";
 import workspaceItemsMergeAll from "@/inngest/workspace-items-merge-all";
@@ -19,11 +18,10 @@ export const functions = [
   workspaceInstallDupStacks,
   workspaceInstallEnd,
   workspaceItemsMergeAll,
+  workspaceInstallJobs,
   workspaceInstallFetchCompanies,
   workspaceInstallFetchContacts,
   workspaceInstallSimilarities,
-  dataCleaningJob,
-  dataCleaningJobBatch,
   workspaceUpdateAll,
   workspaceUpdatePollingHubspot,
   sendMail,

@@ -4,10 +4,10 @@ import {
 } from "@/inngest/workspace-install-dupstacks/count";
 import { resolveNextDuplicatesStack } from "@/inngest/workspace-install-dupstacks/resolve-next-dup-stack";
 import {
-  OperationWorkspaceInstallOrUpdateMetadata,
-  WorkspaceOperationUpdateStatus,
+  workspaceOperationEndStepHelper,
+  workspaceOperationOnFailureHelper,
+  workspaceOperationStartStepHelper,
 } from "@/lib/operations";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { Database } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { inngest } from "./client";
@@ -24,50 +24,26 @@ export default inngest.createFunction(
       },
     ],
     onFailure: async ({ event, error }) => {
-      const supabaseAdmin = newSupabaseRootClient();
-
-      const { data: operation, error: errorOperation } = await supabaseAdmin
-        .from("workspace_operations")
-        .select()
-        .eq("id", event.data.event.data.operationId)
-        .limit(1)
-        .single();
-      if (errorOperation || !operation) {
-        throw errorOperation || new Error("missing operation");
-      }
-
-      if (operation.ope_type === "WORKSPACE_INSTALL") {
-        await supabaseAdmin
-          .from("workspaces")
-          .update({
-            installation_status: "ERROR",
-          })
-          .eq("id", event.data.event.data.workspaceId);
-      }
-
-      await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
+      await workspaceOperationOnFailureHelper(
         event.data.event.data.operationId,
-        "ERROR",
-        {
-          error: event.data.error,
-        }
+        "workspace-install-dupstacks",
+        event.data.error
       );
     },
   },
   { event: "workspace/install/dupstacks.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId, operationId } = event.data;
-
-    logger.info("# Workspace dups install", workspaceId);
-
-    const supabaseAdmin = newSupabaseRootClient();
+    const { supabaseAdmin, workspace, operation } =
+      await workspaceOperationStartStepHelper(
+        event.data.operationId,
+        "workspace-install-dupstacks"
+      );
 
     if (!event.data.secondRun) {
       await workspaceInstallDupstackFirstRun(
         supabaseAdmin,
-        workspaceId,
-        operationId
+        workspace.id,
+        operation.id
       );
     }
 
@@ -80,13 +56,13 @@ export default inngest.createFunction(
     while (hasMore) {
       const hasFoundContact = await resolveNextDuplicatesStack(
         supabaseAdmin,
-        workspaceId
+        workspace.id
       );
       if (!hasFoundContact) {
         await updateDupStackInstallationDone(
           supabaseAdmin,
-          workspaceId,
-          operationId
+          workspace.id,
+          operation.id
         );
 
         hasMore = false;
@@ -99,8 +75,8 @@ export default inngest.createFunction(
       if (counter % intervalCallback === 0 || elapsed >= 15000) {
         await updateDupStackInstallationDone(
           supabaseAdmin,
-          workspaceId,
-          operationId
+          workspace.id,
+          operation.id
         );
       }
 
@@ -113,8 +89,8 @@ export default inngest.createFunction(
       await inngest.send({
         name: "workspace/install/dupstacks.start",
         data: {
-          workspaceId: workspaceId,
-          operationId: operationId,
+          workspaceId: workspace.id,
+          operationId: operation.id,
           secondRun: true,
         },
       });
@@ -122,13 +98,16 @@ export default inngest.createFunction(
       await inngest.send({
         name: "workspace/install/end.start",
         data: {
-          workspaceId: workspaceId,
-          operationId: operationId,
+          workspaceId: workspace.id,
+          operationId: operation.id,
         },
       });
     }
 
-    logger.info("# Workspace dups install", workspaceId, "- END");
+    await workspaceOperationEndStepHelper(
+      operation,
+      "workspace-install-dupstacks"
+    );
   }
 );
 

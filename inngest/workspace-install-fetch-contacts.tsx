@@ -1,10 +1,10 @@
 import { fetchContacts } from "@/inngest/workspace-install-fetch/contacts";
 import { newHubspotClient } from "@/lib/hubspot";
 import {
-  OperationWorkspaceInstallOrUpdateMetadata,
-  WorkspaceOperationUpdateStatus,
+  workspaceOperationEndStepHelper,
+  workspaceOperationOnFailureHelper,
+  workspaceOperationStartStepHelper,
 } from "@/lib/operations";
-import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
@@ -19,44 +19,20 @@ export default inngest.createFunction(
       },
     ],
     onFailure: async ({ event, error }) => {
-      const supabaseAdmin = newSupabaseRootClient();
-
-      await supabaseAdmin
-        .from("workspaces")
-        .update({
-          installation_status: "ERROR",
-        })
-        .eq("id", event.data.event.data.workspaceId);
-      await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
+      await workspaceOperationOnFailureHelper(
         event.data.event.data.operationId,
-        "ERROR",
-        {
-          error: event.data.error,
-        }
+        "workspace-install-fetch-contacts",
+        event.data.error
       );
     },
   },
   { event: "workspace/install/fetch/contacts.start" },
   async ({ event, step, logger }) => {
-    const { workspaceId, operationId } = event.data;
-
-    logger.info("# Workspace contacts fetch", workspaceId);
-
-    const supabaseAdmin = newSupabaseRootClient();
-
-    let { data: workspace, error: workspaceError } = await supabaseAdmin
-      .from("workspaces")
-      .select()
-      .eq("id", workspaceId)
-      .limit(1)
-      .single();
-    if (workspaceError) {
-      throw workspaceError;
-    }
-    if (!workspace) {
-      throw new Error("Missing workspace");
-    }
+    const { supabaseAdmin, workspace, operation } =
+      await workspaceOperationStartStepHelper(
+        event.data.operationId,
+        "workspace-install-fetch-contacts"
+      );
 
     let hsClient = await newHubspotClient(workspace.refresh_token);
 
@@ -64,10 +40,13 @@ export default inngest.createFunction(
       hsClient,
       supabaseAdmin,
       workspace.id,
-      operationId,
+      operation.id,
       event.data.after
     );
 
-    logger.info("# Workspace contacts fetch", workspaceId, "- END");
+    await workspaceOperationEndStepHelper(
+      operation,
+      "workspace-install-fetch-contacts"
+    );
   }
 );

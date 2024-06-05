@@ -93,6 +93,8 @@ export async function fetchContacts(
           companies: contactCompanies,
         },
         similarity_checked: false,
+        jobs_creation_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
+        jobs_update_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
         filled_score: 0, // Calculated below
       };
 

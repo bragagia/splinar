@@ -4,14 +4,12 @@ import { useUser } from "@/app/workspace/[workspaceId]/user-context";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import { SpButton } from "@/components/sp-button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardGrayedContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DataCleaningJobTemplateT,
+  dataCleaningJobRecurrenceToString,
+} from "@/lib/data_cleaning_jobs";
+import { ItemTypeT, getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
@@ -21,17 +19,25 @@ import { TablesInsert, TablesUpdate } from "@/types/supabase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const DEFAULT_CODE = `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+}`;
+
 export default function DataCleaningPage() {
+  const router = useRouter();
   const workspace = useWorkspace();
   const user = useUser();
   const supabase = newSupabaseBrowserClient();
   const [jobs, setJobs] = useState<DataCleaningJobWithValidated[]>();
+  const [jobLogsCount, setJobLogsCount] = useState<number | null>(null);
 
   useEffect(() => {
     supabase
       .from("data_cleaning_jobs")
       .select("*, data_cleaning_job_validated(*)")
       .eq("workspace_id", workspace.id)
+      .is("deleted_at", null)
+      .is("data_cleaning_job_validated.deleted_at", null)
       .then(({ data, error }) => {
         if (error) {
           captureException(error);
@@ -40,6 +46,21 @@ export default function DataCleaningPage() {
 
         setJobs(data);
       });
+
+    supabase
+      .from("data_cleaning_job_logs")
+      .select("*", { count: "exact" })
+      .eq("workspace_id", workspace.id)
+      .is("accepted_at", null)
+      .limit(0)
+      .then(({ count, error }) => {
+        if (error) {
+          captureException(error);
+          return;
+        }
+
+        setJobLogsCount(count);
+      });
   }, [supabase, workspace.id]);
 
   const createJob = async () => {
@@ -47,12 +68,10 @@ export default function DataCleaningPage() {
       id: uuid(),
       workspace_id: workspace.id,
       title: "New job",
-      target_item_types: [],
+      target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
       mode: "standard",
-      code: `function customJob(item: Item): Item {
-  return item;
-}`,
+      code: DEFAULT_CODE,
     };
 
     const { data, error } = await supabase
@@ -68,14 +87,14 @@ export default function DataCleaningPage() {
 
     const newCreatedJob: DataCleaningJobWithValidated = {
       ...data,
-      data_cleaning_job_validated: null,
+      data_cleaning_job_validated: [],
     };
 
     setJobs((jobs) => (jobs ? [...jobs, newCreatedJob] : [newCreatedJob]));
   };
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col gap-8">
       {user.role !== "SUPERADMIN" && process.env.NODE_ENV !== "development" && (
         <div className="absolute top-16 z-30 left-0 w-screen h-screen bg-gray-100/40 backdrop-blur-md">
           <p className="mt-40 w-full text-center text-4xl font-bold text-gray-400">
@@ -84,70 +103,67 @@ export default function DataCleaningPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Data cleaning</h2>
-      </div>
+      <div className="flex flex-col space-y-8">
+        <SpButton
+          variant="full"
+          colorClass={jobLogsCount ? "orange" : "black"}
+          onClick={() => {
+            router.push(URLS.workspace(workspace.id).dataCleaningReview());
+          }}
+        >
+          <div className="m-4 flex flex-row justify-between w-full items-center">
+            <span className="font-medium">
+              {jobLogsCount
+                ? `You've got ${jobLogsCount} item changes to review`
+                : "No item changes to review"}
+            </span>
 
-      <div className="flex flex-col space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>My jobs</CardTitle>
-          </CardHeader>
+            <Icons.arrowRight className="w-4 h-4" />
+          </div>
+        </SpButton>
 
-          <CardContent className="flex flex-col space-y-4">
-            <div className="flex flex-col space-y-2">
-              {jobs?.length === 0 && (
-                <div className="text-gray-500 italic">
-                  No jobs yet. Create one to start cleaning your data.
-                </div>
-              )}
+        <div className="flex flex-col space-y-4">
+          <CardTitle>Jobs</CardTitle>
 
-              {jobs?.map((job, i) => (
-                <DataCleaningJob key={i} job={job} />
-              ))}
-            </div>
+          <div className="flex flex-col space-y-2">
+            {jobs?.length === 0 && (
+              <div className="text-gray-500 italic">
+                No jobs yet. Create one to start cleaning your data.
+              </div>
+            )}
+
+            {jobs?.map((job, i) => (
+              <DataCleaningJob key={i} job={job} />
+            ))}
 
             <SpButton variant="outline" onClick={createJob} icon={Icons.add}>
               Create custom job
             </SpButton>
-          </CardContent>
+          </div>
+        </div>
 
-          <CardGrayedContent>
-            <h3 className="text-md font-semibold mb-2">Templates</h3>
+        <Card className="bg-gray-50 p-4 mt-8">
+          <div className="flex flex-col space-y-2">
+            <h3 className="text-xl font-semibold mb-3">Templates</h3>
 
-            <div className="flex flex-col space-y-2">
-              <DataCleaningJobTemplate
-                job={{
-                  title: "Standardize full names",
-                  target_item_types: ["Contacts"],
-                }}
-              />
-              <DataCleaningJobTemplate
-                job={{
-                  title: "Standardize phone numbers",
-                  target_item_types: ["Companies", "Contacts"],
-                }}
-              />
-              <DataCleaningJobTemplate
-                job={{
-                  title: "Cleanup social page misplaced in website",
-                  target_item_types: ["Companies"],
-                }}
-              />
-              <DataCleaningJobTemplate
-                job={{
-                  title: "Remove email adresses dynamic part",
-                  target_item_types: ["Contacts"],
-                }}
-              />
-              <DataCleaningJobTemplate
-                job={{
-                  title: "Remove obviously wrong data",
-                  target_item_types: ["All"],
-                }}
-              />
-            </div>
-          </CardGrayedContent>
+            {Object.keys(jobsTemplate).map((targetItemType, i) => (
+              <div key={i} className="flex flex-col">
+                <h4 className="text-md font-medium mb-1">
+                  {getItemTypeConfig(targetItemType as ItemTypeT).word}
+                </h4>
+
+                {jobsTemplate[targetItemType as ItemTypeT].map((job, j) => (
+                  <DataCleaningJobTemplate
+                    key={j}
+                    job={{
+                      title: job.title,
+                      target_item_type: targetItemType as ItemTypeT,
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
     </div>
@@ -168,26 +184,19 @@ function DataCleaningJob({ job }: { job: DataCleaningJobWithValidated }) {
     >
       <div className="flex flex-row justify-between items-center w-full">
         <div className="flex flex-row items-baseline gap-2">
-          {job.recurrence && (
-            <span className=" inline-flex gap-1 items-center">
-              {job.recurrence} <Icons.arrowRight className="w-3 h-3" />
-            </span>
-          )}
-
           <span className="text-sm">{job.title}</span>
 
-          {job.target_item_types?.map((entity, i) => (
-            <Badge variant="outline" key={i}>
-              {entity}
-            </Badge>
-          ))}
+          <span className="text-gray-500 text-xs font-light">
+            {dataCleaningJobRecurrenceToString(job.recurrence)}{" "}
+            {getItemTypeConfig(job.target_item_type).wordSingular}
+          </span>
         </div>
 
         <div className="flex flex-row items-center gap-2">
-          {job.data_cleaning_job_validated ? (
+          {job.data_cleaning_job_validated.length > 0 ? (
             <span className="text-xs font-semibold text-gray-800">Enabled</span>
           ) : (
-            <span className="text-xs font-semibold text-gray-400">
+            <span className="text-xs font-semibold text-gray-300">
               Disabled
             </span>
           )}
@@ -215,7 +224,7 @@ function DataCleaningJobTemplate({
       className="group/job-button px-3 py-2"
       onClick={() => {}}
     >
-      <div className="flex flex-row justify-between items-center w-full">
+      <div className="flex flex-row justify-between items-center w-full font-normal">
         <div className="flex flex-row items-baseline gap-2">
           {job.recurrence && (
             <span className=" inline-flex gap-1 items-center">
@@ -224,12 +233,6 @@ function DataCleaningJobTemplate({
           )}
 
           <span className="text-sm">{job.title}</span>
-
-          {job.target_item_types?.map((entity, i) => (
-            <Badge variant="outline" key={i}>
-              {entity}
-            </Badge>
-          ))}
         </div>
 
         <div className="flex flex-row items-center gap-2">
@@ -241,3 +244,87 @@ function DataCleaningJobTemplate({
     </SpButton>
   );
 }
+
+const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
+  COMPANIES: [
+    {
+      title: "Standardize phone numbers",
+      description:
+        "Standardize phone numbers into international format. Note that this job also helps to detect duplicates.",
+      target_item_type: "COMPANIES",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+      }`,
+    },
+    {
+      title: "Cleanup social page misplaced in website",
+      description:
+        "Move social page URLs from the website field to the social media field.",
+      target_item_type: "COMPANIES",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+      }`,
+    },
+    {
+      title: "Remove obviously wrong data",
+      description:
+        "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
+      target_item_type: "COMPANIES",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+        return item;
+      }`,
+    },
+  ],
+  CONTACTS: [
+    {
+      title: "Standardize full names",
+      description:
+        "Standardize full names into a single field. This job also helps to detect duplicates.",
+      target_item_type: "CONTACTS",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+      }`,
+    },
+    {
+      title: "Standardize phone numbers",
+      description:
+        "Standardize phone numbers into international format. Note that this job also helps to detect duplicates.",
+      target_item_type: "CONTACTS",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+      }`,
+    },
+    {
+      title: "Remove email adresses dynamic part",
+      description:
+        "Remove the dynamic part of email addresses, such as the '+tag'",
+      target_item_type: "CONTACTS",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+  return item;
+      }`,
+    },
+    {
+      title: "Remove obviously wrong data",
+      description:
+        "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
+      target_item_type: "CONTACTS",
+      recurrence: "each-new-and-updated",
+      mode: "standard",
+      code: `function customJob(item: HubSpotItem): HubSpotItem {
+        return item;
+      }`,
+    },
+  ],
+};

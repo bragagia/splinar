@@ -35,7 +35,15 @@ export type WorkspaceInstallSimilaritiesStart = {
   data: {
     workspaceId: string;
     operationId: string;
-    after?: string;
+    secondRun?: boolean;
+  };
+};
+
+export type WorkspaceInstallJobsStart = {
+  name: "workspace/install/jobs.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
   };
 };
 
@@ -135,6 +143,7 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallSimilaritiesBatchStart
   | WorkspaceInstallDupStacksStart
   | WorkspaceInstallEndStart
+  | WorkspaceInstallJobsStart
   | WorkspaceInstallSimilaritiesStart
   | WorkspaceUpdatePollingHubspotStart
   | WorkspaceUpdateAllStart

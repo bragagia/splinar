@@ -9,12 +9,18 @@ import {
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
+import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/exec_job";
 import {
   companiesDedupConfig,
   companiesPollUpdater,
   getCompanyColumns,
+  updateBulkCompanies,
 } from "@/lib/companies";
-import { contactsDedupConfig, contactsPollUpdater } from "@/lib/contacts";
+import {
+  contactsDedupConfig,
+  contactsPollUpdater,
+  updateBulkContacts,
+} from "@/lib/contacts";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { captureException } from "@/lib/sentry";
 import { URLS } from "@/lib/urls";
@@ -32,6 +38,7 @@ import dayjs, { Dayjs } from "dayjs";
 export type ItemTypeT = "COMPANIES" | "CONTACTS";
 
 export type ItemConfig = {
+  wordSingular: string;
   word: string;
   pollUpdater: (
     supabase: SupabaseClient<Database>,
@@ -48,6 +55,10 @@ export type ItemConfig = {
     newValue: TablesInsert<"workspaces">["contacts_operation_status"],
     workspace?: Tables<"workspaces">
   ) => TablesUpdate<"workspaces">;
+  distantUpdateBulk: (
+    workspace: Tables<"workspaces">,
+    jobOutput: JobOutputByItemId
+  ) => Promise<void>;
 };
 
 export type itemPollUpdaterT = {
@@ -63,6 +74,7 @@ export function getItemTypesList(): ItemTypeT[] {
 export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
   if (itemType === "COMPANIES") {
     return {
+      wordSingular: "company",
       word: "companies",
 
       pollUpdater: companiesPollUpdater,
@@ -81,9 +93,12 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
         newValue: TablesInsert<"workspaces">["contacts_operation_status"],
         workspace?: Tables<"workspaces">
       ) => ({ ...workspace, companies_operation_status: newValue }),
+
+      distantUpdateBulk: updateBulkCompanies,
     };
   } else {
     return {
+      wordSingular: "contact",
       word: "contacts",
 
       pollUpdater: contactsPollUpdater,
@@ -102,6 +117,8 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
         newValue: TablesInsert<"workspaces">["contacts_operation_status"],
         workspace?: Tables<"workspaces">
       ) => ({ ...workspace, contacts_operation_status: newValue }),
+
+      distantUpdateBulk: updateBulkContacts,
     };
   }
 }
@@ -831,16 +848,66 @@ export function areSimilaritiesSourceFieldsDifferent(
 
 export function isThisASimilaritySourceField(
   itemTypeConfig: ItemConfig,
-  field: string
+  fields: string[]
 ) {
   const fieldNames = itemTypeConfig.dedupConfig.fields.reduce((acc, field) => {
     acc.push(...field.sources);
     return acc;
   }, [] as string[]);
 
-  const uniqueFieldNames = fieldNames.filter(
-    (value, index, self) => self.indexOf(value) === index
+  for (let field of fields) {
+    if (fieldNames.includes(field)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export type ObjectWithId = {
+  id: string;
+};
+
+export function getById<T extends ObjectWithId>(
+  items: T[]
+): { [key: string]: T } {
+  let ret: { [key: string]: T } = {};
+
+  items.forEach((item) => {
+    ret[item.id] = item;
+  });
+
+  return ret;
+}
+
+export async function bulkUpdateItems(
+  supabaseAdmin: SupabaseClient<Database>,
+  workspace: Tables<"workspaces">,
+  itemType: ItemTypeT,
+  jobOutput: JobOutputByItemId
+) {
+  const itemTypeConfig = getItemTypeConfig(itemType);
+
+  const bulkJsonUpdate = Object.keys(jobOutput).map((itemId) => {
+    return {
+      id: itemId,
+      json_update: jobOutput[itemId].Next,
+      should_update_similarities: isThisASimilaritySourceField(
+        itemTypeConfig,
+        Object.keys(jobOutput[itemId].Next) // Correspond to the fields that were edited
+      ),
+    };
+  });
+
+  const { error: errorUpdateItems } = await supabaseAdmin.rpc(
+    "items_bulk_edit_properties_json",
+    {
+      workspace_id_arg: workspace.id,
+      items_updates: bulkJsonUpdate,
+    }
   );
 
-  return uniqueFieldNames.some((fieldName) => fieldName === field);
+  if (errorUpdateItems) {
+    throw errorUpdateItems;
+  }
 }

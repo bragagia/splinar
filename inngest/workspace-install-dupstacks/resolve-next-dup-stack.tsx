@@ -27,14 +27,14 @@ export async function resolveNextDuplicatesStack(
 
   isDemo: boolean = false
 ): Promise<boolean> {
-  console.log("## Resolving next dupstack");
+  console.log("\n### Resolving next dupstack");
 
   const startTime = performance.now();
 
   let referenceItem: ItemWithSimilaritiesType;
 
   if (startWithItem) {
-    console.log("Starting with item", startWithItem.id);
+    console.log("-> Starting with item", startWithItem.id);
     referenceItem = startWithItem;
   } else {
     const { existingDupstackIds, item } = await fetchNextReference(
@@ -43,6 +43,7 @@ export async function resolveNextDuplicatesStack(
     );
 
     if (!item) {
+      console.log("No item found to resolve next dupstack");
       return false;
     }
 
@@ -94,15 +95,15 @@ export async function resolveNextDuplicatesStack(
     isChildOfPotentialDup: boolean,
     depth: number = 0
   ) {
-    const prefix = "·".repeat(depth + 1);
+    const prefix = "·".repeat(depth + 1) + " ";
 
     console.log(
-      prefix + "Adding childs to stack",
-      parentId,
-      isChildOfPotentialDup
+      prefix +
+        `-> addChildsToStack, parent: ${parentId}, isChildOfPotentialDup: ${isChildOfPotentialDup}`
     );
     let { parentItem, similarItems } = await fetchSortedSimilar(
       supabase,
+      prefix,
       workspaceId,
       itemsCacheById,
       parentId
@@ -120,21 +121,19 @@ export async function resolveNextDuplicatesStack(
     console.log(prefix + "Similar items: ", similarItems.length, "items");
 
     for (let similarItem of similarItems) {
-      console.log("Checking similar item", similarItem.id);
-
       const isInDupstack =
         dupStack.confident_ids.find((id) => similarItem.id === id) ||
         dupStack.potential_ids.find((id) => similarItem.id === id);
 
       if (isInDupstack) {
-        console.log("Item already in dupstack", similarItem.id);
         continue;
       }
 
       let dupStatus = areItemsDups(parentItem, similarItem);
-      console.log("Dup status", dupStatus);
 
       if (dupStatus !== false) {
+        console.log(prefix + "New similar item", similarItem.id);
+
         const isMoreFilledThanReference =
           similarItem.filled_score > referenceItem.filled_score;
         const isSameFilledThanReferenceAndIdIsLower =
@@ -201,12 +200,10 @@ export async function resolveNextDuplicatesStack(
   } catch (newReferenceItem) {
     if (isAT(newReferenceItem)) {
       console.log(
-        "########### [PERF] resolveNextDupStack FIRST ATTEMPT:",
+        "[PERF] resolveNextDuplicatesStack - RESTARTING with new reference:",
         Math.round(performance.now() - startTime),
         "ms"
       );
-
-      console.log("##### Starting again with new reference");
 
       return await resolveNextDuplicatesStack(
         supabase,
@@ -251,7 +248,7 @@ export async function resolveNextDuplicatesStack(
   }
 
   console.log(
-    "########### [PERF] resolveNextDupStack:",
+    "[PERF] resolveNextDupStack:",
     Math.round(performance.now() - startTime),
     "ms"
   );
@@ -289,7 +286,7 @@ async function deleteExistingDupstacks(
 
   if (!existingDupStacksIds || existingDupStacksIds.length === 0) {
     console.log(
-      "########### [PERF] resolveNextDupStack:",
+      "[PERF] deleteExistingDupstacks:",
       Math.round(performance.now() - startTime),
       "ms"
     );
@@ -343,7 +340,7 @@ async function deleteExistingDupstacks(
   });
   if (itemsToMarkUnchecked.length === 0) {
     console.log(
-      "########### [PERF] resolveNextDupStack:",
+      "[PERF] deleteExistingDupstacks:",
       Math.round(performance.now() - startTime),
       "ms"
     );
@@ -367,7 +364,7 @@ async function deleteExistingDupstacks(
   });
 
   console.log(
-    "########### [PERF] deleteExistingDupstacks:",
+    "[PERF] deleteExistingDupstacks:",
     Math.round(performance.now() - startTime),
     "ms"
   );
@@ -438,7 +435,7 @@ async function fetchNextReference(
   }
 
   console.log(
-    "### [PERF] fetchNextContactReference:",
+    "[PERF] fetchNextContactReference:",
     Math.round(performance.now() - startTime),
     "ms"
   );
@@ -451,6 +448,7 @@ async function fetchNextReference(
 
 export async function fetchSortedSimilar(
   supabase: SupabaseClient<Database>,
+  prefix: string,
   workspaceId: string,
   contactsCacheById: {
     [key: string]: ItemWithSimilaritiesType;
@@ -466,7 +464,6 @@ export async function fetchSortedSimilar(
     similarItems: [] as ItemWithSimilaritiesType[],
   };
 
-  console.log("Get cached contacts");
   const similarContactsIds = parentContact.similarities.reduce(
     (acc, similarity) => {
       const similarID =
@@ -484,8 +481,6 @@ export async function fetchSortedSimilar(
     [] as string[]
   );
 
-  console.log("Similar contacts ids", similarContactsIds.length);
-
   let similarContactsIdsToFetch: string[] = [];
 
   similarContactsIds.forEach((id, i) => {
@@ -498,8 +493,6 @@ export async function fetchSortedSimilar(
     }
   });
 
-  console.log("Similar contacts to fetch", similarContactsIdsToFetch.length);
-
   if (similarContactsIdsToFetch.length > 0) {
     let fetchedContactsRaw: ItemWithRawSimilaritiesType[] = [];
 
@@ -509,7 +502,7 @@ export async function fetchSortedSimilar(
       i += SUPABASE_FILTER_MAX_SIZE
     ) {
       console.log(
-        "Fetching similar contacts",
+        prefix + "Fetching similar contacts",
         i,
         similarContactsIdsToFetch.length
       );
@@ -526,14 +519,12 @@ export async function fetchSortedSimilar(
           similarContactsIdsToFetch.slice(i, i + SUPABASE_FILTER_MAX_SIZE)
         );
       if (error) {
-        console.log("error fetching", error);
+        console.log(prefix + "error fetching", error);
         throw error;
       }
 
       fetchedContactsRaw.push(...data);
     }
-
-    console.log("Done fetching");
 
     const fetchedContacts = fetchedContactsRaw.map((raw_contact) => {
       const { similarities_a, similarities_b, ...contact } = {
@@ -555,7 +546,7 @@ export async function fetchSortedSimilar(
   res.similarItems.sort((a, b) => b.filled_score - a.filled_score);
 
   console.log(
-    "### [PERF] fetchSimilarSortedByFillScore:",
+    prefix + "[PERF] fetchSimilarSortedByFillScore:",
     Math.round(performance.now() - startTime),
     "ms"
   );
@@ -627,7 +618,7 @@ async function createDupstack(
   }
 
   console.log(
-    "### [PERF] createDupstack:",
+    "[PERF] createDupstack:",
     Math.round(performance.now() - startTime),
     "ms"
   );
@@ -654,7 +645,7 @@ async function markDupstackElementsAsDupChecked(
   }
 
   console.log(
-    "### [PERF] markDupstackElementsAsDupChecked:",
+    "[PERF] markDupstackElementsAsDupChecked:",
     Math.round(performance.now() - startTime),
     "ms"
   );
