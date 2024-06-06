@@ -114,29 +114,9 @@ export async function customJobExecutorSA(
 
 function safeStringify(value: any) {
   // Handle null and undefined explicitly
-  if (value === null) return "null";
-  if (value === undefined) return "undefined";
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  if (typeof value === "string") return value;
 
-  // Handle circular references
-  const seen = new WeakSet();
-  const replacer = (key: any, val: any) => {
-    if (typeof val === "object" && val !== null) {
-      if (seen.has(val)) {
-        return "[Circular]";
-      }
-      seen.add(val);
-    }
-    return val;
-  };
-
-  try {
-    return JSON.stringify(value, replacer);
-  } catch (e) {
-    // Fallback for non-serializable values
-    try {
-      return String(value);
-    } catch (e) {
-      return "[Unable to convert to string]";
-    }
-  }
+  return "ERROR: a field value should be null or a string";
 }
