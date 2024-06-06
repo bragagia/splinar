@@ -1,15 +1,10 @@
 "use server";
 
 import { inngest } from "@/inngest";
-import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function workspaceInstall(workspaceId: string) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const {
     data: { session },

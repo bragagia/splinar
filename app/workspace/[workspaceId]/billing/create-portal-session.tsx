@@ -2,17 +2,12 @@
 
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { getStripe } from "@/lib/stripe";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
-import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function createPortalSession(workspace_id: string) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const stripe = getStripe();
   if (!stripe) {

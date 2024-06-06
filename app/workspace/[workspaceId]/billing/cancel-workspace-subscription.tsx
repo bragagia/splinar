@@ -3,17 +3,13 @@
 import { handleSubscriptionUpdatedOrCreated } from "@/app/workspace/[workspaceId]/billing/handle-subscription-update-or-created";
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { getStripe } from "@/lib/stripe";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
 import Stripe from "stripe";
 
 export async function cancelWorkspaceSubscription(workspace_id: string) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const stripe = getStripe();
   if (!stripe) {

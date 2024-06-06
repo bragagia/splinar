@@ -50,6 +50,10 @@ export type OperationWorkspaceInstallOrUpdateMetadata = {
   error?: any;
 };
 
+export type OperationGenericMetadata = {
+  error?: any;
+};
+
 export async function workspaceOperationIncrementStepsDone(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string
@@ -250,7 +254,7 @@ export async function workspaceOperationOnFailureHelper(
       .eq("id", operation.workspace_id);
   }
 
-  await WorkspaceOperationUpdateStatus<OperationWorkspaceInstallOrUpdateMetadata>(
+  await WorkspaceOperationUpdateStatus<OperationGenericMetadata>(
     supabaseAdmin,
     operationId,
     "ERROR",

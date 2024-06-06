@@ -106,31 +106,18 @@ export type ItemsMergeAllStart = {
   };
 };
 
-// DATA CLEANING
+// Jobs
 
-export type DataCleaningMasterDailyStart = {
-  name: "data-cleaning/master/daily.start";
+export type JobExecOnAllItemsStart = {
+  name: "job/exec-on-all-items.start";
   data: {
     workspaceId: string;
+    operationId: string;
+    dataCleaningValidatedJobId: string;
   };
 };
 
-export type DataCleaningJobFullDBStart = {
-  name: "data-cleaning/job-fulldb.start";
-  data: {
-    workspaceId: string;
-    jobId: string;
-  };
-};
-
-export type DataCleaningJobBatchStart = {
-  name: "data-cleaning/job/batch.start";
-  data: {
-    workspaceId: string;
-    jobId: string;
-    itemIds: string[];
-  };
-};
+// Mail
 
 export type SendMailStart = {
   name: "send-mail.start";
@@ -149,8 +136,6 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceUpdatePollingHubspotStart
   | WorkspaceUpdateAllStart
   | ItemsMergeAllStart
-  | DataCleaningMasterDailyStart
-  | DataCleaningJobFullDBStart
-  | DataCleaningJobBatchStart
+  | JobExecOnAllItemsStart
   | SendMailStart
 >();

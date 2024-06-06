@@ -1,6 +1,6 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "CodeGPT.apiKey": "CodeGPT Plus Beta",
+  "CodeGPT.apiKey": "CodeGPT Plus",
   "restoreTerminals.terminals": [
     {
       "splitTerminals": [
@@ -18,7 +18,7 @@
       "splitTerminals": [
         {
           "name": "next",
-          "commands": ["npm run next-dev"]
+          "commands": ["npm run next-dev-turbo"]
         },
         {
           "name": "cmd"

@@ -2,19 +2,14 @@
 
 import { inngest } from "@/inngest";
 import { ItemTypeT } from "@/lib/items_common";
-import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function itemsMergeAllSA(
   workspaceId: string,
   itemType: ItemTypeT,
   includePotentials: boolean
 ) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   let { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")

@@ -30,7 +30,7 @@ import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
 import { Tables } from "@/types/supabase";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { MergeDeep } from "type-fest";
@@ -44,13 +44,13 @@ type JobsByIdT = { [key: string]: DataCleaningJobWithValidated };
 
 export default function DataCleaningReviewPage() {
   const supabase = newSupabaseBrowserClient();
-  const router = useRouter();
 
   const workspace = useWorkspace();
 
   const searchParams = useSearchParams();
 
   const jobId = searchParams.get("jobId");
+  const isJobSubpage = !!jobId;
 
   const [jobFilter, setJobFilter] = useState<string>(jobId ?? "all");
 
@@ -151,40 +151,52 @@ export default function DataCleaningReviewPage() {
       </div>
 
       <div className="flex flex-row items-center justify-between mb-4 gap-2">
-        <Select
-          onValueChange={(value: string) => {
-            setJobLogs(null);
-            setNextCursor(undefined);
-            setHasMore(true);
+        {!isJobSubpage && (
+          <Select
+            onValueChange={(value: string) => {
+              setJobLogs(null);
+              setNextCursor(undefined);
+              setHasMore(true);
 
-            setJobFilter(value);
+              setJobFilter(value);
+            }}
+            value={jobFilter || "all"}
+          >
+            <SelectTrigger className="w-96">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All jobs</SelectItem>
 
-            router.push(URLS.workspace(workspace.id).dataCleaningReview(value));
-          }}
-          value={jobFilter || "all"}
-        >
-          <SelectTrigger className="w-96">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All jobs</SelectItem>
+              {Object.values(jobsById).map((job) => (
+                <SelectItem key={job.id} value={job.id}>
+                  {job.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
-            {Object.values(jobsById).map((job) => (
-              <SelectItem key={job.id} value={job.id}>
-                {job.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <span>{/* To always have the button on right */}</span>
 
         {jobFilter !== "all" && (
-          <SpButton
-            onClick={async () => {
-              await fetchNextPageWrapper();
-            }}
-          >
-            Accept all changes from job &quot;{jobsById[jobFilter]?.title}&quot;
-          </SpButton>
+          <div className="flex flex-row gap-2">
+            <SpButton
+              onClick={async () => {
+                await fetchNextPageWrapper();
+              }}
+            >
+              Discard all changes of this job
+            </SpButton>
+
+            <SpButton
+              onClick={async () => {
+                await fetchNextPageWrapper();
+              }}
+            >
+              Accept all changes of this job
+            </SpButton>
+          </div>
         )}
       </div>
 
@@ -249,35 +261,32 @@ function JobLogCard({
   return (
     <div className="w-full py-2 border-b border-gray-300">
       <div className="flex flex-row items-center">
-        <div className="grid grid-cols-2 items-center w-full gap-2">
-          <div className="flex flex-row items-center gap-1 text-sm">
-            <div className="flex">
-              <Link
-                href={URLS.workspace(workspace.id).dataCleaningJob(
-                  jobLog.data_cleaning_job_id
-                )}
-              >
-                {jobsById[jobLog.data_cleaning_job_id]?.title}
-              </Link>
-            </div>
+        <div className="grid grid-cols-5 items-center w-full gap-2">
+          <div className="flex text-xs">
+            <Link
+              href={URLS.workspace(workspace.id).dataCleaningJob(
+                jobLog.data_cleaning_job_id
+              )}
+            >
+              {jobsById[jobLog.data_cleaning_job_id]?.title}
+            </Link>
+          </div>
 
-            <Icons.chevronRight className="w-3 h-3" />
-
-            <div className="mt-1">
-              <HubspotLinkButton
-                href={getItemTypeConfig(jobLog.item_type).getHubspotURL(
-                  workspace.hub_id,
-                  jobLog.item.distant_id
-                )}
-              >
-                {(jobLog.item.value as any).firstname ||
-                  (jobLog.item.value as any).name ||
-                  jobLog.item.distant_id}
-              </HubspotLinkButton>
-            </div>
+          <div className="mt-1 text-xs">
+            <HubspotLinkButton
+              href={getItemTypeConfig(jobLog.item_type).getHubspotURL(
+                workspace.hub_id,
+                jobLog.item.distant_id
+              )}
+            >
+              {getItemTypeConfig(jobLog.item_type).getItemDisplayString(
+                jobLog.item
+              )}
+            </HubspotLinkButton>
           </div>
 
           <ValueDiff
+            className="col-span-3"
             prev={jobLog.prev_value as ItemFieldsT}
             next={jobLog.new_value as ItemFieldsT}
           />
@@ -318,42 +327,52 @@ function ValueDiff({
   next: ItemFieldsT;
 }) {
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div
+      className={cn("grid grid-cols-5 gap-x-2 items-center text-sm", className)}
+    >
       {Object.entries(next).map(([fieldKey, fieldNextValue], i) => {
         const fieldPrevValue = prev[fieldKey];
 
         return (
-          <div key={i} className="flex flex-row items-center space-x-2">
-            <div className="text-sm text-gray-500 font-bold">{fieldKey}:</div>
+          <>
+            <span className="text-gray-500 font-bold text-right">
+              {fieldKey}:{" "}
+            </span>
 
-            <div className="flex flex-row gap-1 items-center text-sm">
-              <div className="flex flex-col space-y-2">
-                {fieldPrevValue === null || fieldPrevValue == undefined ? (
-                  "-"
+            <div className="text-right col-span-2">
+              <span>
+                {fieldPrevValue === null ||
+                fieldPrevValue === undefined ||
+                fieldPrevValue === "" ? (
+                  <span className="text-gray-500 italic">
+                    Empty{fieldPrevValue === "" && " string"}
+                  </span>
                 ) : (
-                  <div>
-                    {fieldPrevValue || (
-                      <span className="text-gray-300">empty string</span>
-                    )}
-                  </div>
+                  <span>{fieldPrevValue}</span>
                 )}
-              </div>
+              </span>
+            </div>
 
-              <Icons.arrowRight className="h-3 w-3" />
+            <div className="flex flex-row gap-2 items-center col-span-2">
+              <Icons.arrowRight className="h-3 w-3 shrink-0" />
 
               <div className="flex flex-col p-1 rounded-md">
                 {fieldNextValue === null ||
                 fieldNextValue === undefined ||
                 fieldNextValue === "" ? (
-                  <span className="text-gray-500 italic">Empty</span>
+                  <span className="text-gray-500 italic">
+                    Empty{fieldNextValue === "" && " string"}
+                  </span>
                 ) : (
                   <span>{fieldNextValue}</span>
                 )}
               </div>
             </div>
-          </div>
+          </>
         );
       })}
     </div>
   );
 }
+
+// TODO: Display empty string as "Empty string" in the diff

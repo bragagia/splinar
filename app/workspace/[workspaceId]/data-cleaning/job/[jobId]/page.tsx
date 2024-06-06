@@ -3,6 +3,7 @@
 import {
   disableDataCleaningJob,
   enableOrUpdateDataCleaningJob,
+  execJobOnAllItems,
 } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverEnableOrUpdateJob";
 import {
   JobExecutionOutputWithInput,
@@ -58,6 +59,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ItemTypeT,
+  getItemTypeConfig,
   itemFieldValuesAreEqual,
 } from "../../../../../../lib/items_common";
 
@@ -70,66 +72,6 @@ const typeDef = `type HubSpotItem = {
 };
 
 declare function stringSimScore(string1: string, string2: string): number;`;
-
-// TODO: Remove
-const hubspotSourceFields = [
-  {
-    value: "firstname",
-    label: "First name",
-  },
-  {
-    value: "lastname",
-    label: "Last name",
-  },
-  {
-    value: "name",
-    label: "Name",
-  },
-  {
-    value: "domain",
-    label: "Domain",
-  },
-  {
-    value: "website",
-    label: "Website",
-  },
-  {
-    value: "linkedin_company_page",
-    label: "LinkedIn",
-  },
-  {
-    value: "phone",
-    label: "Phone",
-  },
-  {
-    value: "address",
-    label: "Address",
-  },
-  {
-    value: "zip",
-    label: "Zip",
-  },
-  {
-    value: "city",
-    label: "City",
-  },
-  {
-    value: "state",
-    label: "State",
-  },
-  {
-    value: "country",
-    label: "Country",
-  },
-  {
-    value: "facebook_company_page",
-    label: "Facebook",
-  },
-  {
-    value: "twitterhandle",
-    label: "Twitter",
-  },
-];
 
 type jobModeT = "standard" | "expert";
 
@@ -159,6 +101,8 @@ export default function DataCleaningJobPage({
 
   const debouncedJob = useDebounce(job, 400);
   const [jobIsPersisted, setJobIsPersisted] = useState<boolean | undefined>();
+
+  const [jobLogsCount, setJobLogsCount] = useState<number | null>(null);
 
   const [sampleItems, setSampleItems] = useState<Tables<"items">[]>([]);
   const [sampleOutput, setSampleOutput] =
@@ -196,6 +140,22 @@ export default function DataCleaningJobPage({
         const tmp: any = data;
         delete tmp.data_cleaning_job_validated;
         setJob(tmp);
+      });
+
+    supabase
+      .from("data_cleaning_job_logs")
+      .select("*", { count: "exact" })
+      .eq("workspace_id", workspace.id)
+      .eq("data_cleaning_job_id", params.jobId)
+      .is("accepted_at", null)
+      .limit(0)
+      .then(({ count, error }) => {
+        if (error) {
+          captureException(error);
+          return;
+        }
+
+        setJobLogsCount(count);
       });
   }, [supabase, workspace.id, params.jobId]);
 
@@ -374,15 +334,30 @@ export default function DataCleaningJobPage({
               )}
             </div>
           ) : (
-            <SpButton
+            <SpConfirmButton
               variant="full"
               onClick={async () => {
                 await enableOrUpdateJob();
               }}
+              confirmDescription={`This will enable the job on all future ${
+                getItemTypeConfig(job.target_item_type).word
+              } changes. You will be able to review the changes before they are applied.`}
             >
               Enable
-            </SpButton>
+            </SpConfirmButton>
           )}
+
+          <SpConfirmButton
+            variant="full"
+            onClick={async () => {
+              await execJobOnAllItems(params.jobId);
+            }}
+            confirmDescription={`This will start the execution of this job on all ${
+              getItemTypeConfig(job.target_item_type).word
+            } items. You will be able to review the changes before they are applied.`}
+          >
+            Execute job on all {getItemTypeConfig(job.target_item_type).word}
+          </SpConfirmButton>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -419,6 +394,28 @@ export default function DataCleaningJobPage({
           </DropdownMenu>
         </div>
       </div>
+
+      {jobLogsCount ? (
+        <SpButton
+          variant="full"
+          colorClass={jobLogsCount ? "orange" : "black"}
+          onClick={() => {
+            router.push(
+              URLS.workspace(workspace.id).dataCleaningReview(job.id)
+            );
+          }}
+        >
+          <div className="m-4 flex flex-row justify-between w-full items-center">
+            <span className="font-medium">
+              {`There is ${jobLogsCount} item changes from this job to review`}
+            </span>
+
+            <Icons.arrowRight className="w-4 h-4" />
+          </div>
+        </SpButton>
+      ) : (
+        <></>
+      )}
 
       <div className="flex flex-col space-y-4">
         <Card>

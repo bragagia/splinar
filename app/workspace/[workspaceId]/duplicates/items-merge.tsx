@@ -3,6 +3,7 @@
 import { newHubspotClient } from "@/lib/hubspot";
 import { getItemTypeConfig } from "@/lib/items_common";
 import { captureException } from "@/lib/sentry";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import {
   DupStackWithItemsT,
   getDupstackConfidents,
@@ -12,12 +13,8 @@ import {
 } from "@/types/dupstacks";
 import { Database, Tables } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
-import {
-  SupabaseClient,
-  createServerActionClient,
-} from "@supabase/auth-helpers-nextjs";
+import { SupabaseClient } from "@supabase/auth-helpers-nextjs";
 import dayjs from "dayjs";
-import { cookies } from "next/headers";
 
 export async function itemsMergeSA(
   workspaceId: string,
@@ -25,10 +22,7 @@ export async function itemsMergeSA(
   hsClient?: Client,
   mergePotentials: boolean = false
 ) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   let { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")

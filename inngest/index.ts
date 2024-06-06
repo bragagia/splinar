@@ -1,3 +1,4 @@
+import jobExecOnAllItems from "@/inngest/job-exec-on-all-items";
 import mondayRecap from "@/inngest/monday-recap";
 import sendMail from "@/inngest/send-mail";
 import workspaceInstall from "@/inngest/workspace-install";
@@ -24,6 +25,7 @@ export const functions = [
   workspaceInstallSimilarities,
   workspaceUpdateAll,
   workspaceUpdatePollingHubspot,
+  jobExecOnAllItems,
   sendMail,
   mondayRecap,
 ];

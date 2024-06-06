@@ -31,15 +31,12 @@ export default inngest.createFunction(
   { event: "workspace/install/jobs.start" },
   async ({ event, step, logger }) => {
     const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper(
+      await workspaceOperationStartStepHelper<OperationWorkspaceInstallOrUpdateMetadata>(
         event.data.operationId,
         "workspace-install-jobs"
       );
 
-    const opeMetadata =
-      operation.metadata as OperationWorkspaceInstallOrUpdateMetadata;
-
-    if (!opeMetadata.steps.jobs) {
+    if (!operation.metadata.steps.jobs) {
       await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
         supabaseAdmin,
         operation.id,

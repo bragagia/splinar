@@ -1,18 +1,13 @@
 "use server";
 
 import { inngest } from "@/inngest";
-import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function workspaceReset(
   workspaceId: string,
   reset: "dup_stacks" | "full" | "similarities_and_dup"
 ) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   // Check for workspace access right
   const { data: workspace, error: errorWorkspace } = await supabase

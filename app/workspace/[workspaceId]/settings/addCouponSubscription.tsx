@@ -2,19 +2,15 @@
 
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { inngest } from "@/inngest";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
 
 export async function addCouponSubscription(
   workspaceId: string,
   endDateIsoString: string
 ) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const { data: workspaces, error } = await supabase
     .from("workspaces")

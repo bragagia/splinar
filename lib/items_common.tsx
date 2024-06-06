@@ -40,6 +40,7 @@ export type ItemTypeT = "COMPANIES" | "CONTACTS";
 export type ItemConfig = {
   wordSingular: string;
   word: string;
+  getItemDisplayString: (item: Tables<"items">) => string;
   pollUpdater: (
     supabase: SupabaseClient<Database>,
     workspace: Tables<"workspaces">,
@@ -77,6 +78,16 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
       wordSingular: "company",
       word: "companies",
 
+      getItemDisplayString(item: Tables<"items">) {
+        const value = item.value as any;
+
+        if (value.name) {
+          return value.name;
+        } else {
+          return "#" + item.distant_id;
+        }
+      },
+
       pollUpdater: companiesPollUpdater,
 
       dedupConfig: companiesDedupConfig,
@@ -100,6 +111,16 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
     return {
       wordSingular: "contact",
       word: "contacts",
+
+      getItemDisplayString(item: Tables<"items">) {
+        const value = item.value as any;
+
+        if (value.firstname || value.lastname) {
+          return `${value.firstname || ""} ${value.lastname || ""}`.trim();
+        } else {
+          return "#" + item.distant_id;
+        }
+      },
 
       pollUpdater: contactsPollUpdater,
 

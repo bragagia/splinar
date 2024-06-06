@@ -2,17 +2,12 @@
 
 import { getHubspotStats } from "@/inngest/workspace-install-fetch/install";
 import { newHubspotClient } from "@/lib/hubspot";
-import { Database } from "@/types/supabase";
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { newSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function calcWorkspaceDistantUsageDetailedAction(
   workspaceId: string
 ) {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({
-    cookies: () => cookieStore,
-  });
+  const supabase = newSupabaseServerClient();
 
   const { data: workspace, error: errorWorkspace } = await supabase
     .from("workspaces")
