@@ -1,6 +1,5 @@
 "use server";
 
-import { JobExecutionOutputWithInput } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/page";
 import { getJobFunction } from "@/inngest/workspace-install-jobs/exec_job";
 import {
   getItemSourceValueAsString,
