@@ -245,7 +245,13 @@ function DataCleaningJobTemplate({
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col">
-          <p className="text-gray-500 text-sm italic">{job.description}</p>
+          <div className="flex flex-col gap-2 pl-2">
+            {job.description.split("\n\n").map((line, i) => (
+              <p className="text-gray-600 text-sm font-light" key={i}>
+                {line}
+              </p>
+            ))}
+          </div>
 
           <div className="flex flex-row justify-end">
             <SpButton
@@ -270,6 +276,257 @@ function DataCleaningJobTemplate({
   );
 }
 
+const TEMPLATE_COMPANIES_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: HubSpotItem): HubSpotItem {
+  // Helper function to standardize phone numbers
+  function standardizePhoneNumber(field: string | null): string | null {
+    if (!field) return null; // If the field is null, return null
+
+    // Remove all spaces
+    field = field.replace(/\s+/g, '');
+
+    // Regular expression to detect if the phone number is already in international format
+    const internationalFormatRegex = /^\+/;
+    if (!internationalFormatRegex.test(field)) {
+      // If not, assume it's a US number and add +1 prefix
+      const usPrefix = '+1';
+      field = usPrefix + field;
+    }
+
+    return field; // Return the standardized phone number
+  }
+
+  // Standardize the 'phone' field if it exists
+  if (item.fields.phone) {
+    item.fields.phone = standardizePhoneNumber(item.fields.phone);
+  }
+
+  return item; // Return the modified item
+}`;
+
+const TEMPLATE_COMPANIES_CLEANUP_SOCIAL_PAGE_MISPLACED_IN_WEBSITE = `function customJob(item: HubSpotItem): HubSpotItem {
+  // Regular expressions for social media subpage URLs
+  const regexMap = {
+    linkedin_company_page: /^(https?:\/\/)?(www\.)?linkedin\.com\/.+/,
+    facebook_company_page: /^(https?:\/\/)?(www\.)?facebook\.com\/.+/,
+    twitterhandle: /^(https?:\/\/)?(www\.)?twitter\.com\/.+/
+  };
+
+  let hasBeenSocialMediaFilled = false;
+
+  // Helper function to move valid social media URLs to the correct field
+  function moveSocialMediaURL(field: string, targetField: string, regex: RegExp) {
+    if (item.fields[field] && regex.test(item.fields[field])) {
+      item.fields[targetField] = item.fields[field];
+      item.fields[field] = null;
+      hasBeenSocialMediaFilled = true;
+    }
+  }
+
+  // Process both website and domain fields for each social media type
+  Object.keys(regexMap).forEach(targetField => {
+    moveSocialMediaURL("website", targetField, regexMap[targetField]);
+    moveSocialMediaURL("domain", targetField, regexMap[targetField]);
+  });
+
+  // Specific social media-related cleanup for non-URL based inappropriate data
+  if (hasBeenSocialMediaFilled) {
+    const socialMediaKeywords = ["linkedin", "facebook", "twitter"];
+
+    ["twitterhandle", "facebook_company_page", "phone"].forEach(field => {
+      if (item.fields[field]) {
+        const fieldValueLower = item.fields[field].toLowerCase();
+        if (socialMediaKeywords.some(keyword => fieldValueLower.includes(keyword))) {
+          item.fields[field] = null;
+        }
+      }
+    });
+  }
+
+  return item; // Return the modified item
+}`;
+
+const TEMPLATE_COMPANIES_REMOVE_OBVIOUSLY_WRONG_DATA = `function customJob(item: HubSpotItem): HubSpotItem {
+// List of known fake phone numbers
+const fakePhoneNumbers = ["0123456789", "1234567890", "0000000000"];
+// Regular expression to identify fields containing only special characters or spaces
+const invalidFieldRegex = /^[\s\-_\.]*$/;
+// List of default placeholder texts
+const placeholderTexts = ["N/A", "Unknown", "None"];
+
+// Helper function to check and remove invalid data
+function cleanField(field: string | null): string | null {
+  if (!field) return null; // If the field is null, return null
+  const trimmedField = field.trim(); // Trim leading and trailing spaces
+
+  // Check if the field matches any criteria for invalid data
+  if (
+    invalidFieldRegex.test(trimmedField) || // Only special characters or spaces
+    placeholderTexts.includes(trimmedField) // Default placeholder text
+  ) {
+    return null; // Return null if invalid
+  }
+
+  return trimmedField; // Return the cleaned field if valid
+}
+
+
+// Helper function to clean phone number
+function cleanPhoneNumber(field: string | null): string | null {
+  if (!field) return null; // If the field is null, return null
+  const trimmedField = field.trim(); // Trim leading and trailing spaces
+
+  // Check if the field matches any criteria for invalid phone numbers
+  if (
+    fakePhoneNumbers.includes(trimmedField) || // Fake phone number
+    trimmedField.length < 6 // Number shorter than 6 digits
+  ) {
+    return null; // Return null if invalid
+  }
+
+  return trimmedField; // Return the cleaned field if valid
+}
+
+// List of fields to be cleaned using general cleanField function
+const fieldsToClean = [
+  "name", "domain", "website", "linkedin_company_page",
+  "address", "zip", "city",
+  "state", "country", "facebook_company_page", "twitterhandle"
+];
+
+// Clean each field using the general cleanField function
+fieldsToClean.forEach(field => {
+  if (item.fields[field] !== undefined) {
+    item.fields[field] = cleanField(item.fields[field]);
+  }
+});
+
+// Clean the phone field separately using the cleanPhoneNumber function
+if (item.fields["phone"] !== undefined) {
+  item.fields["phone"] = cleanPhoneNumber(item.fields["phone"]);
+}
+
+return item; // Return the modified item
+}`;
+
+const TEMPLATE_CONTACTS_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: HubSpotItem): HubSpotItem {
+  // Helper function to standardize phone numbers
+  function standardizePhoneNumber(field: string | null): string | null {
+    if (!field) return null; // If the field is null, return null
+
+    // Remove all spaces
+    field = field.replace(/\s+/g, '');
+
+    // Regular expression to detect if the phone number is already in international format
+    const internationalFormatRegex = /^\+/;
+    if (!internationalFormatRegex.test(field)) {
+      // If not, assume it's a US number and add +1 prefix
+      const usPrefix = '+1';
+      field = usPrefix + field;
+    }
+
+    return field; // Return the standardized phone number
+  }
+
+  // Standardize the 'phone' and 'mobilephone' fields if they exist
+  if (item.fields.phone) {
+    item.fields.phone = standardizePhoneNumber(item.fields.phone);
+  }
+  if (item.fields.mobilephone) {
+    item.fields.mobilephone = standardizePhoneNumber(item.fields.mobilephone);
+  }
+
+  return item; // Return the modified item
+}`;
+
+const TEMPLATE_CONTACTS_REMOVE_EMAIL_ADRESSES_DYNAMIC_PART = `function customJob(item: HubSpotItem): HubSpotItem {
+  // Regular expression to match email addresses with dynamic parts (e.g., "some.body+dynamic@gmail.com")
+  const dynamicEmailRegex = /^([^+]+)\+[^@]+(@.+)$/;
+
+  // Helper function to clean email addresses
+  function cleanEmail(field: string | null): string | null {
+    if (!field) return null; // If the field is null, return null
+    const trimmedField = field.trim(); // Trim leading and trailing spaces
+
+    // Check if the email has a dynamic part and remove it
+    const match = dynamicEmailRegex.exec(trimmedField);
+    if (match) {
+      return match[1] + match[2]; // Return the email without the dynamic part
+    }
+
+    return trimmedField; // Return the cleaned field if valid
+  }
+
+  // Clean the email field if it exists
+  if (item.fields["email"] !== undefined) {
+    item.fields["email"] = cleanEmail(item.fields["email"]);
+  }
+
+  return item; // Return the modified item
+}`;
+
+const TEMPLATE_CONTACTS_REMOVE_OBVIOUSLY_WRONG_DATA = `function customJob(item: HubSpotItem): HubSpotItem {
+  // List of known fake phone numbers
+  const fakePhoneNumbers = ["0123456789", "1234567890", "0000000000"];
+  // Regular expression to identify fields containing only special characters or spaces
+  const invalidFieldRegex = /^[\s\-_\.]*$/;
+  // List of default placeholder texts
+  const placeholderTexts = ["N/A", "Unknown", "None"];
+
+  // Helper function to check and remove invalid data
+  function cleanField(field: string | null): string | null {
+    if (!field) return null; // If the field is null, return null
+    const trimmedField = field.trim(); // Trim leading and trailing spaces
+
+    // Check if the field matches any criteria for invalid data
+    if (
+      invalidFieldRegex.test(trimmedField) || // Only special characters or spaces
+      placeholderTexts.includes(trimmedField) // Default placeholder text
+    ) {
+      return null; // Return null if invalid
+    }
+
+    return trimmedField; // Return the cleaned field if valid
+  }
+
+  // Helper function to clean phone numbers
+  function cleanPhoneNumber(field: string | null): string | null {
+    if (!field) return null; // If the field is null, return null
+    const trimmedField = field.trim(); // Trim leading and trailing spaces
+
+    // Check if the field matches any criteria for invalid phone numbers
+    if (
+      fakePhoneNumbers.includes(trimmedField) || // Fake phone number
+      trimmedField.length < 6 // Number shorter than 6 digits
+    ) {
+      return null; // Return null if invalid
+    }
+
+    return trimmedField; // Return the cleaned field if valid
+  }
+
+  // List of fields to be cleaned using general cleanField function
+  const fieldsToClean = [
+    "firstname", "lastname", "email", "hs_linkedinid"
+  ];
+
+  // Clean each field using the general cleanField function
+  fieldsToClean.forEach(field => {
+    if (item.fields[field] !== undefined) {
+      item.fields[field] = cleanField(item.fields[field]);
+    }
+  });
+
+  // Clean the phone and mobilephone fields separately using the cleanPhoneNumber function
+  if (item.fields["phone"] !== undefined) {
+    item.fields["phone"] = cleanPhoneNumber(item.fields["phone"]);
+  }
+  if (item.fields["mobilephone"] !== undefined) {
+    item.fields["mobilephone"] = cleanPhoneNumber(item.fields["mobilephone"]);
+  }
+
+  return item; // Return the modified item
+}`;
+
 const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
   COMPANIES: [
     {
@@ -279,45 +536,38 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-  return item;
-      }`,
+      code: TEMPLATE_COMPANIES_STANDARDIZE_PHONE_NUMBERS,
     },
     {
       title: "Cleanup social page misplaced in website",
-      description:
-        "Move social page URLs from the website field to the social media field.",
+      description: `Sometimes LinkedIn, Facebook, or Twitter URLs are incorrectly entered in the website or domain fields, and other fields like
+        twitterhandle, facebook_company_page, and phone might be filled with social media data instead of the company’s actual information.
+
+        This job moves LinkedIn, Facebook, or Twitter subpage URLs to their correct fields and clears the original website or domain fields.
+        It also removes inappropriate social media-related data from other fields if they contain keywords like “linkedin,” “facebook,” or “twitter,”
+        ensuring clean and accurate company records.`,
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-  return item;
-      }`,
+      code: TEMPLATE_COMPANIES_CLEANUP_SOCIAL_PAGE_MISPLACED_IN_WEBSITE,
     },
     {
       title: "Remove obviously wrong data",
-      description:
-        "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
+      description: `Remove obviously wrong data in all common fields like :
+
+        1.	Fake Phone Numbers: Numbers like “0123456789”, “1234567890”, “0000000000”, etc. Numbers shorter than 6 digits.
+
+        2.	Fields with Only Special Characters or Spaces: Fields containing “-”, “_”, “.”, or just spaces.
+
+        3.	Default Placeholder Texts: Values like “N/A”, “Unknown”, “None”.`,
       target_item_type: "COMPANIES",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-        return item;
-      }`,
+      code: TEMPLATE_COMPANIES_REMOVE_OBVIOUSLY_WRONG_DATA,
     },
   ],
+
   CONTACTS: [
-    {
-      title: "Standardize full names",
-      description:
-        "Standardize full names into a single field. This job also helps to detect duplicates.",
-      target_item_type: "CONTACTS",
-      recurrence: "each-new-and-updated",
-      mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-  return item;
-      }`,
-    },
     {
       title: "Standardize phone numbers",
       description:
@@ -325,31 +575,30 @@ const jobsTemplate: { [key: string]: DataCleaningJobTemplateT[] } = {
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-  return item;
-      }`,
+      code: TEMPLATE_CONTACTS_STANDARDIZE_PHONE_NUMBERS,
     },
     {
       title: "Remove email adresses dynamic part",
       description:
-        "Remove the dynamic part of email addresses, such as the '+tag'",
+        "Remove the dynamic part of email addresses, such as the '+tag' from 'some.body+tag@gmail.com'",
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-  return item;
-      }`,
+      code: TEMPLATE_CONTACTS_REMOVE_EMAIL_ADRESSES_DYNAMIC_PART,
     },
     {
       title: "Remove obviously wrong data",
-      description:
-        "Remove obviously wrong data, such as fields containing a fake phone number like 012345789, fields containing a '-' or.",
+      description: `Remove obviously wrong data in all common fields like :
+
+        1.	Fake Phone Numbers: Numbers like “0123456789”, “1234567890”, “0000000000”, etc. Numbers shorter than 6 digits.
+
+        2.	Fields with Only Special Characters or Spaces: Fields containing “-”, “_”, “.”, or just spaces.
+
+        3.	Default Placeholder Texts: Values like “N/A”, “Unknown”, “None”.`,
       target_item_type: "CONTACTS",
       recurrence: "each-new-and-updated",
       mode: "expert",
-      code: `function customJob(item: HubSpotItem): HubSpotItem {
-        return item;
-      }`,
+      code: TEMPLATE_CONTACTS_REMOVE_OBVIOUSLY_WRONG_DATA,
     },
   ],
 };

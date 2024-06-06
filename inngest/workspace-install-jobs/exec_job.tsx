@@ -149,9 +149,18 @@ export type JobOutputByItemId = {
   };
 };
 
-function getJobFunction(code: string) {
+const sucrase = require("sucrase");
+
+export function getJobFunction(code: string) {
   global.stringSimScore = stringSimilarity.compareTwoStrings;
-  return new Function("item", makeCodeAFunctionBody(code));
+
+  const codeWithReturn = code + "\nreturn customJob(_itemInternal);";
+
+  const transpiledResult = sucrase.transform(codeWithReturn, {
+    transforms: ["typescript"],
+  }).code;
+
+  return new Function("_itemInternal", transpiledResult);
 }
 
 // runCodeJobOnItems take a set of items as input and return the same set of items with the fields modified by the job
@@ -229,38 +238,4 @@ function runCodeJobOnItems(
   }
 
   return jobOutput;
-}
-
-function makeCodeAFunctionBody(code: string) {
-  const codeByLines = code.split("\n");
-
-  delete codeByLines[0];
-  delete codeByLines[codeByLines.length - 1];
-
-  return codeByLines.join("\n");
-}
-
-function fieldValueAreEqual(
-  a: string[] | null | undefined,
-  b: string[] | null | undefined
-) {
-  if (a === null || a === undefined || b === null || b === undefined) {
-    if (a === b) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) {
-      return false;
-    }
-  }
-
-  return true;
 }

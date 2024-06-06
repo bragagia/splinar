@@ -4,7 +4,10 @@ import {
   disableDataCleaningJob,
   enableOrUpdateDataCleaningJob,
 } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverEnableOrUpdateJob";
-import { customJobExecutorSA } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverJob";
+import {
+  JobExecutionOutputWithInput,
+  customJobExecutorSA,
+} from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverJob";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
 import {
@@ -29,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MultiSelect } from "@/components/ui/multiselect";
 import {
   Select,
   SelectContent,
@@ -45,7 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useDebounce from "@/lib/debounce";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -487,107 +488,50 @@ export default function DataCleaningJobPage({
                 </div>
               </div>
 
-              <Tabs
-                value={job.mode}
-                onValueChange={(newMode) => {
-                  updateJob({
-                    mode: newMode as jobModeT,
-                  });
-                }}
-              >
-                <div className="flex flex-row items-center">
-                  <Label className="mr-2 w-28">Mode:</Label>
+              <div className="my-2 w-full bg-blue-100 rounded-md p-4 text-sm text-gray-900 flex flex-row items-center gap-4">
+                <Icons.infos className="w-6 h-6 text-blue-500" />
 
-                  <div>
-                    <TabsList>
-                      <TabsTrigger value="standard">Standard</TabsTrigger>
-                      <TabsTrigger value="expert">Expert</TabsTrigger>
-                    </TabsList>
-                  </div>
+                <div className="flex flex-col space-y-2">
+                  <p>
+                    In a job, you can write code in typescript/javascript to
+                    change the values of each item the way you want.
+                  </p>
+
+                  <p>
+                    Documentation is available{" "}
+                    <a href="#" className="text-blue-600 underline">
+                      here
+                    </a>
+                    .
+                  </p>
+
+                  <p>
+                    Please note we do <b>not</b> offer assistance about how to
+                    code / use javascript, only on specific questions about the
+                    API.
+                  </p>
                 </div>
+              </div>
 
-                <TabsContent value="standard">
-                  <div className="flex flex-col space-y-4">
-                    <div>
-                      <Label>Filter:</Label>
-
-                      <p className="ml-4 text-sm text-gray-500">
-                        None, all items will be transformed
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Transform:</Label>
-
-                      <div className="ml-4 bg-gray-100 p-2 border border-gray-400 rounded-md">
-                        <div className="flex flex-row items-center gap-2">
-                          <Label className="shrink-0">Input field:</Label>
-
-                          <MultiSelect
-                            options={hubspotSourceFields}
-                            selected={["firstname"]}
-                            onChange={() => {}}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Action:</Label>
-
-                      <p className="ml-4 text-sm text-gray-500">None</p>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="expert">
-                  <div className="my-2 w-full bg-blue-100 rounded-md p-4 text-sm text-gray-900 flex flex-row items-center gap-4">
-                    <Icons.infos className="w-6 h-6 text-blue-500" />
-
-                    <div className="flex flex-col space-y-2">
-                      <p>
-                        In expert mode, you can write code in
-                        typescript/javascript to change the values of each item
-                        the way you want.
-                      </p>
-
-                      <p>
-                        Documentation is available{" "}
-                        <a href="#" className="text-blue-600 underline">
-                          here
-                        </a>
-                        .
-                      </p>
-
-                      <p>
-                        Please note we do <b>not</b> offer assistance about how
-                        to code / use javascript, only on specific questions
-                        about the API.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-md bg-[#1e1e1e] p-2">
-                    <Editor
-                      height="500px"
-                      language="typescript"
-                      theme="vs-dark"
-                      className="rounded-md"
-                      value={job.code}
-                      onChange={(newCode) => {
-                        if (newCode) {
-                          updateJob({
-                            code: newCode,
-                          });
-                        }
-                      }}
-                      options={{
-                        minimap: { enabled: false },
-                      }}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="rounded-md bg-[#1e1e1e] p-2">
+                <Editor
+                  height="500px"
+                  language="typescript"
+                  theme="vs-dark"
+                  className="rounded-md"
+                  value={job.code}
+                  onChange={(newCode) => {
+                    if (newCode) {
+                      updateJob({
+                        code: newCode,
+                      });
+                    }
+                  }}
+                  options={{
+                    minimap: { enabled: false },
+                  }}
+                />
+              </div>
             </div>
           </CardContent>
 
@@ -673,214 +617,4 @@ export default function DataCleaningJobPage({
       </div>
     </div>
   );
-}
-
-type JobExecutionOutput = {
-  fieldsName: string[];
-  fieldsByItemId: {
-    [key: string]: {
-      [key: string]: string[] | null | undefined;
-    };
-  };
-};
-
-export type JobExecutionOutputWithInput = {
-  fieldsName: string[];
-  outputFieldsByItemId: {
-    [key: string]: {
-      [key: string]: string | null | undefined;
-    };
-  };
-  inputFieldsByItemId: {
-    [key: string]: {
-      [key: string]: string | null | undefined;
-    };
-  };
-};
-
-// async function customJobExecutor(
-//   items: Tables<"items">[],
-//   code: string
-// ): Promise<JobExecutionOutputWithInput> {
-//   let outputFieldsNames: string[] = [];
-//   let outputFieldsByItemId: {
-//     [key: string]: {
-//       [key: string]: string[] | null | undefined;
-//     };
-//   } = {};
-//   let inputFieldsByItemId: {
-//     [key: string]: {
-//       [key: string]: string[] | null | undefined;
-//     };
-//   } = {};
-
-//   try {
-//     //globalThis.stringSimScore = stringSimilarity.compareTwoStrings;
-//     const job = new Function("item", makeCodeAFunctionBody(code));
-
-//     items.forEach((item) => {
-//       if (!item.value) {
-//         return;
-//       }
-
-//       let itemFields: {
-//         [key: string]: string[] | null | undefined;
-//       } = {};
-//       Object.keys(item.value).forEach((fieldName) => {
-//         itemFields[fieldName] = getItemValueAsArray(
-//           item.value,
-//           [fieldName],
-//           "string"
-//         );
-//       });
-
-//       const itemOutput = job({
-//         id: item.id,
-//         itemType: item.item_type,
-//         fields: JSON.parse(JSON.stringify(itemFields)),
-//       });
-
-//       const thisOutputFieldsNames = Object.keys(itemOutput.fields);
-//       thisOutputFieldsNames.forEach((fieldName) => {
-//         if (outputFieldsNames.indexOf(fieldName) === -1) {
-//           if (
-//             !itemFieldValuesAreEqual(
-//               itemFields[fieldName],
-//               itemOutput.fields[fieldName]
-//             )
-//           ) {
-//             outputFieldsNames.push(fieldName);
-//           }
-//         }
-//       });
-
-//       outputFieldsByItemId[item.id] = itemOutput.fields;
-//       inputFieldsByItemId[item.id] = itemFields;
-//     });
-//   } catch (e) {
-//     return {
-//       fieldsName: ["error"],
-//       outputFieldsByItemId: {
-//         "1": {
-//           error: "Your code seems invalid. Please check it and try again.",
-//         },
-//       },
-//       inputFieldsByItemId: {
-//         "1": {
-//           error: "",
-//         },
-//       },
-//     };
-//   }
-
-//   return {
-//     fieldsName: outputFieldsNames,
-//     outputFieldsByItemId: outputFieldsByItemId,
-//     inputFieldsByItemId: inputFieldsByItemId,
-//   };
-// }
-
-function makeCodeAFunctionBody(code: string) {
-  const codeByLines = code.split("\n");
-
-  delete codeByLines[0];
-  delete codeByLines[codeByLines.length - 1];
-
-  return codeByLines.join("\n");
-}
-
-type Item = {
-  id: string;
-  itemType: "CONTACTS" | "COMPANIES";
-  fields: {
-    [key: string]: string[] | undefined;
-  };
-};
-
-type JobOutput = {
-  updatedFields: {
-    [key: string]: string[] | null | undefined;
-  };
-  report: {
-    [key: string]: string[] | null | undefined;
-  };
-};
-
-function customJob(item: Item): JobOutput {
-  const output: JobOutput = {
-    updatedFields: {},
-    report: {},
-  };
-
-  const fields = ["firstname", "lastname"];
-
-  fields.forEach((fieldName) => {
-    output.updatedFields[fieldName] = item.fields[fieldName]?.map((value) => {
-      return value
-        .trim() // Remove leading and trailing spaces
-        .replace(/[ \t]+/g, " ") // Replace multiple spaces with a single space
-        .split(" ") // Split the string into words
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        ) // Capitalize each word
-        .join(" "); // Join the words back together
-    });
-  });
-
-  return output;
-}
-
-function customJobLinkedin(item: Item): Item {
-  if (item.itemType !== "COMPANIES") {
-    return item;
-  }
-
-  // Regular expression to match LinkedIn URLs
-  const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com/;
-
-  // If the linkedin_company_page field is not present, create it
-  item.fields.linkedin_company_page ??= [];
-
-  item.fields.website?.filter((value) => {
-    if (linkedinRegex.test(value)) {
-      // Add LinkedIn URL to 'linkedin_company_page' field
-      item.fields.linkedin_company_page?.push(value);
-
-      // By returning false in the filter, we remove the LinkedIn URL from the original field
-      return false;
-    } else {
-      return true;
-    }
-  });
-
-  return item;
-}
-
-function customJobLinkedin2(item: Item): Item {
-  if (item.itemType !== "COMPANIES") {
-    return item;
-  }
-
-  // Regular expression to match LinkedIn URLs
-  const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com/;
-
-  // If the linkedin_company_page field is not present, create it
-  item.fields.linkedin_company_page ??= [];
-
-  const fieldsName = ["domain", "website"];
-  fieldsName.forEach((fieldName) => {
-    item.fields[fieldName] = item.fields[fieldName]?.filter((value) => {
-      if (linkedinRegex.test(value)) {
-        // Add LinkedIn URL to 'linkedin_company_page' field
-        item.fields.linkedin_company_page?.push(value);
-
-        // By returning false in the filter, we remove the LinkedIn URL from the original field
-        return false;
-      } else {
-        return true;
-      }
-    });
-  });
-
-  return item;
 }

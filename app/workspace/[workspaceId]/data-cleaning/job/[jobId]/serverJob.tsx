@@ -1,16 +1,30 @@
 "use server";
 
 import { JobExecutionOutputWithInput } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/page";
+import { getJobFunction } from "@/inngest/workspace-install-jobs/exec_job";
 import {
   getItemSourceValueAsString,
   itemFieldValuesAreEqual,
 } from "@/lib/items_common";
 import { Tables } from "@/types/supabase";
-import stringSimilarity from "string-similarity";
 
 declare global {
   var stringSimScore: (s1: string, s2: string) => number;
 }
+
+export type JobExecutionOutputWithInput = {
+  fieldsName: string[];
+  outputFieldsByItemId: {
+    [key: string]: {
+      [key: string]: string | null | undefined;
+    };
+  };
+  inputFieldsByItemId: {
+    [key: string]: {
+      [key: string]: string | null | undefined;
+    };
+  };
+};
 
 export async function customJobExecutorSA(
   items: Tables<"items">[],
@@ -29,8 +43,7 @@ export async function customJobExecutorSA(
   } = {};
 
   try {
-    global.stringSimScore = stringSimilarity.compareTwoStrings;
-    const job = new Function("item", makeCodeAFunctionBody(code));
+    const job = getJobFunction(code);
 
     items.forEach((item) => {
       if (!item.value) {
@@ -91,13 +104,4 @@ export async function customJobExecutorSA(
     outputFieldsByItemId: outputFieldsByItemId,
     inputFieldsByItemId: inputFieldsByItemId,
   };
-}
-
-function makeCodeAFunctionBody(code: string) {
-  const codeByLines = code.split("\n");
-
-  delete codeByLines[0];
-  delete codeByLines[codeByLines.length - 1];
-
-  return codeByLines.join("\n");
 }
