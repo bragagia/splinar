@@ -811,6 +811,13 @@ export function itemFieldValuesAreEqual(
   b: string[] | string | null | undefined
 ) {
   if (a === null || a === undefined || b === null || b === undefined) {
+    if (a === undefined) {
+      a = null;
+    }
+    if (b === undefined) {
+      b = null;
+    }
+
     if (a === b) {
       return true;
     } else {
