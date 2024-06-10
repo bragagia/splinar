@@ -282,10 +282,10 @@ const TEMPLATE_COMPANIES_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: H
     if (!field) return null; // If the field is null, return null
 
     // Remove all spaces
-    field = field.replace(/\s+/g, '');
+    field = field.replace(/\\s+/g, '');
 
     // Regular expression to detect if the phone number is already in international format
-    const internationalFormatRegex = /^\+/;
+    const internationalFormatRegex = /^\\+/;
     if (!internationalFormatRegex.test(field)) {
       // If not, assume it's a US number and add +1 prefix
       const usPrefix = '+1';
@@ -306,9 +306,9 @@ const TEMPLATE_COMPANIES_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: H
 const TEMPLATE_COMPANIES_CLEANUP_SOCIAL_PAGE_MISPLACED_IN_WEBSITE = `function customJob(item: HubSpotItem): HubSpotItem {
   // Regular expressions for social media subpage URLs
   const regexMap = {
-    linkedin_company_page: /^(https?:\/\/)?(www\.)?linkedin\.com\/.+/,
-    facebook_company_page: /^(https?:\/\/)?(www\.)?facebook\.com\/.+/,
-    twitterhandle: /^(https?:\/\/)?(www\.)?twitter\.com\/.+/
+    linkedin_company_page: /^(https?:\\/\\/)?(www\\.)?linkedin\\.com\\/.+/,
+    facebook_company_page: /^(https?:\\/\\/)?(www\\.)?facebook\\.com\\/.+/,
+    twitterhandle: /^(https?:\\/\\/)?(www\\.)?twitter\\.com\\/.+/
   };
 
   let hasBeenSocialMediaFilled = false;
@@ -349,7 +349,7 @@ const TEMPLATE_COMPANIES_REMOVE_OBVIOUSLY_WRONG_DATA = `function customJob(item:
 // List of known fake phone numbers
 const fakePhoneNumbers = ["0123456789", "1234567890", "0000000000"];
 // Regular expression to identify fields containing only special characters or spaces
-const invalidFieldRegex = /^[\s\-_\.]*$/;
+const invalidFieldRegex = /^[\\s\\-_\\.]*$/;
 // List of default placeholder texts
 const placeholderTexts = ["N/A", "Unknown", "None"];
 
@@ -414,10 +414,10 @@ const TEMPLATE_CONTACTS_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: Hu
     if (!field) return null; // If the field is null, return null
 
     // Remove all spaces
-    field = field.replace(/\s+/g, '');
+    field = field.replace(/\\s+/g, '');
 
     // Regular expression to detect if the phone number is already in international format
-    const internationalFormatRegex = /^\+/;
+    const internationalFormatRegex = /^\\+/;
     if (!internationalFormatRegex.test(field)) {
       // If not, assume it's a US number and add +1 prefix
       const usPrefix = '+1';
@@ -440,7 +440,7 @@ const TEMPLATE_CONTACTS_STANDARDIZE_PHONE_NUMBERS = `function customJob(item: Hu
 
 const TEMPLATE_CONTACTS_REMOVE_EMAIL_ADRESSES_DYNAMIC_PART = `function customJob(item: HubSpotItem): HubSpotItem {
   // Regular expression to match email addresses with dynamic parts (e.g., "some.body+dynamic@gmail.com")
-  const dynamicEmailRegex = /^([^+]+)\+[^@]+(@.+)$/;
+  const dynamicEmailRegex = /^([^+]+)\\+[^@]+(@.+)$/;
 
   // Helper function to clean email addresses
   function cleanEmail(field: string | null): string | null {
@@ -468,7 +468,7 @@ const TEMPLATE_CONTACTS_REMOVE_OBVIOUSLY_WRONG_DATA = `function customJob(item: 
   // List of known fake phone numbers
   const fakePhoneNumbers = ["0123456789", "1234567890", "0000000000"];
   // Regular expression to identify fields containing only special characters or spaces
-  const invalidFieldRegex = /^[\s\-_\.]*$/;
+  const invalidFieldRegex = /^[\\s\\-_\\.]*$/;
   // List of default placeholder texts
   const placeholderTexts = ["N/A", "Unknown", "None"];
 
