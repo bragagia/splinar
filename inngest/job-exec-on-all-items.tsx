@@ -43,7 +43,6 @@ export default inngest.createFunction(
       );
     }
 
-    // Get all actived jobs not in error
     const { data: job, error: errorJob } = await supabaseAdmin
       .from("data_cleaning_job_validated")
       .select()
@@ -58,10 +57,10 @@ export default inngest.createFunction(
       throw errorJob;
     }
 
-    let remainingAllowedSteps = 20;
+    let remainingAllowedSteps = 1;
 
     let areItemsRemaining = true;
-    let prevLastId: number | null = null;
+    let prevLastIdSeq: number | null = event.data.lastItemIdSeq || null;
     while (areItemsRemaining && remainingAllowedSteps > 0) {
       let req = supabaseAdmin
         .from("items")
@@ -72,8 +71,8 @@ export default inngest.createFunction(
         .limit(100)
         .order("id_seq", { ascending: true });
 
-      if (prevLastId) {
-        req = req.gt("id_seq", prevLastId);
+      if (prevLastIdSeq) {
+        req = req.gt("id_seq", prevLastIdSeq);
       }
 
       const { data: items, error: errorItems } = await req;
@@ -86,14 +85,14 @@ export default inngest.createFunction(
         break;
       }
 
-      prevLastId = items[items.length - 1].id_seq;
+      prevLastIdSeq = items[items.length - 1].id_seq;
 
       await runDataCleaningJobOnBatch(supabaseAdmin, workspace, job, items);
 
       remainingAllowedSteps--;
     }
 
-    if (remainingAllowedSteps === 0) {
+    if (remainingAllowedSteps === 0 && prevLastIdSeq !== null) {
       // We reached the limit of steps, we need to restart the process
       await inngest.send({
         name: "job/exec-on-all-items.start",
@@ -101,6 +100,7 @@ export default inngest.createFunction(
           workspaceId: workspace.id,
           operationId: operation.id,
           dataCleaningValidatedJobId: event.data.dataCleaningValidatedJobId,
+          lastItemIdSeq: prevLastIdSeq,
         },
       });
     } else {

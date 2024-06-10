@@ -114,6 +114,7 @@ export type JobExecOnAllItemsStart = {
     workspaceId: string;
     operationId: string;
     dataCleaningValidatedJobId: string;
+    lastItemIdSeq?: number;
   };
 };
 
