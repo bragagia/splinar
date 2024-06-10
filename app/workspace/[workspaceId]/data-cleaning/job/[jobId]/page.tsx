@@ -3,7 +3,7 @@
 import {
   disableDataCleaningJob,
   enableOrUpdateDataCleaningJob,
-  execJobOnAllItems,
+  execJobOnAllItemsSA,
 } from "@/app/workspace/[workspaceId]/data-cleaning/job/[jobId]/serverEnableOrUpdateJob";
 import {
   JobExecutionOutputWithInput,
@@ -49,6 +49,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import useDebounce from "@/lib/debounce";
+import {
+  OperationWorkspaceJobExecOnAllMetadata,
+  WorkspaceOperationT,
+  workspaceOperationGetLastOf,
+} from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
@@ -56,7 +61,7 @@ import { Tables, TablesUpdate } from "@/types/supabase";
 import Editor, { useMonaco } from "@monaco-editor/react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ItemTypeT,
   getItemTypeConfig,
@@ -108,6 +113,60 @@ export default function DataCleaningJobPage({
   const [sampleOutput, setSampleOutput] =
     useState<JobExecutionOutputWithInput>();
 
+  const [jobOperation, setJobOperation] = useState<
+    WorkspaceOperationT<OperationWorkspaceJobExecOnAllMetadata> | undefined
+  >();
+
+  const fetchJobOperation = useCallback(() => {
+    workspaceOperationGetLastOf<OperationWorkspaceJobExecOnAllMetadata>(
+      supabase,
+      workspace.id,
+      {
+        opeType: "JOB_EXEC_ON_ALL",
+        linkedObject: params.jobId,
+      }
+    ).then((operation) => {
+      setJobOperation(operation || undefined);
+    });
+
+    // We update job log count here so that it's updated at the same time as any pending operation
+    supabase
+      .from("data_cleaning_job_logs")
+      .select("*", { count: "exact" })
+      .eq("workspace_id", workspace.id)
+      .eq("data_cleaning_job_id", params.jobId)
+      .is("accepted_at", null)
+      .limit(0)
+      .then(({ count, error }) => {
+        if (error) {
+          captureException(error);
+          return;
+        }
+
+        setJobLogsCount(count);
+      });
+  }, [supabase, workspace.id, params.jobId]);
+
+  useEffect(() => {
+    if (
+      !jobOperation ||
+      jobOperation.ope_status === "ERROR" ||
+      jobOperation.ope_status === "DONE"
+    ) {
+      // We don't need to update an operation that is in error/done
+      return;
+    }
+
+    const interval = setInterval(
+      () => fetchJobOperation(),
+      process.env.NODE_ENV === "development" ? 500 : 5000
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [jobOperation, fetchJobOperation]);
+
   const jobIsUpToDate = useMemo(() => {
     if (!job || !jobValidated) {
       return false;
@@ -129,6 +188,7 @@ export default function DataCleaningJobPage({
       .is("data_cleaning_job_validated.deleted_at", null)
       .eq("workspace_id", workspace.id)
       .eq("id", params.jobId)
+      .limit(1)
       .single()
       .then(({ data, error }) => {
         if (error) {
@@ -142,22 +202,8 @@ export default function DataCleaningJobPage({
         setJob(tmp);
       });
 
-    supabase
-      .from("data_cleaning_job_logs")
-      .select("*", { count: "exact" })
-      .eq("workspace_id", workspace.id)
-      .eq("data_cleaning_job_id", params.jobId)
-      .is("accepted_at", null)
-      .limit(0)
-      .then(({ count, error }) => {
-        if (error) {
-          captureException(error);
-          return;
-        }
-
-        setJobLogsCount(count);
-      });
-  }, [supabase, workspace.id, params.jobId]);
+    fetchJobOperation();
+  }, [supabase, workspace.id, params.jobId, fetchJobOperation]);
 
   useEffect(() => {
     if (!debouncedJob) {
@@ -269,8 +315,29 @@ export default function DataCleaningJobPage({
     setJobIsPersisted(true);
   };
 
+  const execJobOnAllItems = async () => {
+    const operation = await execJobOnAllItemsSA(params.jobId);
+    setJobOperation(operation);
+  };
+
   if (!job) {
     return <>loading</>;
+  }
+
+  let currentOperationProgress: number | undefined;
+  if (
+    jobOperation &&
+    (jobOperation.ope_status === "QUEUED" ||
+      jobOperation.ope_status === "PENDING")
+  ) {
+    if (jobOperation.metadata?.progress) {
+      const progress = jobOperation.metadata.progress;
+      currentOperationProgress = Math.ceil(
+        (progress.done / (progress.total || 1)) * 100
+      );
+    } else {
+      currentOperationProgress = 0;
+    }
   }
 
   return (
@@ -349,14 +416,15 @@ export default function DataCleaningJobPage({
 
           <SpConfirmButton
             variant="full"
-            onClick={async () => {
-              await execJobOnAllItems(params.jobId);
-            }}
+            disabled={currentOperationProgress !== undefined}
+            onClick={execJobOnAllItems}
             confirmDescription={`This will start the execution of this job on all ${
               getItemTypeConfig(job.target_item_type).word
             } items. You will be able to review the changes before they are applied.`}
           >
-            Execute job on all {getItemTypeConfig(job.target_item_type).word}
+            Execute job on all {getItemTypeConfig(job.target_item_type).word}{" "}
+            {currentOperationProgress !== undefined &&
+              `(${currentOperationProgress}%)`}
           </SpConfirmButton>
 
           <DropdownMenu>

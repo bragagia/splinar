@@ -1,0 +1,1 @@
+ALTER TABLE workspace_operations ADD COLUMN linked_object_id UUID;

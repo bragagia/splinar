@@ -420,6 +420,7 @@ export type Database = {
           created_at: string
           done_at: string | null
           id: string
+          linked_object_id: string | null
           metadata: Json
           ope_status: Database["public"]["Enums"]["workspace_operations_status"]
           ope_type: Database["public"]["Enums"]["workspace_operations_type"]
@@ -433,6 +434,7 @@ export type Database = {
           created_at?: string
           done_at?: string | null
           id?: string
+          linked_object_id?: string | null
           metadata: Json
           ope_status: Database["public"]["Enums"]["workspace_operations_status"]
           ope_type: Database["public"]["Enums"]["workspace_operations_type"]
@@ -446,6 +448,7 @@ export type Database = {
           created_at?: string
           done_at?: string | null
           id?: string
+          linked_object_id?: string | null
           metadata?: Json
           ope_status?: Database["public"]["Enums"]["workspace_operations_status"]
           ope_type?: Database["public"]["Enums"]["workspace_operations_type"]

@@ -4,55 +4,65 @@ import { captureException } from "@/lib/sentry";
 import { sleep } from "@/lib/sleep";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { uuid } from "@/lib/uuid";
-import {
-  Database,
-  Json,
-  Tables,
-  TablesInsert,
-  TablesUpdate,
-} from "@/types/supabase";
+import { Database, Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs from "dayjs";
+import { MergeDeep } from "type-fest";
 
-export type OperationWorkspaceInstallOrUpdateMetadata = {
-  steps: {
-    // Only on install
-    fetch?: {
-      startedAt: string;
-      itemsTotal: number;
-      itemsDone: number;
-    };
-
-    // Only on update
-    polling?: {
-      startedAt: string;
-      total: number;
-    };
-    jobs?: {
-      startedAt: string;
-      jobCount: number;
-    };
-
-    // Common
-    similarities?: {
-      startedAt: string;
-      batchesStartedAt?: string;
-      total?: number;
-    };
-
-    dup_stacks?: {
-      startedAt: string;
-      itemsTotal: number;
-      itemsDone: number;
-    };
-  };
-
-  error?: any;
-};
+export type WorkspaceOperationT<T> = MergeDeep<
+  Tables<"workspace_operations">,
+  {
+    metadata: T;
+  }
+>;
 
 export type OperationGenericMetadata = {
   error?: any;
 };
+
+export type OperationWorkspaceInstallOrUpdateMetadata =
+  OperationGenericMetadata & {
+    steps: {
+      // Only on install
+      fetch?: {
+        startedAt: string;
+        itemsTotal: number;
+        itemsDone: number;
+      };
+
+      // Only on update
+      polling?: {
+        startedAt: string;
+        total: number;
+      };
+      jobs?: {
+        startedAt: string;
+        jobCount: number;
+      };
+
+      // Common
+      similarities?: {
+        startedAt: string;
+        batchesStartedAt?: string;
+        total?: number;
+      };
+
+      dup_stacks?: {
+        startedAt: string;
+        itemsTotal: number;
+        itemsDone: number;
+      };
+    };
+  };
+
+export type OperationWorkspaceJobExecOnAllMetadata =
+  OperationGenericMetadata & {
+    jobValidatedId: string;
+    progress?: {
+      total: number;
+      done: number;
+    };
+  };
 
 export async function workspaceOperationIncrementStepsDone(
   supabaseAdmin: SupabaseClient<Database>,
@@ -65,7 +75,9 @@ export async function workspaceOperationIncrementStepsDone(
   );
 }
 
-export async function workspaceOperationAddStep<T>(
+export async function workspaceOperationAddStep<
+  T extends OperationGenericMetadata
+>(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string,
   stepsToAdd: number,
@@ -80,7 +92,9 @@ export async function workspaceOperationAddStep<T>(
   );
 }
 
-export async function workspaceOperationUpdateMetadata<T>(
+export async function workspaceOperationUpdateMetadata<
+  T extends OperationGenericMetadata
+>(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string,
   metadataUpdate: DeepPartial<T>
@@ -88,7 +102,9 @@ export async function workspaceOperationUpdateMetadata<T>(
   await _internalUpdateGeneric(supabaseAdmin, operationId, {}, metadataUpdate);
 }
 
-export async function WorkspaceOperationUpdateStatus<T>(
+export async function WorkspaceOperationUpdateStatus<
+  T extends OperationGenericMetadata
+>(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string,
   newStatus: Tables<"workspace_operations">["ope_status"],
@@ -108,13 +124,16 @@ export async function WorkspaceOperationUpdateStatus<T>(
   );
 }
 
-export async function newWorkspaceOperation<T extends Json>(
+export async function newWorkspaceOperation<T extends OperationGenericMetadata>(
   supabaseAdmin: SupabaseClient<Database>,
   workspaceId: string,
   ope_type: Tables<"workspace_operations">["ope_type"],
   ope_status: Tables<"workspace_operations">["ope_status"],
   metadata: T,
-  steps?: number
+  option?: {
+    linkedObjectId?: string;
+    steps?: number;
+  }
 ) {
   // TODO: Check if running operation for workspace and raise error
 
@@ -129,9 +148,10 @@ export async function newWorkspaceOperation<T extends Json>(
 
     ope_type: ope_type,
     ope_status: ope_status,
+    linked_object_id: option?.linkedObjectId || null,
 
     steps_done: 0,
-    steps_total: steps || 0,
+    steps_total: option?.steps || 0,
     metadata: metadata,
   };
 
@@ -146,7 +166,41 @@ export async function newWorkspaceOperation<T extends Json>(
     throw error;
   }
 
-  return operationRes;
+  return { ...operationRes, metadata: operationRes.metadata as T };
+}
+
+export async function workspaceOperationGetLastOf<
+  T extends OperationGenericMetadata
+>(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  filters: {
+    opeType?: Tables<"workspace_operations">["ope_type"];
+    linkedObject?: string;
+  }
+) {
+  let req = supabase
+    .from("workspace_operations")
+    .select("*")
+    .eq("workspace_id", workspaceId);
+
+  if (filters.opeType) {
+    req = req.eq("ope_type", filters.opeType);
+  }
+  if (filters.linkedObject) {
+    req = req.eq("linked_object_id", filters.linkedObject);
+  }
+
+  const { data, error } = await req
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return { ...data, metadata: data.metadata as T };
 }
 
 async function _internalIncrementStepsDoneWithRetry(
@@ -179,7 +233,7 @@ async function _internalIncrementStepsDoneWithRetry(
   return remainingBatches;
 }
 
-async function _internalUpdateGeneric<T>(
+async function _internalUpdateGeneric<T extends OperationGenericMetadata>(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string,
   update: TablesUpdate<"workspace_operations">,
@@ -268,10 +322,9 @@ export async function workspaceOperationOnFailureHelper(
   );
 }
 
-export async function workspaceOperationStartStepHelper<T = Json>(
-  operationId: string,
-  stepName: string
-) {
+export async function workspaceOperationStartStepHelper<
+  T = OperationGenericMetadata
+>(operationId: string, stepName: string) {
   const supabaseAdmin = newSupabaseRootClient();
 
   const { data: operationDb, error: errorOperation } = await supabaseAdmin

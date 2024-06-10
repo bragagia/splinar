@@ -77,7 +77,9 @@ export default inngest.createFunction(
               },
             },
           },
-          itemTypes.length
+          {
+            steps: itemTypes.length,
+          }
         );
 
       for (const itemType of itemTypes) {

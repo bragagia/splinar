@@ -65,6 +65,8 @@ export function WorkspaceProvider({
   >([]);
 
   const forceUpdate = useCallback(async () => {
+    console.log("refreshing workspace status");
+
     const { data: workspaceUpdated, error } = await supabase
       .from("workspaces")
       .select()
@@ -80,7 +82,7 @@ export function WorkspaceProvider({
         .from("workspace_operations")
         .select()
         .eq("workspace_id", workspace.id)
-        .eq("ope_status", "PENDING");
+        .in("ope_status", ["PENDING", "QUEUED", "ERROR"]);
     if (operationError) {
       throw operationError;
     }

@@ -1,10 +1,11 @@
 import { runDataCleaningJobOnBatch } from "@/inngest/workspace-install-jobs/exec_job";
 import {
-  OperationGenericMetadata,
+  OperationWorkspaceJobExecOnAllMetadata,
   WorkspaceOperationUpdateStatus,
   workspaceOperationEndStepHelper,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
+  workspaceOperationUpdateMetadata,
 } from "@/lib/operations";
 import { inngest } from "./client";
 
@@ -30,18 +31,10 @@ export default inngest.createFunction(
   { event: "job/exec-on-all-items.start" },
   async ({ event, step, logger }) => {
     const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper<OperationGenericMetadata>(
+      await workspaceOperationStartStepHelper<OperationWorkspaceJobExecOnAllMetadata>(
         event.data.operationId,
         "workspace-install-jobs"
       );
-
-    if (operation.ope_status === "QUEUED") {
-      await WorkspaceOperationUpdateStatus(
-        supabaseAdmin,
-        operation.id,
-        "PENDING"
-      );
-    }
 
     const { data: job, error: errorJob } = await supabaseAdmin
       .from("data_cleaning_job_validated")
@@ -57,8 +50,34 @@ export default inngest.createFunction(
       throw errorJob;
     }
 
+    if (operation.ope_status === "QUEUED") {
+      const { count, error } = await supabaseAdmin
+        .from("items")
+        .select("", { count: "exact", head: true })
+        .eq("workspace_id", workspace.id)
+        .eq("item_type", job.target_item_type)
+        .is("merged_in_distant_id", null)
+        .limit(0);
+      if (error) {
+        throw error;
+      }
+
+      await WorkspaceOperationUpdateStatus<OperationWorkspaceJobExecOnAllMetadata>(
+        supabaseAdmin,
+        operation.id,
+        "PENDING",
+        {
+          progress: {
+            total: count || 0,
+            done: 0,
+          },
+        }
+      );
+    }
+
     let remainingAllowedSteps = 1;
 
+    let itemsProcessed = 0;
     let areItemsRemaining = true;
     let prevLastIdSeq: number | null = event.data.lastItemIdSeq || null;
     while (areItemsRemaining && remainingAllowedSteps > 0) {
@@ -79,11 +98,13 @@ export default inngest.createFunction(
       if (errorItems) {
         throw errorItems;
       }
+
       if (items.length === 0) {
         console.log("-> No more items to process");
         areItemsRemaining = false;
         break;
       }
+      itemsProcessed += items.length;
 
       prevLastIdSeq = items[items.length - 1].id_seq;
 
@@ -91,6 +112,16 @@ export default inngest.createFunction(
 
       remainingAllowedSteps--;
     }
+
+    await workspaceOperationUpdateMetadata<OperationWorkspaceJobExecOnAllMetadata>(
+      supabaseAdmin,
+      operation.id,
+      {
+        progress: {
+          done: (operation.metadata?.progress?.done || 0) + itemsProcessed,
+        },
+      }
+    );
 
     if (remainingAllowedSteps === 0 && prevLastIdSeq !== null) {
       // We reached the limit of steps, we need to restart the process

@@ -1,7 +1,10 @@
 "use server";
 
 import { inngest } from "@/inngest";
-import { newWorkspaceOperation } from "@/lib/operations";
+import {
+  OperationWorkspaceJobExecOnAllMetadata,
+  newWorkspaceOperation,
+} from "@/lib/operations";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { Database } from "@/types/supabase";
@@ -138,7 +141,7 @@ export async function disableDataCleaningJob(jobId: string) {
   }
 }
 
-export async function execJobOnAllItems(jobId: string) {
+export async function execJobOnAllItemsSA(jobId: string) {
   const supabase = newSupabaseServerClient();
 
   const { data: job, error } = await supabase
@@ -161,13 +164,19 @@ export async function execJobOnAllItems(jobId: string) {
     jobId
   );
 
-  const operation = await newWorkspaceOperation(
-    supabaseAdmin,
-    job.workspace_id,
-    "JOB_EXEC_ON_ALL",
-    "QUEUED",
-    {}
-  );
+  const operation =
+    await newWorkspaceOperation<OperationWorkspaceJobExecOnAllMetadata>(
+      supabaseAdmin,
+      job.workspace_id,
+      "JOB_EXEC_ON_ALL",
+      "QUEUED",
+      {
+        jobValidatedId: validatedJobForExecOnAll.id,
+      },
+      {
+        linkedObjectId: validatedJobForExecOnAll.data_cleaning_job_id,
+      }
+    );
 
   await inngest.send({
     name: "job/exec-on-all-items.start",
@@ -177,4 +186,6 @@ export async function execJobOnAllItems(jobId: string) {
       dataCleaningValidatedJobId: validatedJobForExecOnAll.id,
     },
   });
+
+  return operation;
 }
