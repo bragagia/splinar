@@ -1,11 +1,15 @@
 "use client";
 
-import { serverAcceptJobLog } from "@/app/workspace/[workspaceId]/data-cleaning/review/serverAcceptJobLog";
+import {
+  acceptJobLogSA,
+  discardAllJobLogsSA,
+  discardJobLogSA,
+} from "@/app/workspace/[workspaceId]/data-cleaning/review/serverAcceptJobLog";
 import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import { HubspotLinkButton } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
-import { SpButton } from "@/components/sp-button";
+import { SpButton, SpIconButton } from "@/components/sp-button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -30,7 +34,7 @@ import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
 import { Tables } from "@/types/supabase";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { MergeDeep } from "type-fest";
@@ -44,6 +48,8 @@ type JobsByIdT = { [key: string]: DataCleaningJobWithValidated };
 
 export default function DataCleaningReviewPage() {
   const supabase = newSupabaseBrowserClient();
+
+  const router = useRouter();
 
   const workspace = useWorkspace();
 
@@ -92,6 +98,7 @@ export default function DataCleaningReviewPage() {
       .select("*, item:items(*)")
       .eq("workspace_id", workspace.id)
       .is("accepted_at", null)
+      .is("discarded_at", null)
       .order("id", { ascending: false });
     if (jobFilter !== "all") {
       req = req.eq("data_cleaning_job_id", jobFilter);
@@ -179,23 +186,25 @@ export default function DataCleaningReviewPage() {
 
         <span>{/* To always have the button on right */}</span>
 
-        {jobFilter !== "all" && (
+        {jobFilter !== "all" ? (
           <div className="flex flex-row gap-2">
             <SpButton
               onClick={async () => {
-                await fetchNextPageWrapper();
+                await discardAllJobLogsSA(workspace.id, jobFilter);
+                router.refresh();
               }}
             >
               Discard all changes of this job
             </SpButton>
 
-            <SpButton
-              onClick={async () => {
-                await fetchNextPageWrapper();
-              }}
-            >
-              Accept all changes of this job
-            </SpButton>
+            <SpButton>Accept all changes of this job</SpButton>
+          </div>
+        ) : (
+          <div className="flex flex-row gap-2 w-full">
+            <p className="text-gray-400 text-sm">
+              <Icons.arrowLeft className="inline-flex h-4 w-4" /> Filter on a
+              job to do bulk operation
+            </p>
           </div>
         )}
       </div>
@@ -253,6 +262,7 @@ function JobLogCard({
   jobsById: JobsByIdT;
 }) {
   const [accepted, setAccepted] = useState<boolean>(false);
+  const [discarded, setDiscarded] = useState<boolean>(false);
 
   if (!jobLog.item) {
     return;
@@ -292,21 +302,42 @@ function JobLogCard({
           />
         </div>
 
-        <div className="flex flex-row justify-center w-28">
-          {!accepted ? (
-            <SpButton
-              className="w-full"
-              onClick={async () => {
-                await serverAcceptJobLog(jobLog.workspace_id, jobLog.id);
-                setAccepted(true);
-              }}
-            >
-              Accept
-            </SpButton>
+        <div className="flex flex-row justify-center w-28 gap-2">
+          {!accepted && !discarded ? (
+            <>
+              <SpButton
+                className="w-full"
+                onClick={async () => {
+                  await acceptJobLogSA(jobLog.workspace_id, jobLog.id);
+                  setAccepted(true);
+                }}
+              >
+                Accept
+              </SpButton>
+
+              <SpIconButton
+                variant="ghost"
+                icon={Icons.x}
+                onClick={async () => {
+                  await discardJobLogSA(jobLog.workspace_id, jobLog.id);
+                  setDiscarded(true);
+                }}
+              />
+            </>
           ) : (
             <div className="flex flex-row items-center gap-1 text-gray-500">
-              <Icons.check className="h-4 w-4" />
-              <span className="text-xs font-light">Accepted</span>
+              {discarded && (
+                <>
+                  <span className="text-xs font-light">Discarded</span>
+                </>
+              )}
+
+              {accepted && (
+                <>
+                  <Icons.check className="h-4 w-4" />
+                  <span className="text-xs font-light">Accepted</span>
+                </>
+              )}
             </div>
           )}
         </div>

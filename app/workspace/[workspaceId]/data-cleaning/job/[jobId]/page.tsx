@@ -136,6 +136,7 @@ export default function DataCleaningJobPage({
       .eq("workspace_id", workspace.id)
       .eq("data_cleaning_job_id", params.jobId)
       .is("accepted_at", null)
+      .is("discarded_at", null)
       .limit(0)
       .then(({ count, error }) => {
         if (error) {

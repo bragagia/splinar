@@ -57,6 +57,7 @@ export default function DataCleaningPage() {
       .select("*", { count: "exact" })
       .eq("workspace_id", workspace.id)
       .is("accepted_at", null)
+      .is("discarded_at", null)
       .limit(0)
       .then(({ count, error }) => {
         if (error) {

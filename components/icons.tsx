@@ -250,6 +250,22 @@ export const Icons = {
       />
     </svg>
   ),
+  arrowLeft: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.5 4.5L3 12m0 0l7.5 7.5M3 12h18"
+      />
+    </svg>
+  ),
   facebook: (props: IconProps) => (
     <svg
       stroke="currentColor"

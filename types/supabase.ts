@@ -15,6 +15,7 @@ export type Database = {
           created_at: string
           data_cleaning_job_id: string
           data_cleaning_job_validated_id: string
+          discarded_at: string | null
           id: string
           item_id: string
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           data_cleaning_job_id: string
           data_cleaning_job_validated_id: string
+          discarded_at?: string | null
           id?: string
           item_id: string
           item_type: Database["public"]["Enums"]["dup_stack_item_type"]
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           data_cleaning_job_id?: string
           data_cleaning_job_validated_id?: string
+          discarded_at?: string | null
           id?: string
           item_id?: string
           item_type?: Database["public"]["Enums"]["dup_stack_item_type"]

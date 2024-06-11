@@ -12,7 +12,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   {
     id: "job-exec-on-all-items",
-    retries: 3,
+    retries: 0,
     concurrency: [
       {
         scope: "account",
@@ -33,7 +33,7 @@ export default inngest.createFunction(
     const { supabaseAdmin, workspace, operation } =
       await workspaceOperationStartStepHelper<OperationWorkspaceJobExecOnAllMetadata>(
         event.data.operationId,
-        "workspace-install-jobs"
+        "job-exec-on-all-items"
       );
 
     const { data: job, error: errorJob } = await supabaseAdmin
@@ -138,6 +138,6 @@ export default inngest.createFunction(
       await WorkspaceOperationUpdateStatus(supabaseAdmin, operation.id, "DONE");
     }
 
-    await workspaceOperationEndStepHelper(operation, "workspace-install-jobs");
+    await workspaceOperationEndStepHelper(operation, "job-exec-on-all-items");
   }
 );
