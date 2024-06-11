@@ -12,7 +12,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   {
     id: "job-exec-on-all-items",
-    retries: 0,
+    retries: 1,
     concurrency: [
       {
         scope: "account",
@@ -75,7 +75,7 @@ export default inngest.createFunction(
       );
     }
 
-    let remainingAllowedSteps = 1;
+    let remainingAllowedSteps = 20;
 
     let itemsProcessed = 0;
     let areItemsRemaining = true;

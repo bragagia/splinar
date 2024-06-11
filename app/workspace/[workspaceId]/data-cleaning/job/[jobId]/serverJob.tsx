@@ -1,6 +1,6 @@
 "use server";
 
-import { getJobFunction } from "@/inngest/workspace-install-jobs/exec_job";
+import { getJobFunction } from "@/inngest/workspace-install-jobs/job_helpers";
 import {
   getItemSourceValueAsString,
   itemFieldValuesAreEqual,
