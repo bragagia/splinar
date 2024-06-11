@@ -30,9 +30,9 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
 
-import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/exec_job";
 import { SupabaseClient } from "@supabase/supabase-js";
 import utc from "dayjs/plugin/utc";
+import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/job_helpers";
 dayjs.extend(utc);
 
 export const companiesDedupConfig: DedupConfigT = {

@@ -4,7 +4,7 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
-import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/exec_job";
+import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/job_helpers";
 import { getCompanyColumns } from "@/lib/companies";
 import {
   convertOutputPropertyToHubspotProperty,
