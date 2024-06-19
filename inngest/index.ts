@@ -1,3 +1,4 @@
+import jobAcceptAllJobLogs from "@/inngest/job-accept-all-job-logs";
 import jobExecOnAllItems from "@/inngest/job-exec-on-all-items";
 import mondayRecap from "@/inngest/monday-recap";
 import sendMail from "@/inngest/send-mail";
@@ -26,6 +27,7 @@ export const functions = [
   workspaceUpdateAll,
   workspaceUpdatePollingHubspot,
   jobExecOnAllItems,
+  jobAcceptAllJobLogs,
   sendMail,
   mondayRecap,
 ];

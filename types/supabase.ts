@@ -833,6 +833,7 @@ export type Database = {
         | "WORKSPACE_UPDATE"
         | "MERGE_ALL"
         | "JOB_EXEC_ON_ALL"
+        | "JOB_ACCEPT_ALL_JOB_LOGS"
       workspace_subscriptions_custom_type: "BETA"
       workspace_subscriptions_type: "STRIPE" | "CUSTOM"
     }

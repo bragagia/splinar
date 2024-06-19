@@ -910,7 +910,7 @@ export function getById<T extends ObjectWithId>(
 
 export async function bulkUpdateItems(
   supabaseAdmin: SupabaseClient<Database>,
-  workspace: Tables<"workspaces">,
+  workspaceId: string,
   itemType: ItemTypeT,
   jobOutput: JobOutputByItemId
 ) {
@@ -930,7 +930,7 @@ export async function bulkUpdateItems(
   const { error: errorUpdateItems } = await supabaseAdmin.rpc(
     "items_bulk_edit_properties_json",
     {
-      workspace_id_arg: workspace.id,
+      workspace_id_arg: workspaceId,
       items_updates: bulkJsonUpdate,
     }
   );

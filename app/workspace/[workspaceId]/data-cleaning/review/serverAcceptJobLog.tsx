@@ -1,8 +1,15 @@
 "use server";
 
+import { inngest } from "@/inngest";
+import { JobLogWithItemT } from "@/lib/data_cleaning_jobs";
 import { bulkUpdateItems, getItemTypeConfig } from "@/lib/items_common";
+import {
+  OperationWorkspaceJobAcceptAllJobLogsMetadata,
+  newWorkspaceOperation,
+} from "@/lib/operations";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
+import { Tables } from "@/types/supabase";
 import dayjs from "dayjs";
 
 export async function acceptJobLogSA(workspaceId: string, jobLogId: string) {
@@ -17,7 +24,7 @@ export async function acceptJobLogSA(workspaceId: string, jobLogId: string) {
     throw errorWorkspace;
   }
 
-  const supabaseAdmin = newSupabaseRootClient(); // Only after checking we have access rights to workspace
+  const supabaseAdmin = newSupabaseRootClient();
 
   const { data: jobLog, error: errorJobLog } = await supabaseAdmin
     .from("data_cleaning_job_logs")
@@ -28,6 +35,16 @@ export async function acceptJobLogSA(workspaceId: string, jobLogId: string) {
   if (errorJobLog) {
     throw errorJobLog;
   }
+
+  await acceptJobLogInternal(workspace, jobLog);
+}
+
+export async function acceptJobLogInternal(
+  workspace: Tables<"workspaces">,
+  jobLog: JobLogWithItemT
+) {
+  const supabaseAdmin = newSupabaseRootClient(); // Only after checking we have access rights to workspace
+
   if (jobLog.item === null) {
     throw new Error("Job log item not found");
   }
@@ -50,7 +67,7 @@ export async function acceptJobLogSA(workspaceId: string, jobLogId: string) {
 
   await bulkUpdateItems(
     supabaseAdmin,
-    workspace,
+    workspace.id,
     jobLog.item.item_type,
     jobOutput
   );
@@ -58,8 +75,8 @@ export async function acceptJobLogSA(workspaceId: string, jobLogId: string) {
   const { error } = await supabaseAdmin
     .from("data_cleaning_job_logs")
     .update({ accepted_at: dayjs().toISOString(), discarded_at: null })
-    .eq("id", jobLogId)
-    .eq("workspace_id", workspaceId);
+    .eq("id", jobLog.id)
+    .eq("workspace_id", workspace.id);
 
   if (error) {
     throw error;
@@ -120,4 +137,44 @@ export async function discardAllJobLogsSA(workspaceId: string, jobId: string) {
   if (error) {
     throw error;
   }
+}
+
+export async function acceptAllJobLogsSA(workspaceId: string, jobId: string) {
+  const supabase = newSupabaseServerClient();
+
+  const { data: job, error: errorJobLogs } = await supabase
+    .from("data_cleaning_jobs")
+    .select("*")
+    .eq("id", jobId)
+    .eq("workspace_id", workspaceId);
+  if (errorJobLogs) {
+    throw errorJobLogs;
+  }
+
+  const supabaseAdmin = newSupabaseRootClient(); // Only after checking we have access rights to workspace
+
+  const operation =
+    await newWorkspaceOperation<OperationWorkspaceJobAcceptAllJobLogsMetadata>(
+      supabaseAdmin,
+      workspaceId,
+      "JOB_ACCEPT_ALL_JOB_LOGS",
+      "QUEUED",
+      {
+        jobId: jobId,
+      },
+      {
+        linkedObjectId: jobId,
+      }
+    );
+
+  await inngest.send({
+    name: "job/accept-all-job-logs.start",
+    data: {
+      workspaceId: workspaceId,
+      operationId: operation.id,
+      dataCleaningJobId: jobId,
+    },
+  });
+
+  return operation;
 }

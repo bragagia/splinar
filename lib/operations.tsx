@@ -64,6 +64,15 @@ export type OperationWorkspaceJobExecOnAllMetadata =
     };
   };
 
+export type OperationWorkspaceJobAcceptAllJobLogsMetadata =
+  OperationGenericMetadata & {
+    jobId: string;
+    progress?: {
+      total: number;
+      done: number;
+    };
+  };
+
 export async function workspaceOperationIncrementStepsDone(
   supabaseAdmin: SupabaseClient<Database>,
   operationId: string

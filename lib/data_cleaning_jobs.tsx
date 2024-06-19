@@ -23,3 +23,10 @@ export type DataCleaningJobTemplateT = MergeDeep<
     description: string;
   }
 >;
+
+export type JobLogWithItemT = MergeDeep<
+  Tables<"data_cleaning_job_logs">,
+  {
+    item: Tables<"items"> | null;
+  }
+>;

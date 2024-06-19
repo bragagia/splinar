@@ -63,7 +63,7 @@ export async function runDataCleaningJobOnBatch(
 
       await bulkUpdateItems(
         supabaseAdmin,
-        workspace,
+        workspace.id,
         jobValidated.target_item_type,
         jobOutput
       );

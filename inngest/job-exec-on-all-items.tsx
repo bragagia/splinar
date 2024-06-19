@@ -36,7 +36,7 @@ export default inngest.createFunction(
         "job-exec-on-all-items"
       );
 
-    const { data: job, error: errorJob } = await supabaseAdmin
+    const { data: jobValidated, error: errorJobValidated } = await supabaseAdmin
       .from("data_cleaning_job_validated")
       .select()
       .eq("id", event.data.dataCleaningValidatedJobId)
@@ -46,8 +46,8 @@ export default inngest.createFunction(
       .eq("workspace_id", workspace.id)
       .limit(1)
       .single();
-    if (errorJob) {
-      throw errorJob;
+    if (errorJobValidated) {
+      throw errorJobValidated;
     }
 
     if (operation.ope_status === "QUEUED") {
@@ -55,7 +55,7 @@ export default inngest.createFunction(
         .from("items")
         .select("", { count: "exact", head: true })
         .eq("workspace_id", workspace.id)
-        .eq("item_type", job.target_item_type)
+        .eq("item_type", jobValidated.target_item_type)
         .is("merged_in_distant_id", null)
         .limit(0);
       if (error) {
@@ -85,7 +85,7 @@ export default inngest.createFunction(
         .from("items")
         .select("*")
         .eq("workspace_id", workspace.id)
-        .eq("item_type", job.target_item_type)
+        .eq("item_type", jobValidated.target_item_type)
         .is("merged_in_distant_id", null)
         .limit(100)
         .order("id_seq", { ascending: true });
@@ -108,7 +108,12 @@ export default inngest.createFunction(
 
       prevLastIdSeq = items[items.length - 1].id_seq;
 
-      await runDataCleaningJobOnBatch(supabaseAdmin, workspace, job, items);
+      await runDataCleaningJobOnBatch(
+        supabaseAdmin,
+        workspace,
+        jobValidated,
+        items
+      );
 
       remainingAllowedSteps--;
     }
@@ -123,7 +128,7 @@ export default inngest.createFunction(
       }
     );
 
-    if (remainingAllowedSteps === 0 && prevLastIdSeq !== null) {
+    if (areItemsRemaining && prevLastIdSeq !== null) {
       // We reached the limit of steps, we need to restart the process
       await inngest.send({
         name: "job/exec-on-all-items.start",

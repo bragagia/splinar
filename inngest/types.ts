@@ -118,6 +118,15 @@ export type JobExecOnAllItemsStart = {
   };
 };
 
+export type JobAcceptAllJobLogsStart = {
+  name: "job/accept-all-job-logs.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    dataCleaningJobId: string;
+  };
+};
+
 // Mail
 
 export type SendMailStart = {
@@ -138,5 +147,6 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceUpdateAllStart
   | ItemsMergeAllStart
   | JobExecOnAllItemsStart
+  | JobAcceptAllJobLogsStart
   | SendMailStart
 >();

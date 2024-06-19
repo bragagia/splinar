@@ -78,8 +78,6 @@ const typeDef = `type HubSpotItem = {
 
 declare function stringSimScore(string1: string, string2: string): number;`;
 
-type jobModeT = "standard" | "expert";
-
 type JobRecurrenceType =
   | "each-new"
   | "each-new-and-updated"
@@ -423,9 +421,9 @@ export default function DataCleaningJobPage({
               getItemTypeConfig(job.target_item_type).word
             } items. You will be able to review the changes before they are applied.`}
           >
-            Execute job on all {getItemTypeConfig(job.target_item_type).word}{" "}
+            Execute job on all {getItemTypeConfig(job.target_item_type).word}
             {currentOperationProgress !== undefined &&
-              `(${currentOperationProgress}%)`}
+              ` (${currentOperationProgress}%)`}
           </SpConfirmButton>
 
           <DropdownMenu>

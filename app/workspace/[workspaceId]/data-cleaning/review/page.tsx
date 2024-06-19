@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  acceptAllJobLogsSA,
   acceptJobLogSA,
   discardAllJobLogsSA,
   discardJobLogSA,
@@ -9,7 +10,11 @@ import { PAGE_SIZE } from "@/app/workspace/[workspaceId]/duplicates/constant";
 import { HubspotLinkButton } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { useWorkspace } from "@/app/workspace/[workspaceId]/workspace-context";
 import { Icons } from "@/components/icons";
-import { SpButton, SpIconButton } from "@/components/sp-button";
+import {
+  SpButton,
+  SpConfirmButton,
+  SpIconButton,
+} from "@/components/sp-button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,6 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getItemTypeConfig } from "@/lib/items_common";
+import {
+  OperationWorkspaceJobAcceptAllJobLogsMetadata,
+  WorkspaceOperationT,
+  workspaceOperationGetLastOf,
+} from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
@@ -34,7 +44,7 @@ import { DataCleaningJobWithValidated } from "@/types/data_cleaning";
 import { Tables } from "@/types/supabase";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { MergeDeep } from "type-fest";
@@ -48,8 +58,6 @@ type JobsByIdT = { [key: string]: DataCleaningJobWithValidated };
 
 export default function DataCleaningReviewPage() {
   const supabase = newSupabaseBrowserClient();
-
-  const router = useRouter();
 
   const workspace = useWorkspace();
 
@@ -65,6 +73,54 @@ export default function DataCleaningReviewPage() {
   const [hasMore, setHasMore] = useState<boolean>(true);
 
   const [jobsById, setJobsById] = useState<JobsByIdT>();
+
+  const [jobOperation, setJobOperation] = useState<
+    | WorkspaceOperationT<OperationWorkspaceJobAcceptAllJobLogsMetadata>
+    | undefined
+  >(undefined);
+
+  const updateJobOperation = useCallback(() => {
+    if (jobFilter === "all") {
+      setJobOperation(undefined);
+      return;
+    }
+
+    workspaceOperationGetLastOf<OperationWorkspaceJobAcceptAllJobLogsMetadata>(
+      supabase,
+      workspace.id,
+      {
+        opeType: "JOB_ACCEPT_ALL_JOB_LOGS",
+        linkedObject: jobFilter,
+      }
+    ).then((operation) => {
+      setJobOperation(operation || undefined);
+    });
+  }, [supabase, workspace.id, jobFilter]);
+
+  useEffect(() => {
+    updateJobOperation();
+  }, [updateJobOperation]);
+
+  useEffect(() => {
+    if (
+      !jobOperation ||
+      jobOperation.ope_status === "ERROR" ||
+      jobOperation.ope_status === "DONE"
+    ) {
+      // We don't need to update an operation that is in error/done
+      return;
+    }
+
+    const interval = setInterval(
+      () => updateJobOperation(),
+      process.env.NODE_ENV === "development" ? 500 : 5000
+    );
+
+    return () => {
+      updateJobOperation();
+      clearInterval(interval);
+    };
+  }, [jobOperation, updateJobOperation]);
 
   useEffect(() => {
     supabase
@@ -137,6 +193,22 @@ export default function DataCleaningReviewPage() {
     return <div>Loading...</div>;
   }
 
+  let currentOperationProgress: number | undefined;
+  if (
+    jobOperation &&
+    (jobOperation.ope_status === "QUEUED" ||
+      jobOperation.ope_status === "PENDING")
+  ) {
+    if (jobOperation.metadata?.progress) {
+      const progress = jobOperation.metadata.progress;
+      currentOperationProgress = Math.ceil(
+        (progress.done / (progress.total || 1)) * 100
+      );
+    } else {
+      currentOperationProgress = 0;
+    }
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -188,16 +260,30 @@ export default function DataCleaningReviewPage() {
 
         {jobFilter !== "all" ? (
           <div className="flex flex-row gap-2">
-            <SpButton
+            <SpConfirmButton
+              disabled={currentOperationProgress !== undefined}
               onClick={async () => {
                 await discardAllJobLogsSA(workspace.id, jobFilter);
-                router.refresh();
+                location.reload();
               }}
             >
               Discard all changes of this job
-            </SpButton>
+            </SpConfirmButton>
 
-            <SpButton>Accept all changes of this job</SpButton>
+            <SpConfirmButton
+              disabled={currentOperationProgress !== undefined}
+              onClick={async () => {
+                const operation = await acceptAllJobLogsSA(
+                  workspace.id,
+                  jobFilter
+                );
+                setJobOperation(operation);
+              }}
+            >
+              Accept all changes of this job
+              {currentOperationProgress !== undefined &&
+                ` (${currentOperationProgress}%)`}
+            </SpConfirmButton>
           </div>
         ) : (
           <div className="flex flex-row gap-2 w-full">
