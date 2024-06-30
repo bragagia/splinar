@@ -69,10 +69,9 @@ export default async function WorkspaceLayout({
   }
 
   const shouldDisplayFreeUsageWarning =
-    (isFreeTier &&
-      workspace.items_count_on_install &&
-      workspace.items_count_on_install > 10000) ||
-    true;
+    isFreeTier &&
+    workspace.items_count_on_install &&
+    workspace.items_count_on_install > 10000;
   const freeUsagePercentage =
     shouldDisplayFreeUsageWarning && workspace.items_count_on_install
       ? Math.round((10000 / workspace.items_count_on_install) * 100)
