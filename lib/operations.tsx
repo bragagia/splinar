@@ -92,7 +92,7 @@ export async function workspaceOperationAddStep<
   stepsToAdd: number,
   metadataUpdate?: DeepPartial<T>
 ) {
-  await _internalUpdateGeneric(
+  return await _internalUpdateGeneric(
     supabaseAdmin,
     operationId,
     {},
@@ -108,7 +108,12 @@ export async function workspaceOperationUpdateMetadata<
   operationId: string,
   metadataUpdate: DeepPartial<T>
 ) {
-  await _internalUpdateGeneric(supabaseAdmin, operationId, {}, metadataUpdate);
+  return await _internalUpdateGeneric(
+    supabaseAdmin,
+    operationId,
+    {},
+    metadataUpdate
+  );
 }
 
 export async function WorkspaceOperationUpdateStatus<
@@ -119,7 +124,7 @@ export async function WorkspaceOperationUpdateStatus<
   newStatus: Tables<"workspace_operations">["ope_status"],
   metadataUpdate?: DeepPartial<T>
 ) {
-  await _internalUpdateGeneric(
+  return await _internalUpdateGeneric(
     supabaseAdmin,
     operationId,
     {
@@ -282,13 +287,20 @@ async function _internalUpdateGeneric<T extends OperationGenericMetadata>(
     )
   );
 
-  const { error: errorUpdate } = await supabaseAdmin
+  const { data: updatedOperation, error: errorUpdate } = await supabaseAdmin
     .from("workspace_operations")
     .update(update)
-    .eq("id", operationId);
+    .eq("id", operationId)
+    .select("*")
+    .single();
   if (errorUpdate) {
     throw errorUpdate;
   }
+
+  return {
+    ...updatedOperation,
+    metadata: updatedOperation.metadata as T,
+  };
 }
 
 export async function workspaceOperationOnFailureHelper(
@@ -332,14 +344,27 @@ export async function workspaceOperationOnFailureHelper(
 }
 
 export async function workspaceOperationStartStepHelper<
-  T = OperationGenericMetadata
->(operationId: string, stepName: string) {
+  T extends OperationGenericMetadata,
+  OT extends { operationId: string } = { operationId: string }
+>(
+  eventData: OT,
+  stepName: string,
+  stepFn: ({
+    supabaseAdmin,
+    operation,
+    workspace,
+  }: {
+    supabaseAdmin: SupabaseClient<Database>;
+    operation: WorkspaceOperationT<T>;
+    workspace: Tables<"workspaces">;
+  }) => Promise<void>
+) {
   const supabaseAdmin = newSupabaseRootClient();
 
   const { data: operationDb, error: errorOperation } = await supabaseAdmin
     .from("workspace_operations")
     .select("*, workspace:workspaces!inner(*)")
-    .eq("id", operationId)
+    .eq("id", eventData.operationId)
     .limit(1)
     .single();
   if (errorOperation) {
@@ -347,9 +372,10 @@ export async function workspaceOperationStartStepHelper<
   }
 
   if (operationDb.ope_status === "ERROR") {
-    throw new Error(
+    console.log(
       `##### ABORT ${stepName} - Workspace: ${operationDb.workspace_id} - Operation: ${operationDb.id} -> Operation in error, aborting step`
     );
+    return;
   }
 
   const workspace = operationDb.workspace;
@@ -361,18 +387,14 @@ export async function workspaceOperationStartStepHelper<
   console.log(
     `##### START ${stepName} - Workspace: ${workspace.id} - Operation: ${operation.id}`
   );
+  console.log("##### ", JSON.stringify(eventData, null, 2));
 
-  return {
+  await stepFn({
     supabaseAdmin,
-    operation: { ...operation, metadata: operation.metadata as T },
+    operation: { ...operation, metadata: operation.metadata as any },
     workspace,
-  };
-}
+  });
 
-export async function workspaceOperationEndStepHelper(
-  operation: Tables<"workspace_operations">,
-  stepName: string
-) {
   console.log(
     `##### END ${stepName} - Workspace: ${operation.workspace_id} - Operation: ${operation.id}`
   );

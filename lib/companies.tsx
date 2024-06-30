@@ -5,13 +5,13 @@ import {
   StandardLinkButton,
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
-import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import {
   convertOutputPropertyToHubspotProperty,
   newHubspotClient,
 } from "@/lib/hubspot";
 import {
   DedupConfigT,
+  JobOutputByItemId,
   areSimilaritiesSourceFieldsDifferent,
   getItemTypeConfig,
   itemPollUpdaterT,
@@ -27,13 +27,25 @@ import {
   FilterOperatorEnum,
   PublicObjectSearchRequest,
 } from "@hubspot/api-client/lib/codegen/crm/companies";
+import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs, { Dayjs } from "dayjs";
 import stringSimilarity from "string-similarity";
 
-import { SupabaseClient } from "@supabase/supabase-js";
 import utc from "dayjs/plugin/utc";
-import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/job_helpers";
 dayjs.extend(utc);
+
+export function deleteNullKeys(values: { [key: string]: string | null }) {
+  let newValues: { [key: string]: string } = {};
+
+  Object.keys(values).forEach((key) => {
+    const val = values[key];
+    if (val !== null) {
+      newValues[key] = val;
+    }
+  });
+
+  return newValues;
+}
 
 export const companiesDedupConfig: DedupConfigT = {
   hubspotSourceFields: [
@@ -96,6 +108,7 @@ export const companiesDedupConfig: DedupConfigT = {
       ifMatch: "potential",
       ifDifferent: "prevent-confident-reduce-potential",
       linkType: "hubspot",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "aecc092d-cdcf-477e-96ee-8fd8371982ff",
@@ -105,6 +118,7 @@ export const companiesDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident",
       linkType: "external",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "a01d710d-6c50-43b2-ae37-a306ff22c4ea",
@@ -114,6 +128,7 @@ export const companiesDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "linkedin",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "c729d617-d4a6-435b-a94d-6f1dbc3e6274",
@@ -122,6 +137,7 @@ export const companiesDedupConfig: DedupConfigT = {
       matchingMethod: "exact",
       ifMatch: "confident",
       ifDifferent: "reduce-confident",
+      fastSimilaritiesCompatible: true,
     },
     // {
     //   id: "6896b00a-1e71-4919-96ee-dfdc2d32a2f9",
@@ -140,6 +156,7 @@ export const companiesDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "facebook",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "70655159-9477-422b-8add-9983ec5a6a61",
@@ -149,6 +166,7 @@ export const companiesDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "twitter",
+      fastSimilaritiesCompatible: true,
     },
   ],
   flags: [

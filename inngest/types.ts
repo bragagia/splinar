@@ -1,4 +1,4 @@
-import { ItemTypeT } from "@/lib/items_common";
+import { ItemFieldConfigT, ItemTypeT } from "@/lib/items_common";
 import { EventSchemas } from "inngest";
 import postmark from "postmark";
 
@@ -36,6 +36,27 @@ export type WorkspaceInstallSimilaritiesStart = {
     workspaceId: string;
     operationId: string;
     secondRun?: boolean;
+  };
+};
+
+export type WorkspaceInstallSimilaritiesFastStart = {
+  name: "workspace/install/similarities-fast.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    itemType: ItemTypeT;
+  };
+};
+
+export type WorkspaceInstallSimilaritiesFastFieldStart = {
+  name: "workspace/install/similarities-fast/field.start";
+  data: {
+    workspaceId: string;
+    operationId: string;
+    sourceNames: string[];
+    itemType: ItemTypeT;
+    fieldConfigId: string;
+    matchingMethod: ItemFieldConfigT["matchingMethod"];
   };
 };
 
@@ -143,6 +164,8 @@ export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallEndStart
   | WorkspaceInstallJobsStart
   | WorkspaceInstallSimilaritiesStart
+  | WorkspaceInstallSimilaritiesFastStart
+  | WorkspaceInstallSimilaritiesFastFieldStart
   | WorkspaceUpdatePollingHubspotStart
   | WorkspaceUpdateAllStart
   | ItemsMergeAllStart

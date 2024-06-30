@@ -6,7 +6,6 @@ import { getItemTypesList } from "@/lib/items_common";
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
   workspaceOperationAddStep,
-  workspaceOperationEndStepHelper,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
   workspaceOperationUpdateMetadata,
@@ -37,120 +36,154 @@ export default inngest.createFunction(
   async ({ event, step, logger }) => {
     const { secondRun } = event.data;
 
-    const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper<OperationWorkspaceInstallOrUpdateMetadata>(
-        event.data.operationId,
-        "workspace-install-similarities"
-      );
-
-    if (!secondRun) {
-      await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
-        operation.id,
-        {
-          steps: {
-            similarities: {
-              startedAt: dayjs().toISOString(),
-            },
-          },
+    await workspaceOperationStartStepHelper<OperationWorkspaceInstallOrUpdateMetadata>(
+      event.data,
+      "workspace-install-similarities",
+      async ({ supabaseAdmin, workspace, operation }) => {
+        if (!secondRun) {
+          await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+            supabaseAdmin,
+            operation.id,
+            {
+              steps: {
+                similarities: {
+                  startedAt: dayjs().toISOString(),
+                },
+              },
+            }
+          );
         }
-      );
-    }
 
-    const workspaceSubscription = await getWorkspaceCurrentSubscription(
-      supabaseAdmin,
-      workspace.id
-    );
-
-    let isFreeTier = false;
-    if (!workspaceSubscription) {
-      isFreeTier = true;
-    }
-
-    let hasMore = false;
-    let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
-    for (var itemType of getItemTypesList()) {
-      const { hasMore: hasMoreOfItemType, payloads: payloadsOfItemType } =
-        await launchWorkspaceSimilaritiesBatches(
+        const workspaceSubscription = await getWorkspaceCurrentSubscription(
           supabaseAdmin,
-          workspace.id,
-          operation.id,
-          isFreeTier,
-          itemType
+          workspace.id
         );
 
-      payloads.push(...payloadsOfItemType);
-
-      if (hasMoreOfItemType) {
-        hasMore = true;
-      }
-    }
-
-    if (payloads.length === 0) {
-      logger.info("No similarities to launch");
-
-      await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
-        supabaseAdmin,
-        operation.id,
-        {
-          steps: {
-            similarities: {
-              total: 0,
-            },
-          },
+        let isFreeTier = false;
+        if (!workspaceSubscription) {
+          isFreeTier = true;
         }
-      );
 
-      await inngest.send({
-        name: "workspace/install/dupstacks.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-        },
-      });
+        let hasMore = false;
+        let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
+        for (var itemType of getItemTypesList()) {
+          let hasBeenFastRan = false;
+          if (!isFreeTier) {
+            console.log("Paying tier, checking if need to fast run");
 
-      return;
-    }
+            const { count, error } = await supabaseAdmin
+              .from("items")
+              .select("", { count: "exact", head: true })
+              .eq("workspace_id", workspace.id)
+              .eq("item_type", itemType)
+              .is("merged_in_distant_id", null)
+              .limit(0);
+            if (error || !count) {
+              throw error || new Error("missing count");
+            }
 
-    await workspaceOperationAddStep<OperationWorkspaceInstallOrUpdateMetadata>(
-      supabaseAdmin,
-      operation.id,
-      payloads.length,
-      {
-        steps: {
-          similarities: {
-            total:
-              payloads.length +
-              (operation.metadata.steps.similarities?.total || 0),
-            batchesStartedAt: dayjs().toISOString(),
-          },
-        },
+            if (count > 100000) {
+              hasBeenFastRan = true;
+
+              if (!secondRun) {
+                await inngest.send({
+                  name: "workspace/install/similarities-fast.start",
+                  data: {
+                    workspaceId: workspace.id,
+                    operationId: operation.id,
+                    itemType: itemType,
+                  },
+                });
+              }
+            }
+          }
+
+          if (!hasBeenFastRan) {
+            const { hasMore: hasMoreOfItemType, payloads: payloadsOfItemType } =
+              await launchWorkspaceSimilaritiesBatches(
+                supabaseAdmin,
+                workspace.id,
+                operation.id,
+                isFreeTier,
+                itemType
+              );
+
+            payloads.push(...payloadsOfItemType);
+
+            if (hasMoreOfItemType) {
+              hasMore = true;
+            }
+          }
+        }
+
+        if (payloads.length === 0) {
+          logger.info("No similarities to launch");
+
+          await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+            supabaseAdmin,
+            operation.id,
+            {
+              steps: {
+                similarities: {
+                  total: 0,
+                },
+              },
+            }
+          );
+
+          await inngest.send({
+            name: "workspace/install/dupstacks.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+            },
+          });
+
+          return;
+        }
+
+        await workspaceOperationAddStep<OperationWorkspaceInstallOrUpdateMetadata>(
+          supabaseAdmin,
+          operation.id,
+          payloads.length,
+          {
+            steps: {
+              similarities: {
+                total:
+                  payloads.length +
+                  (operation.metadata.steps.similarities?.total || 0),
+                batchesStartedAt: dayjs().toISOString(),
+              },
+            },
+          }
+        );
+
+        if (hasMore) {
+          logger.info("More similarities to launch");
+
+          await inngest.send({
+            name: "workspace/install/similarities.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+              secondRun: true,
+            },
+          });
+        }
+
+        console.log("Sending", payloads.length, "batches");
+        for (
+          var i = 0;
+          i < payloads.length;
+          i += INNGEST_MAX_EVENT_PER_PAYLOAD
+        ) {
+          if (i > 0) console.log("Sending batches group ", i);
+
+          await inngest.send(
+            payloads.slice(i, i + INNGEST_MAX_EVENT_PER_PAYLOAD)
+          );
+        }
       }
-    );
-
-    if (hasMore) {
-      logger.info("More similarities to launch");
-
-      await inngest.send({
-        name: "workspace/install/similarities.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-          secondRun: true,
-        },
-      });
-    }
-
-    console.log("Sending", payloads.length, "batches");
-    for (var i = 0; i < payloads.length; i += INNGEST_MAX_EVENT_PER_PAYLOAD) {
-      if (i > 0) console.log("Sending batches group ", i);
-
-      await inngest.send(payloads.slice(i, i + INNGEST_MAX_EVENT_PER_PAYLOAD));
-    }
-
-    await workspaceOperationEndStepHelper(
-      operation,
-      "workspace-install-similarities"
     );
   }
 );

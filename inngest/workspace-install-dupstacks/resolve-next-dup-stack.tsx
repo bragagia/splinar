@@ -1,5 +1,6 @@
 import { areItemsDups } from "@/inngest/workspace-install-dupstacks/are-items-dups";
-import { ItemTypeT } from "@/lib/items_common";
+import { evalSimilarities } from "@/inngest/workspace-install-similarities-batch/eval-similarities";
+import { ItemTypeT, getItemTypeConfig } from "@/lib/items_common";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { uuid } from "@/lib/uuid";
 import {
@@ -81,6 +82,12 @@ export async function resolveNextDuplicatesStack(
   }
   itemsCacheById[referenceItem.id] = referenceItem;
 
+  const getItemDisplayName = getItemTypeConfig(
+    referenceItem.item_type
+  ).getItemDisplayString;
+
+  console.log("Reference item", getItemDisplayName(referenceItem));
+
   // We recursively check if this item or its supposed duplicates have other duplicates to create
   // a "stack" of duplicates. Any item added to the stack is removed from the checklist to never
   // be added to another stack
@@ -108,6 +115,8 @@ export async function resolveNextDuplicatesStack(
       itemsCacheById,
       parentId
     );
+    console.log(prefix + "-> Parent item", getItemDisplayName(parentItem));
+
     if (similarItems.length === 0) {
       console.log(prefix + "No similar items found");
       return;
@@ -129,10 +138,35 @@ export async function resolveNextDuplicatesStack(
         continue;
       }
 
-      let dupStatus = areItemsDups(parentItem, similarItem);
+      const parentWithCalcSims = {
+        ...parentItem,
+        similarities: evalSimilarities(workspaceId, parentItem, similarItem),
+      };
+      let dupStatus = areItemsDups(parentWithCalcSims, similarItem);
 
       if (dupStatus !== false) {
-        console.log(prefix + "New similar item", similarItem.id);
+        console.log(
+          prefix + "New similar item",
+          getItemDisplayName(similarItem),
+          similarItem.id
+        );
+
+        let addedToStack = false;
+        if (dupStatus === "CONFIDENT") {
+          if (!isChildOfPotentialDup) {
+            childsNewDuplicates.confident_ids.push(similarItem.id);
+          } else {
+            // If we are a child of a potential dup, we are also a potential dup
+            childsNewDuplicates.potential_ids.push(similarItem.id);
+          }
+          addedToStack = true;
+        } else if (dupStatus === "POTENTIAL") {
+          // If we are a child of a potential dup, we don't add more potential dups
+          if (!isChildOfPotentialDup) {
+            childsNewDuplicates.potential_ids.push(similarItem.id);
+            addedToStack = true;
+          }
+        }
 
         const isMoreFilledThanReference =
           similarItem.filled_score > referenceItem.filled_score;
@@ -141,9 +175,10 @@ export async function resolveNextDuplicatesStack(
           similarItem.id_seq < referenceItem.id_seq;
 
         if (
-          isMoreFilledThanReference ||
-          isSameFilledThanReferenceAndIdIsLower
+          addedToStack &&
+          (isMoreFilledThanReference || isSameFilledThanReferenceAndIdIsLower)
         ) {
+          // TODO: We should't need another DB request here
           // We first check is this item is already part of an existing dupstack
           const { data: existingDupstackIds, error } = await supabase
             .from("dup_stack_items")
@@ -159,20 +194,6 @@ export async function resolveNextDuplicatesStack(
             // Restart the whole function with similarContact as reference, because it has more data
             throw similarItem;
           }
-        }
-
-        if (dupStatus === "CONFIDENT") {
-          if (!isChildOfPotentialDup) {
-            childsNewDuplicates.confident_ids.push(similarItem.id);
-          } else {
-            // If we are a child of a potential dup, we are also a potential dup
-            childsNewDuplicates.potential_ids.push(similarItem.id);
-          }
-        } else if (dupStatus === "POTENTIAL") {
-          // If we are a child of a potential dup, we don't add more potential dups
-          //if (!isChildOfPotentialDup) {
-          childsNewDuplicates.potential_ids.push(similarItem.id);
-          //}
         }
       }
     }

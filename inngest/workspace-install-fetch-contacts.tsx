@@ -1,7 +1,6 @@
 import { fetchContacts } from "@/inngest/workspace-install-fetch/contacts";
 import { newHubspotClient } from "@/lib/hubspot";
 import {
-  workspaceOperationEndStepHelper,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
 } from "@/lib/operations";
@@ -28,25 +27,20 @@ export default inngest.createFunction(
   },
   { event: "workspace/install/fetch/contacts.start" },
   async ({ event, step, logger }) => {
-    const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper(
-        event.data.operationId,
-        "workspace-install-fetch-contacts"
-      );
+    await workspaceOperationStartStepHelper(
+      event.data,
+      "workspace-install-fetch-contacts",
+      async ({ supabaseAdmin, workspace, operation }) => {
+        let hsClient = await newHubspotClient(workspace.refresh_token);
 
-    let hsClient = await newHubspotClient(workspace.refresh_token);
-
-    await fetchContacts(
-      hsClient,
-      supabaseAdmin,
-      workspace.id,
-      operation.id,
-      event.data.after
-    );
-
-    await workspaceOperationEndStepHelper(
-      operation,
-      "workspace-install-fetch-contacts"
+        await fetchContacts(
+          hsClient,
+          supabaseAdmin,
+          workspace.id,
+          operation.id,
+          event.data.after
+        );
+      }
     );
   }
 );

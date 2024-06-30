@@ -1,3 +1,4 @@
+import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
 import { EmailVerificationWarning } from "@/app/workspace/[workspaceId]/emailVerificationWarning";
 import { MainNav } from "@/app/workspace/[workspaceId]/main-nav";
 import { UserProvider } from "@/app/workspace/[workspaceId]/user-context";
@@ -8,9 +9,11 @@ import {
   WorkspaceInstallationWall,
 } from "@/app/workspace/[workspaceId]/workspace-installation-wall";
 import WorkspaceSwitcher from "@/app/workspace/[workspaceId]/workspace-switcher";
+import { SpAnimatedButton } from "@/components/sp-button";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { URLS } from "@/lib/urls";
 import { Tables } from "@/types/supabase";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -55,6 +58,26 @@ export default async function WorkspaceLayout({
     redirect(URLS.workspaceIndex);
   }
 
+  const workspaceSubscription = await getWorkspaceCurrentSubscription(
+    supabase,
+    workspace.id
+  );
+
+  let isFreeTier = false;
+  if (!workspaceSubscription) {
+    isFreeTier = true;
+  }
+
+  const shouldDisplayFreeUsageWarning =
+    (isFreeTier &&
+      workspace.items_count_on_install &&
+      workspace.items_count_on_install > 10000) ||
+    true;
+  const freeUsagePercentage =
+    shouldDisplayFreeUsageWarning && workspace.items_count_on_install
+      ? Math.round((10000 / workspace.items_count_on_install) * 100)
+      : 0;
+
   return (
     <UserProvider
       value={{
@@ -79,8 +102,43 @@ export default async function WorkspaceLayout({
                 </div>
               </div>
             </div>
+
             <div className="page-container w-full">
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-4">
+                {shouldDisplayFreeUsageWarning && (
+                  <div className="flex flex-col items-center gap-4 bg-yellow-50 border-2 rounded-lg mx-4 mt-4 border-yellow-300 p-4">
+                    <p>
+                      <strong>Free tier alert</strong>
+                    </p>
+
+                    <p>
+                      Only 10,000 items (representing {freeUsagePercentage}% of
+                      your workspace) are eligible for duplicate detection under
+                      our free tier.
+                    </p>
+
+                    <div className="flex flex-row items-center gap-4">
+                      <Link href={URLS.workspace(workspace.id).billing.index}>
+                        <SpAnimatedButton
+                          size="lg"
+                          id="checkout-and-portal-button"
+                        >
+                          Check our plans here
+                        </SpAnimatedButton>
+                      </Link>
+
+                      <span className="text-sm">or</span>
+
+                      <Link
+                        href="https://calendly.com/d/3tr-btj-j8d/splinar-demo"
+                        className="text-blue-800 underline"
+                      >
+                        Request a call
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 <WorkspaceInstallationCard inApp={true} />
               </div>
             </div>

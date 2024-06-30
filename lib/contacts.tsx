@@ -3,15 +3,14 @@ import {
   LinkedinLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
-import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
-import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/job_helpers";
-import { getCompanyColumns } from "@/lib/companies";
+import { deleteNullKeys, getCompanyColumns } from "@/lib/companies";
 import {
   convertOutputPropertyToHubspotProperty,
   newHubspotClient,
 } from "@/lib/hubspot";
 import {
   DedupConfigT,
+  JobOutputByItemId,
   areSimilaritiesSourceFieldsDifferent,
   getItemTypeConfig,
   itemPollUpdaterT,
@@ -79,6 +78,7 @@ export const contactsDedupConfig: DedupConfigT = {
       ifMatch: "potential",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "hubspot",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "e83701e1-c834-4093-b87a-2c928ce1ab1a",
@@ -87,6 +87,7 @@ export const contactsDedupConfig: DedupConfigT = {
       matchingMethod: "email",
       ifMatch: "confident",
       ifDifferent: "reduce-potential",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "f4301d99-295c-4491-91e2-21335110f675",
@@ -96,6 +97,7 @@ export const contactsDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-potential",
       linkType: "linkedin",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "7e290d76-aa92-4c4b-ae22-8236fc73070d",
@@ -104,6 +106,7 @@ export const contactsDedupConfig: DedupConfigT = {
       matchingMethod: "exact",
       ifMatch: "multiplier",
       ifDifferent: "reduce-potential",
+      fastSimilaritiesCompatible: true,
     },
     {
       id: "3982daff-7b19-4b65-914b-d2f02b54f7d9",
@@ -113,6 +116,7 @@ export const contactsDedupConfig: DedupConfigT = {
       ifMatch: "multiplier",
       ifDifferent: "null",
       linkType: "item-reference",
+      fastSimilaritiesCompatible: false,
     },
   ],
   flags: [

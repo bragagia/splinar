@@ -1,7 +1,7 @@
 import { inngest } from "@/inngest";
-import { deleteNullKeys } from "@/inngest/workspace-install-fetch/contacts";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { splitArrayIntoChunks } from "@/lib/arrays";
+import { deleteNullKeys } from "@/lib/companies";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";

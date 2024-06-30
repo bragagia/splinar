@@ -114,15 +114,28 @@ export async function updateInstallItemsCount(
     throw items.error;
   }
 
-  await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
-    supabase,
-    operationId,
-    {
-      steps: {
-        fetch: {
-          itemsDone: items.count || 0,
+  const operation =
+    await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
+      supabase,
+      operationId,
+      {
+        steps: {
+          fetch: {
+            itemsDone: items.count || 0,
+          },
         },
-      },
+      }
+    );
+
+  if (operation.ope_type === "WORKSPACE_INSTALL") {
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        items_count_on_install: items.count || 0,
+      })
+      .eq("id", workspaceId);
+    if (error) {
+      throw error;
     }
-  );
+  }
 }

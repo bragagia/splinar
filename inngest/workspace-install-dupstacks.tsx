@@ -4,7 +4,6 @@ import {
 } from "@/inngest/workspace-install-dupstacks/count";
 import { resolveNextDuplicatesStack } from "@/inngest/workspace-install-dupstacks/resolve-next-dup-stack";
 import {
-  workspaceOperationEndStepHelper,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
 } from "@/lib/operations";
@@ -33,80 +32,75 @@ export default inngest.createFunction(
   },
   { event: "workspace/install/dupstacks.start" },
   async ({ event, step, logger }) => {
-    const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper(
-        event.data.operationId,
-        "workspace-install-dupstacks"
-      );
+    await workspaceOperationStartStepHelper(
+      event.data,
+      "workspace-install-dupstacks",
+      async ({ supabaseAdmin, workspace, operation }) => {
+        if (!event.data.secondRun) {
+          await workspaceInstallDupstackFirstRun(
+            supabaseAdmin,
+            workspace.id,
+            operation.id
+          );
+        }
 
-    if (!event.data.secondRun) {
-      await workspaceInstallDupstackFirstRun(
-        supabaseAdmin,
-        workspace.id,
-        operation.id
-      );
-    }
+        let counter = 0;
+        let now = performance.now();
+        const intervalCallback = 25;
+        const intervalStop = 50;
+        let hasMore = true;
 
-    let counter = 0;
-    let now = performance.now();
-    const intervalCallback = 25;
-    const intervalStop = 50;
-    let hasMore = true;
+        while (hasMore) {
+          const hasFoundContact = await resolveNextDuplicatesStack(
+            supabaseAdmin,
+            workspace.id
+          );
+          if (!hasFoundContact) {
+            await updateDupStackInstallationDone(
+              supabaseAdmin,
+              workspace.id,
+              operation.id
+            );
 
-    while (hasMore) {
-      const hasFoundContact = await resolveNextDuplicatesStack(
-        supabaseAdmin,
-        workspace.id
-      );
-      if (!hasFoundContact) {
-        await updateDupStackInstallationDone(
-          supabaseAdmin,
-          workspace.id,
-          operation.id
-        );
+            hasMore = false;
+            break;
+          }
 
-        hasMore = false;
-        break;
+          counter++;
+          const elapsed = performance.now() - now;
+
+          if (counter % intervalCallback === 0 || elapsed >= 15000) {
+            await updateDupStackInstallationDone(
+              supabaseAdmin,
+              workspace.id,
+              operation.id
+            );
+          }
+
+          if (counter % intervalStop === 0 || elapsed >= 15000) {
+            break;
+          }
+        }
+
+        if (hasMore) {
+          await inngest.send({
+            name: "workspace/install/dupstacks.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+              secondRun: true,
+            },
+          });
+        } else {
+          await inngest.send({
+            name: "workspace/install/end.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+            },
+          });
+        }
       }
-
-      counter++;
-      const elapsed = performance.now() - now;
-
-      if (counter % intervalCallback === 0 || elapsed >= 15000) {
-        await updateDupStackInstallationDone(
-          supabaseAdmin,
-          workspace.id,
-          operation.id
-        );
-      }
-
-      if (counter % intervalStop === 0 || elapsed >= 15000) {
-        break;
-      }
-    }
-
-    if (hasMore) {
-      await inngest.send({
-        name: "workspace/install/dupstacks.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-          secondRun: true,
-        },
-      });
-    } else {
-      await inngest.send({
-        name: "workspace/install/end.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-        },
-      });
-    }
-
-    await workspaceOperationEndStepHelper(
-      operation,
-      "workspace-install-dupstacks"
     );
   }
 );

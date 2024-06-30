@@ -10,6 +10,8 @@ import workspaceInstallFetchContacts from "@/inngest/workspace-install-fetch-con
 import workspaceInstallJobs from "@/inngest/workspace-install-jobs";
 import workspaceInstallSimilarities from "@/inngest/workspace-install-similarities";
 import workspaceInstallSimilaritiesBatch from "@/inngest/workspace-install-similarities-batch";
+import workspaceInstallSimilaritiesFast from "@/inngest/workspace-install-similarities-fast";
+import workspaceInstallSimilaritiesFastField from "@/inngest/workspace-install-similarities-fast-field";
 import workspaceItemsMergeAll from "@/inngest/workspace-items-merge-all";
 import workspaceUpdateAll from "@/inngest/workspace-update-all";
 import workspaceUpdatePollingHubspot from "@/inngest/workspace-update-polling-hubspot";
@@ -30,6 +32,8 @@ export const functions = [
   jobAcceptAllJobLogs,
   sendMail,
   mondayRecap,
+  workspaceInstallSimilaritiesFast,
+  workspaceInstallSimilaritiesFastField,
 ];
 
 export { inngest } from "./client";

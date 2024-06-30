@@ -1,6 +1,7 @@
 import { inngest } from "@/inngest";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { splitArrayIntoChunks } from "@/lib/arrays";
+import { deleteNullKeys } from "@/lib/companies";
 import { listItemFields } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
@@ -147,17 +148,4 @@ export async function fetchContacts(
       operationId: operationId,
     },
   });
-}
-
-export function deleteNullKeys(values: { [key: string]: string | null }) {
-  let newValues: { [key: string]: string } = {};
-
-  Object.keys(values).forEach((key) => {
-    const val = values[key];
-    if (val !== null) {
-      newValues[key] = val;
-    }
-  });
-
-  return newValues;
 }

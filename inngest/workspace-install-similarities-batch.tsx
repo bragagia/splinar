@@ -4,7 +4,6 @@ import {
   fetchBatchItems,
 } from "@/inngest/workspace-install-similarities-batch/update-batch";
 import {
-  workspaceOperationEndStepHelper,
   workspaceOperationIncrementStepsDone,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
@@ -13,6 +12,7 @@ import { captureException } from "@/lib/sentry";
 import { SUPABASE_FILTER_MAX_SIZE } from "@/lib/supabase";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { TablesInsert } from "@/types/supabase";
+import console from "console";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
@@ -55,81 +55,73 @@ export default inngest.createFunction(
   },
   { event: "workspace/install/similarities/batch.start" },
   async ({ event, step, logger }) => {
-    const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper(
-        event.data.operationId,
-        "workspace-install-similarities-batch"
-      );
+    await workspaceOperationStartStepHelper(
+      event.data,
+      "workspace-install-similarities-batch",
+      async ({ supabaseAdmin, workspace, operation }) => {
+        const { itemType, batchIds, comparedItemsIds } = event.data;
 
-    const { itemType, batchIds, comparedItemsIds } = event.data;
+        logger.info("### Batch:", {
+          itemType,
+          firstBatchId: batchIds[0],
+        });
 
-    logger.info("### Batch:", {
-      itemType,
-      firstBatchId: batchIds[0],
-    });
+        const batch = await fetchBatchItems(
+          supabaseAdmin,
+          workspace.id,
+          batchIds
+        );
 
-    const batch = await fetchBatchItems(supabaseAdmin, workspace.id, batchIds);
+        let similarities: TablesInsert<"similarities">[];
+        let itemIdsWithSims: string[] = [];
 
-    let similarities: TablesInsert<"similarities">[];
-    let itemIdsWithSims: string[] = [];
+        if (!comparedItemsIds) {
+          const res = await compareBatchWithItself(workspace.id, batch);
+          similarities = res.similarities;
+          itemIdsWithSims = res.itemIdsWithSims;
+        } else {
+          const comparedItems = await fetchBatchItems(
+            supabaseAdmin,
+            workspace.id,
+            comparedItemsIds
+          );
 
-    if (!comparedItemsIds) {
-      const res = await compareBatchWithItself(workspace.id, batch);
-      similarities = res.similarities;
-      itemIdsWithSims = res.itemIdsWithSims;
-    } else {
-      const comparedItems = await fetchBatchItems(
-        supabaseAdmin,
-        workspace.id,
-        comparedItemsIds
-      );
+          const res = await compareBatchesPair(
+            workspace.id,
+            batch,
+            comparedItems
+          );
+          similarities = res.similarities;
+          itemIdsWithSims = res.itemIdsWithSims;
+        }
 
-      const res = await compareBatchesPair(workspace.id, batch, comparedItems);
-      similarities = res.similarities;
-      itemIdsWithSims = res.itemIdsWithSims;
-    }
+        console.log("-> Inserting similarities:", similarities.length);
+        if (similarities.length > 10000) {
+          console.log("-> similarities:", similarities);
+        }
+        let { error: errorInsert } = await supabaseAdmin
+          .from("similarities")
+          .insert(similarities);
+        if (errorInsert) {
+          throw errorInsert;
+        }
 
-    console.log("-> Inserting similarities:", similarities.length);
-    if (similarities.length > 10000) {
-      console.log("-> similarities:", similarities);
-    }
-    let { error: errorInsert } = await supabaseAdmin
-      .from("similarities")
-      .insert(similarities);
-    if (errorInsert) {
-      throw errorInsert;
-    }
+        const remainingBatches = await workspaceOperationIncrementStepsDone(
+          supabaseAdmin,
+          operation.id
+        );
+        console.log("-> remainingBatches:", remainingBatches);
 
-    const { error: errorMarkToDupcheck } = await supabaseAdmin.rpc(
-      "mark_items_to_dupcheck",
-      {
-        arg_workspace_id: workspace.id,
-        arg_item_ids: itemIdsWithSims,
+        if (remainingBatches === 0) {
+          await inngest.send({
+            name: "workspace/install/dupstacks.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+            },
+          });
+        }
       }
-    );
-    if (errorMarkToDupcheck) {
-      throw errorMarkToDupcheck;
-    }
-
-    const remainingBatches = await workspaceOperationIncrementStepsDone(
-      supabaseAdmin,
-      operation.id
-    );
-    console.log("-> remainingBatches:", remainingBatches);
-
-    if (remainingBatches === 0) {
-      await inngest.send({
-        name: "workspace/install/dupstacks.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-        },
-      });
-    }
-
-    await workspaceOperationEndStepHelper(
-      operation,
-      "workspace-install-similarities-batch"
     );
   }
 );

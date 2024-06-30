@@ -76,7 +76,7 @@ export default inngest.createFunction(
 
     await step.run("workspace-reset", async () => {
       if (reset) {
-        logger.info("-> reset -", reset);
+        logger.info(`-> reset [${reset}]`);
 
         console.log("-> dup_stack_items");
         const { error: error1 } = await supabaseAdmin
@@ -118,6 +118,7 @@ export default inngest.createFunction(
 
           if (reset === "similarities_and_dup") {
             update.similarity_checked = false;
+            update.dup_checked = true;
           }
 
           console.log("-> reset items status");

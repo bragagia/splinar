@@ -59,19 +59,19 @@ export default async function WorkspaceIndexPage() {
                 Disconnect Splinar at anytime from your HubSpot dashboard
               </li>
             </ul>
-
-            <p className="mt-3">
-              <b>Need Help?</b>{" "}
-              <a
-                className="text-blue-500 font-bold underline cursor-pointer"
-                href="mailto:support@splinar.com"
-              >
-                Contact Support
-              </a>
-            </p>
           </CardContent>
 
-          <CardFooter className="flex justify-end">
+          <CardFooter className="mt-4 flex flex-row justify-end gap-4 items-center">
+            <p className="text-sm">
+              <b>Unsure?</b>{" "}
+              <a
+                className="text-blue-500 font-bold underline cursor-pointer"
+                href="https://calendly.com/d/3tr-btj-j8d/splinar-demo"
+              >
+                Book a demo
+              </a>
+            </p>
+
             <a href={URLS.external.hubspotOAuth}>
               <Button>Continue</Button>
             </a>

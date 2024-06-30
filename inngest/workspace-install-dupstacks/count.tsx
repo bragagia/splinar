@@ -16,7 +16,6 @@ export async function updateDupStackInstallationTotal(
     .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId)
-    .eq("similarity_checked", true)
     .eq("dup_checked", false)
     .limit(0);
   if (errorContacts || dupTotalContacts === null) {
@@ -60,7 +59,6 @@ export async function updateDupStackInstallationDone(
     .select(undefined, { count: "exact", head: true })
     .is("merged_in_distant_id", null)
     .eq("workspace_id", workspaceId)
-    .eq("similarity_checked", true)
     .eq("dup_checked", false)
     .limit(0);
   if (errorContacts || dupContactsRemaining === null) {

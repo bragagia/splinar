@@ -1,4 +1,5 @@
 import {
+  JobOutputByItemId,
   getItemSourceValueAsString,
   itemFieldValuesAreEqual,
 } from "@/lib/items_common";
@@ -11,20 +12,6 @@ const ALLOWED_DURATION_OFFSET_MS = 200;
 declare global {
   var stringSimScore: (s1: string, s2: string) => number;
 }
-
-export type JobOutputByItemId = {
-  [key: string]: {
-    id: string;
-    distantId: string;
-    Prev: {
-      [key: string]: string | null | undefined;
-    };
-
-    Next: {
-      [key: string]: string | null | undefined;
-    };
-  };
-};
 
 const sucrase = require("sucrase");
 

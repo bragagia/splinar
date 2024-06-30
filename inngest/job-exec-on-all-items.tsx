@@ -2,7 +2,6 @@ import { runDataCleaningJobOnBatch } from "@/inngest/workspace-install-jobs/exec
 import {
   OperationWorkspaceJobExecOnAllMetadata,
   WorkspaceOperationUpdateStatus,
-  workspaceOperationEndStepHelper,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
   workspaceOperationUpdateMetadata,
@@ -30,119 +29,122 @@ export default inngest.createFunction(
   },
   { event: "job/exec-on-all-items.start" },
   async ({ event, step, logger }) => {
-    const { supabaseAdmin, workspace, operation } =
-      await workspaceOperationStartStepHelper<OperationWorkspaceJobExecOnAllMetadata>(
-        event.data.operationId,
-        "job-exec-on-all-items"
-      );
-
-    const { data: jobValidated, error: errorJobValidated } = await supabaseAdmin
-      .from("data_cleaning_job_validated")
-      .select()
-      .eq("id", event.data.dataCleaningValidatedJobId)
-      .is("errored_message", null)
-      .is("errored_on_item_id", null)
-      .eq("errored_timeout_or_fatal", false)
-      .eq("workspace_id", workspace.id)
-      .limit(1)
-      .single();
-    if (errorJobValidated) {
-      throw errorJobValidated;
-    }
-
-    if (operation.ope_status === "QUEUED") {
-      const { count, error } = await supabaseAdmin
-        .from("items")
-        .select("", { count: "exact", head: true })
-        .eq("workspace_id", workspace.id)
-        .eq("item_type", jobValidated.target_item_type)
-        .is("merged_in_distant_id", null)
-        .limit(0);
-      if (error) {
-        throw error;
-      }
-
-      await WorkspaceOperationUpdateStatus<OperationWorkspaceJobExecOnAllMetadata>(
-        supabaseAdmin,
-        operation.id,
-        "PENDING",
-        {
-          progress: {
-            total: count || 0,
-            done: 0,
-          },
+    await workspaceOperationStartStepHelper<OperationWorkspaceJobExecOnAllMetadata>(
+      event.data,
+      "job-exec-on-all-items",
+      async ({ supabaseAdmin, workspace, operation }) => {
+        const { data: jobValidated, error: errorJobValidated } =
+          await supabaseAdmin
+            .from("data_cleaning_job_validated")
+            .select()
+            .eq("id", event.data.dataCleaningValidatedJobId)
+            .is("errored_message", null)
+            .is("errored_on_item_id", null)
+            .eq("errored_timeout_or_fatal", false)
+            .eq("workspace_id", workspace.id)
+            .limit(1)
+            .single();
+        if (errorJobValidated) {
+          throw errorJobValidated;
         }
-      );
-    }
 
-    let remainingAllowedSteps = 20;
+        if (operation.ope_status === "QUEUED") {
+          const { count, error } = await supabaseAdmin
+            .from("items")
+            .select("", { count: "exact", head: true })
+            .eq("workspace_id", workspace.id)
+            .eq("item_type", jobValidated.target_item_type)
+            .is("merged_in_distant_id", null)
+            .limit(0);
+          if (error) {
+            throw error;
+          }
 
-    let itemsProcessed = 0;
-    let areItemsRemaining = true;
-    let prevLastIdSeq: number | null = event.data.lastItemIdSeq || null;
-    while (areItemsRemaining && remainingAllowedSteps > 0) {
-      let req = supabaseAdmin
-        .from("items")
-        .select("*")
-        .eq("workspace_id", workspace.id)
-        .eq("item_type", jobValidated.target_item_type)
-        .is("merged_in_distant_id", null)
-        .limit(100)
-        .order("id_seq", { ascending: true });
+          await WorkspaceOperationUpdateStatus<OperationWorkspaceJobExecOnAllMetadata>(
+            supabaseAdmin,
+            operation.id,
+            "PENDING",
+            {
+              progress: {
+                total: count || 0,
+                done: 0,
+              },
+            }
+          );
+        }
 
-      if (prevLastIdSeq) {
-        req = req.gt("id_seq", prevLastIdSeq);
-      }
+        let remainingAllowedSteps = 20;
 
-      const { data: items, error: errorItems } = await req;
-      if (errorItems) {
-        throw errorItems;
-      }
+        let itemsProcessed = 0;
+        let areItemsRemaining = true;
+        let prevLastIdSeq: number | null = event.data.lastItemIdSeq || null;
+        while (areItemsRemaining && remainingAllowedSteps > 0) {
+          let req = supabaseAdmin
+            .from("items")
+            .select("*")
+            .eq("workspace_id", workspace.id)
+            .eq("item_type", jobValidated.target_item_type)
+            .is("merged_in_distant_id", null)
+            .limit(100)
+            .order("id_seq", { ascending: true });
 
-      if (items.length === 0) {
-        console.log("-> No more items to process");
-        areItemsRemaining = false;
-        break;
-      }
-      itemsProcessed += items.length;
+          if (prevLastIdSeq) {
+            req = req.gt("id_seq", prevLastIdSeq);
+          }
 
-      prevLastIdSeq = items[items.length - 1].id_seq;
+          const { data: items, error: errorItems } = await req;
+          if (errorItems) {
+            throw errorItems;
+          }
 
-      await runDataCleaningJobOnBatch(
-        supabaseAdmin,
-        workspace,
-        jobValidated,
-        items
-      );
+          if (items.length === 0) {
+            console.log("-> No more items to process");
+            areItemsRemaining = false;
+            break;
+          }
+          itemsProcessed += items.length;
 
-      remainingAllowedSteps--;
-    }
+          prevLastIdSeq = items[items.length - 1].id_seq;
 
-    await workspaceOperationUpdateMetadata<OperationWorkspaceJobExecOnAllMetadata>(
-      supabaseAdmin,
-      operation.id,
-      {
-        progress: {
-          done: (operation.metadata?.progress?.done || 0) + itemsProcessed,
-        },
+          await runDataCleaningJobOnBatch(
+            supabaseAdmin,
+            workspace,
+            jobValidated,
+            items
+          );
+
+          remainingAllowedSteps--;
+        }
+
+        await workspaceOperationUpdateMetadata<OperationWorkspaceJobExecOnAllMetadata>(
+          supabaseAdmin,
+          operation.id,
+          {
+            progress: {
+              done: (operation.metadata?.progress?.done || 0) + itemsProcessed,
+            },
+          }
+        );
+
+        if (areItemsRemaining && prevLastIdSeq !== null) {
+          // We reached the limit of steps, we need to restart the process
+          await inngest.send({
+            name: "job/exec-on-all-items.start",
+            data: {
+              workspaceId: workspace.id,
+              operationId: operation.id,
+              dataCleaningValidatedJobId: event.data.dataCleaningValidatedJobId,
+              lastItemIdSeq: prevLastIdSeq,
+            },
+          });
+        } else {
+          await WorkspaceOperationUpdateStatus(
+            supabaseAdmin,
+            operation.id,
+            "DONE"
+          );
+        }
       }
     );
-
-    if (areItemsRemaining && prevLastIdSeq !== null) {
-      // We reached the limit of steps, we need to restart the process
-      await inngest.send({
-        name: "job/exec-on-all-items.start",
-        data: {
-          workspaceId: workspace.id,
-          operationId: operation.id,
-          dataCleaningValidatedJobId: event.data.dataCleaningValidatedJobId,
-          lastItemIdSeq: prevLastIdSeq,
-        },
-      });
-    } else {
-      await WorkspaceOperationUpdateStatus(supabaseAdmin, operation.id, "DONE");
-    }
-
-    await workspaceOperationEndStepHelper(operation, "job-exec-on-all-items");
   }
 );

@@ -2,10 +2,14 @@
 
 import {
   getJobFunction,
-  JobOutputByItemId,
   runCodeJobOnItems,
 } from "@/inngest/workspace-install-jobs/job_helpers";
-import { bulkUpdateItems, getItemTypeConfig } from "@/lib/items_common";
+import {
+  JobOutputByItemId,
+  bulkUpdateItems,
+  getItemTypeConfig,
+} from "@/lib/items_common";
+import { rawsql } from "@/lib/supabase/raw_sql";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs from "dayjs";
@@ -92,11 +96,6 @@ export async function runDataCleaningJobOnBatch(
   }
 }
 
-import postgres from "postgres";
-
-const connectionString = process.env.DATABASE_URL!;
-const sql = postgres(connectionString);
-
 async function createJobLogs(
   workspaceId: string,
   jobValidated: Tables<"data_cleaning_job_validated">,
@@ -120,11 +119,14 @@ async function createJobLogs(
     return log;
   });
 
-  await sql`
+  await rawsql(
+    `
     INSERT INTO data_cleaning_job_logs
-    ${sql(jobLogs)}
+    $1
     ON CONFLICT (workspace_id, data_cleaning_job_id, item_id)
     WHERE accepted_at IS NULL AND discarded_at IS NULL
     DO UPDATE SET prev_value = EXCLUDED.prev_value, new_value = EXCLUDED.new_value, accepted_at = EXCLUDED.accepted_at
-    `;
+    `,
+    jobLogs
+  );
 }

@@ -9,7 +9,6 @@ import {
   TwitterLinkButton,
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
-import { JobOutputByItemId } from "@/inngest/workspace-install-jobs/job_helpers";
 import {
   companiesDedupConfig,
   companiesPollUpdater,
@@ -34,6 +33,20 @@ import { Database, Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs, { Dayjs } from "dayjs";
+
+export type JobOutputByItemId = {
+  [key: string]: {
+    id: string;
+    distantId: string;
+    Prev: {
+      [key: string]: string | null | undefined;
+    };
+
+    Next: {
+      [key: string]: string | null | undefined;
+    };
+  };
+};
 
 export type ItemTypeT = "COMPANIES" | "CONTACTS";
 
@@ -194,6 +207,7 @@ export type ItemFieldConfigT = {
     | "twitter"
     | "facebook"
     | "item-reference";
+  fastSimilaritiesCompatible?: boolean;
 };
 
 export type ItemFlagConfigT = {
