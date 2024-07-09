@@ -127,7 +127,8 @@ async function processHubspotEvent(
         filled_score: 0,
         similarity_checked: true,
         dup_checked: true,
-        jobs_executed: false,
+        jobs_creation_executed: false,
+        jobs_update_executed: false,
         value: {},
       });
       if (errorCreate) {
