@@ -11,7 +11,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 
 const UPDATE_COUNT_EVERY = 6;
 const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
-const MAX_PROPERTIES_PER_REQUEST = 400; // Has been tested to work up to 615
+const MAX_PROPERTIES_PER_REQUEST = 250; // Has been tested to work up to 615
 
 export async function fetchContacts(
   hsClient: Client,
