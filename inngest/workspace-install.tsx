@@ -106,8 +106,8 @@ export default inngest.createFunction(
           const { error: error7 } = await supabaseAdmin
             .from("items")
             .delete()
-            .is("merged_in_distant_id", null)
-            .eq("workspace_id", workspaceId);
+            .eq("workspace_id", workspaceId)
+            .is("merged_in_distant_id", null);
           if (error7) throw error7;
         } else {
           let update: TablesUpdate<"items"> = {};
