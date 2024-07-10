@@ -3,6 +3,7 @@ import {
   newWorkspaceOperation,
   OperationWorkspaceInstallOrUpdateMetadata,
 } from "@/lib/operations";
+import { rawsql } from "@/lib/supabase/raw_sql";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { Tables, TablesUpdate } from "@/types/supabase";
 import { inngest } from "./client";
@@ -103,12 +104,22 @@ export default inngest.createFunction(
 
         if (reset === "full") {
           console.log("-> items");
-          const { error: error7 } = await supabaseAdmin
-            .from("items")
-            .delete()
-            .eq("workspace_id", workspaceId)
-            .is("merged_in_distant_id", null);
-          if (error7) throw error7;
+          await rawsql(
+            `
+            DELETE FROM items
+            WHERE
+              workspace_id = $1
+              AND merged_in_distant_id IS NULL
+            `,
+            workspaceId
+          );
+
+          // const { error: error7 } = await supabaseAdmin
+          //   .from("items")
+          //   .delete()
+          //   .eq("workspace_id", workspaceId)
+          //   .is("merged_in_distant_id", null);
+          // if (error7) throw error7;
         } else {
           let update: TablesUpdate<"items"> = {};
 
