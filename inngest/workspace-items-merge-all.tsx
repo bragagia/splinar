@@ -42,15 +42,20 @@ export default inngest.createFunction(
 
     if (!lastItemCreatedAt) {
       if (
-        getItemTypeConfig(itemType).getWorkspaceOperation(workspace) ===
-        "PENDING"
+        getItemTypeConfig(workspace, itemType).getWorkspaceOperation(
+          workspace
+        ) === "PENDING"
       ) {
         throw new Error("Operation running on workspace");
       }
 
       const { error: error } = await supabaseAdmin
         .from("workspaces")
-        .update(getItemTypeConfig(itemType).setWorkspaceOperation("PENDING"))
+        .update(
+          getItemTypeConfig(workspace, itemType).setWorkspaceOperation(
+            "PENDING"
+          )
+        )
         .eq("id", workspaceId);
       if (error) {
         throw error;
@@ -106,7 +111,9 @@ export default inngest.createFunction(
     if (finished) {
       const { error: errorWriteDone } = await supabaseAdmin
         .from("workspaces")
-        .update(getItemTypeConfig(itemType).setWorkspaceOperation("NONE"))
+        .update(
+          getItemTypeConfig(workspace, itemType).setWorkspaceOperation("NONE")
+        )
         .eq("id", workspaceId);
       if (errorWriteDone) {
         throw errorWriteDone;

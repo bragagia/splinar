@@ -10,6 +10,7 @@ import {
 } from "@/lib/hubspot";
 import {
   DedupConfigT,
+  ItemFieldSourceT,
   JobOutputByItemId,
   areSimilaritiesSourceFieldsDifferent,
   getItemTypeConfig,
@@ -36,38 +37,38 @@ dayjs.extend(utc);
 
 import stringSimilarity from "string-similarity";
 
-export const contactsDedupConfig: DedupConfigT = {
-  hubspotSourceFields: [
-    {
-      value: "firstname",
-      label: "First name",
-    },
-    {
-      value: "lastname",
-      label: "Last name",
-    },
-    {
-      value: "email",
-      label: "Email",
-    },
-    {
-      value: "phone",
-      label: "Phone",
-    },
-    {
-      value: "mobilephone",
-      label: "Mobile phone",
-    },
-    {
-      value: "hs_linkedinid",
-      label: "Linkedin",
-    },
-    {
-      value: "companies",
-      label: "Companies",
-    },
-  ],
-  itemNameSources: ["firstname", "lastname"],
+export const contactsDefaultHubspotSourceFields: ItemFieldSourceT[] = [
+  {
+    value: "firstname",
+    label: "First name",
+  },
+  {
+    value: "lastname",
+    label: "Last name",
+  },
+  {
+    value: "email",
+    label: "Email",
+  },
+  {
+    value: "phone",
+    label: "Phone",
+  },
+  {
+    value: "mobilephone",
+    label: "Mobile phone",
+  },
+  {
+    value: "hs_linkedinid",
+    label: "Linkedin",
+  },
+  {
+    value: "companies",
+    label: "Companies",
+  },
+];
+
+export const contactsDefaultDedupConfig: DedupConfigT = {
   fields: [
     {
       id: "b8ab3013-ddc5-4dec-8f0f-6c42e22064ce",
@@ -786,7 +787,7 @@ export async function contactsPollUpdater(
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
-  const itemTypeConfig = getItemTypeConfig("CONTACTS");
+  const itemTypeConfig = getItemTypeConfig(workspace, "CONTACTS");
 
   const hsClientSearch = await newHubspotClient(
     workspace.refresh_token,
@@ -890,6 +891,7 @@ export async function contactsPollUpdater(
     }
 
     dbContact.filled_score = listItemFields(
+      workspace,
       dbContact as Tables<"items">
     ).length;
 

@@ -532,6 +532,7 @@ export type Database = {
           hub_id: string
           id: string
           installation_status: Database["public"]["Enums"]["workspace_installation_status"]
+          item_types: Json
           items_count_on_install: number | null
           last_poll: string | null
           polling_status:
@@ -551,6 +552,7 @@ export type Database = {
           hub_id: string
           id?: string
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
+          item_types?: Json
           items_count_on_install?: number | null
           last_poll?: string | null
           polling_status?:
@@ -570,6 +572,7 @@ export type Database = {
           hub_id?: string
           id?: string
           installation_status?: Database["public"]["Enums"]["workspace_installation_status"]
+          item_types?: Json
           items_count_on_install?: number | null
           last_poll?: string | null
           polling_status?:

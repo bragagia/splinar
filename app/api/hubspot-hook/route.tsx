@@ -294,7 +294,7 @@ async function processHubspotEvent(
           ["companies"]: newCompanies,
         },
         should_update_similarities: isThisASimilaritySourceField(
-          getItemTypeConfig(itemType),
+          getItemTypeConfig(workspace, itemType),
           ["companies"]
         ),
       });
@@ -345,7 +345,7 @@ async function processHubspotEvent(
             [property]: newValue,
           },
           should_update_similarities: isThisASimilaritySourceField(
-            getItemTypeConfig(itemType),
+            getItemTypeConfig(workspace, itemType),
             [property]
           ),
         }

@@ -36,7 +36,7 @@ export default inngest.createFunction(
         await fetchContacts(
           hsClient,
           supabaseAdmin,
-          workspace.id,
+          workspace,
           operation.id,
           event.data.after
         );

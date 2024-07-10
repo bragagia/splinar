@@ -50,7 +50,7 @@ export function DupStackCard({
   const [falsePositivesExpanded, setFalsePositivesExpanded] = useState(false);
 
   const stackMetadata = useMemo(
-    () => getItemStackMetadata(cachedDupStack),
+    () => getItemStackMetadata(workspace, cachedDupStack),
     [cachedDupStack]
   );
 
@@ -145,25 +145,19 @@ export function DupStackCard({
 
   let cardTitle = useMemo(() => {
     return confidentsAndReference.reduce((acc, dupStackItem) => {
-      const rowInfos = getRowInfos(
-        workspace.hub_id,
-        dupStackItem,
-        stackMetadata
-      );
+      const rowInfos = getRowInfos(workspace, dupStackItem, stackMetadata);
       const cardTitle = rowInfos.name;
 
       return cardTitle && cardTitle.length > acc.length ? cardTitle : acc;
     }, "");
-  }, [workspace.hub_id, confidentsAndReference, stackMetadata]);
+  }, [workspace, confidentsAndReference, stackMetadata]);
 
   const isExpandable = useMemo(
-    () =>
-      getRowInfos(workspace.hub_id, reference, stackMetadata).columns.length >
-      4,
-    [reference, stackMetadata, workspace.hub_id]
+    () => getRowInfos(workspace, reference, stackMetadata).columns.length > 4,
+    [reference, stackMetadata, workspace]
   );
 
-  const itemConfig = getItemTypeConfig(dupStack.item_type);
+  const itemConfig = getItemTypeConfig(workspace, dupStack.item_type);
 
   return (
     <Card className="grow shadow-lg group/card">
@@ -234,7 +228,7 @@ export function DupStackCard({
 
                     <DupStackCardRow
                       rowInfos={getRowInfos(
-                        workspace.hub_id,
+                        workspace,
                         dupStackItem,
                         stackMetadata
                       )}
@@ -257,7 +251,7 @@ export function DupStackCard({
                   className="mt-2"
                 >
                   Merge {confidentsAndReference.length}{" "}
-                  {getItemTypeConfig(dupStack.item_type).word}
+                  {getItemTypeConfig(workspace, dupStack.item_type).word}
                 </SpButton>
               )}
             </div>
@@ -284,7 +278,7 @@ export function DupStackCard({
 
                     <DupStackCardRow
                       rowInfos={getRowInfos(
-                        workspace.hub_id,
+                        workspace,
                         dupStackItem,
                         stackMetadata
                       )}
@@ -301,7 +295,7 @@ export function DupStackCard({
                   className="mt-2"
                 >
                   Merge {confidentsAndReference.length + potentials.length}{" "}
-                  {getItemTypeConfig(dupStack.item_type).word}
+                  {getItemTypeConfig(workspace, dupStack.item_type).word}
                 </SpButton>
               </div>
             </CardGrayedContent>
@@ -344,7 +338,7 @@ export function DupStackCard({
 
                       <DupStackCardRow
                         rowInfos={getRowInfos(
-                          workspace.hub_id,
+                          workspace,
                           dupStackItem,
                           stackMetadata
                         )}

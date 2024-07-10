@@ -95,17 +95,17 @@ export default function WorkspaceSettingsPageClient({
       res += util.format(...str) + "\n";
     };
 
-    log("A:", JSON.stringify(getItemFieldsValues(a), null, 2));
-    log("A:", listItemFields(a));
+    log("A:", JSON.stringify(getItemFieldsValues(workspace, a), null, 2));
+    log("A:", listItemFields(workspace, a));
     log(" ");
     log(" ");
 
-    log("B:", JSON.stringify(getItemFieldsValues(b), null, 2));
-    log("A:", listItemFields(b));
+    log("B:", JSON.stringify(getItemFieldsValues(workspace, b), null, 2));
+    log("A:", listItemFields(workspace, b));
     log(" ");
     log(" ");
 
-    const similarities = evalSimilarities(workspace.id, a, b);
+    const similarities = evalSimilarities(workspace, a, b);
 
     log("### Similarities: ");
     if (similarities.length === 0) {
@@ -126,6 +126,7 @@ export default function WorkspaceSettingsPageClient({
 
     log("### Dup check:");
     const dupRes = areItemsDups(
+      workspace,
       { ...a, similarities: similarities as Tables<"similarities">[] },
       { ...b, similarities: similarities as Tables<"similarities">[] },
       log
@@ -137,7 +138,7 @@ export default function WorkspaceSettingsPageClient({
     log("Dup result:", dupRes);
 
     setDupCheckResult(res);
-  }, [supabase, workspace.id, itemCheck1Val, itemCheck2Val]);
+  }, [supabase, workspace, itemCheck1Val, itemCheck2Val]);
 
   const onGenerateDupStack = useCallback(async () => {
     if (!itemCheck1Val) {
@@ -168,12 +169,12 @@ export default function WorkspaceSettingsPageClient({
 
     await resolveNextDuplicatesStack(
       supabase,
-      workspace.id,
+      workspace,
       undefined,
       item,
       true
     );
-  }, [supabase, workspace.id, itemCheck1Val]);
+  }, [supabase, workspace, itemCheck1Val]);
 
   return (
     <div className="flex-1 space-y-4 w-full">

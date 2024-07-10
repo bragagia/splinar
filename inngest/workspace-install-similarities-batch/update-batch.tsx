@@ -7,7 +7,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 const MAX_DUPS_PER_ITEM_PER_BATCH = 5;
 
 export async function compareBatchWithItself(
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   batch: Tables<"items">[]
 ) {
   let similarities: TablesInsert<"similarities">[] = [];
@@ -21,7 +21,7 @@ export async function compareBatchWithItself(
       let comparedItem = batch[j];
 
       let pairSimilarities = evalSimilarities(
-        workspaceId,
+        workspace,
         batchItem,
         comparedItem
       );
@@ -30,6 +30,7 @@ export async function compareBatchWithItself(
         pairSimilarities &&
         pairSimilarities.length > 0 &&
         areItemsDups(
+          workspace,
           { similarities: pairSimilarities, ...batchItem },
           { similarities: pairSimilarities, ...comparedItem }
         )
@@ -52,7 +53,7 @@ export async function compareBatchWithItself(
 }
 
 export async function compareBatchesPair(
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   batch: Tables<"items">[],
   comparedItems: Tables<"items">[]
 ) {
@@ -67,7 +68,7 @@ export async function compareBatchesPair(
       let comparedItem = comparedItems[i];
 
       let pairSimilarities = evalSimilarities(
-        workspaceId,
+        workspace,
         batchItem,
         comparedItem
       );
@@ -76,6 +77,7 @@ export async function compareBatchesPair(
         pairSimilarities &&
         pairSimilarities.length > 0 &&
         areItemsDups(
+          workspace,
           { similarities: pairSimilarities, ...batchItem },
           { similarities: pairSimilarities, ...comparedItem }
         )

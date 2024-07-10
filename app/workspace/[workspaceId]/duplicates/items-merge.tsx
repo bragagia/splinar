@@ -80,6 +80,7 @@ export async function itemsMerge(
     dupStack.dup_stack_items.length - (dsItemsToMerge.length + 1) > 0; // + 1 because the reference item is not in itemsToMerge
 
   const distantMergeFn = getItemTypeConfig(
+    workspace,
     dupStack.item_type
   ).getDistantMergeFn(hsClient);
 

@@ -1,5 +1,6 @@
 import { getItemTypeConfig, listItemFields } from "@/lib/items_common";
 import { ItemWithSimilaritiesType } from "@/types/items";
+import { Tables } from "@/types/supabase";
 
 const simScoreFactorMap: { [key: string]: number } = {
   exact: 1,
@@ -9,6 +10,7 @@ const simScoreFactorMap: { [key: string]: number } = {
 };
 
 export function areItemsDups(
+  workspace: Tables<"workspaces">,
   itemA: ItemWithSimilaritiesType,
   itemB: ItemWithSimilaritiesType,
   log: (message?: any, ...optionalParams: any[]) => void = (...any) => {}
@@ -21,7 +23,7 @@ export function areItemsDups(
     throw new Error("Comparing different item types");
   }
 
-  const itemType = getItemTypeConfig(itemA.item_type);
+  const itemType = getItemTypeConfig(workspace, itemA.item_type);
   const config = itemType.dedupConfig;
 
   let confidentScore = 0;
@@ -35,9 +37,8 @@ export function areItemsDups(
       similarity.item_a_id === itemB.id || similarity.item_b_id === itemB.id
   );
 
-  const fieldList = config.fields.map((field) => field.id);
-  const itemAFields = listItemFields(itemA);
-  const itemBFields = listItemFields(itemB);
+  const itemAFields = listItemFields(workspace, itemA);
+  const itemBFields = listItemFields(workspace, itemB);
 
   if (itemAFields.length === 1 || itemBFields.length === 1) {
     multiplier *= 1.35; // To allow similar to match as potential

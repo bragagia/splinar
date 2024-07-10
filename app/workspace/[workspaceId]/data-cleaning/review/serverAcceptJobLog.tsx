@@ -52,7 +52,7 @@ export async function acceptJobLogInternal(
     throw new Error("Job log already accepted");
   }
 
-  const itemTypeConfig = getItemTypeConfig(jobLog.item.item_type);
+  const itemTypeConfig = getItemTypeConfig(workspace, jobLog.item.item_type);
 
   const jobOutput = {
     [jobLog.item.id]: {
@@ -67,7 +67,7 @@ export async function acceptJobLogInternal(
 
   await bulkUpdateItems(
     supabaseAdmin,
-    workspace.id,
+    workspace,
     jobLog.item.item_type,
     jobOutput
   );

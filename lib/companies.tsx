@@ -11,6 +11,7 @@ import {
 } from "@/lib/hubspot";
 import {
   DedupConfigT,
+  ItemFieldSourceT,
   JobOutputByItemId,
   areSimilaritiesSourceFieldsDifferent,
   getItemTypeConfig,
@@ -47,58 +48,58 @@ export function deleteNullKeys(values: { [key: string]: string | null }) {
   return newValues;
 }
 
-export const companiesDedupConfig: DedupConfigT = {
-  hubspotSourceFields: [
-    {
-      value: "name",
-      label: "Name",
-    },
-    {
-      value: "domain",
-      label: "Domain",
-    },
-    {
-      value: "website",
-      label: "Website",
-    },
-    {
-      value: "linkedin_company_page",
-      label: "LinkedIn",
-    },
-    {
-      value: "phone",
-      label: "Phone",
-    },
-    {
-      value: "address",
-      label: "Address",
-    },
-    {
-      value: "zip",
-      label: "Zip",
-    },
-    {
-      value: "city",
-      label: "City",
-    },
-    {
-      value: "state",
-      label: "State",
-    },
-    {
-      value: "country",
-      label: "Country",
-    },
-    {
-      value: "facebook_company_page",
-      label: "Facebook",
-    },
-    {
-      value: "twitterhandle",
-      label: "Twitter",
-    },
-  ],
-  itemNameSources: ["name"],
+export const companiesDefaultHubspotSourceFields: ItemFieldSourceT[] = [
+  {
+    value: "name",
+    label: "Name",
+  },
+  {
+    value: "domain",
+    label: "Domain",
+  },
+  {
+    value: "website",
+    label: "Website",
+  },
+  {
+    value: "linkedin_company_page",
+    label: "LinkedIn",
+  },
+  {
+    value: "phone",
+    label: "Phone",
+  },
+  {
+    value: "address",
+    label: "Address",
+  },
+  {
+    value: "zip",
+    label: "Zip",
+  },
+  {
+    value: "city",
+    label: "City",
+  },
+  {
+    value: "state",
+    label: "State",
+  },
+  {
+    value: "country",
+    label: "Country",
+  },
+  {
+    value: "facebook_company_page",
+    label: "Facebook",
+  },
+  {
+    value: "twitterhandle",
+    label: "Twitter",
+  },
+];
+
+export const companiesDefaultDedupConfig: DedupConfigT = {
   fields: [
     {
       id: "81aa1ed0-ce0d-4b4e-8f49-99a5c4fdf26f",
@@ -783,7 +784,7 @@ export async function companiesPollUpdater(
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
-  const itemTypeConfig = getItemTypeConfig("COMPANIES");
+  const itemTypeConfig = getItemTypeConfig(workspace, "COMPANIES");
 
   const hsClient = await newHubspotClient(workspace.refresh_token, "search");
 
@@ -865,6 +866,7 @@ export async function companiesPollUpdater(
     }
 
     dbCompany.filled_score = listItemFields(
+      workspace,
       dbCompany as Tables<"items">
     ).length;
 

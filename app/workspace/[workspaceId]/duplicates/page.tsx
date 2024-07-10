@@ -72,7 +72,7 @@ export default function DuplicatesPage() {
         count: null,
         confidentCount: null,
         isMerging: false,
-        itemConfig: getItemTypeConfig(itemType),
+        itemConfig: getItemTypeConfig(workspace, itemType),
       };
     });
 
@@ -441,7 +441,9 @@ function BulkMergeButton({
     includePotentials: boolean
   ) => Promise<void>;
 }) {
-  const itemConfig = getItemTypeConfig(itemType);
+  const workspace = useWorkspace();
+
+  const itemConfig = getItemTypeConfig(workspace, itemType);
   const [includePotentials, setIncludePotentials] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState(false);
 

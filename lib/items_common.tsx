@@ -10,19 +10,22 @@ import {
 } from "@/app/workspace/[workspaceId]/duplicates/dup-stack-card-item";
 import { ItemsListField } from "@/app/workspace/[workspaceId]/duplicates/items-list-field";
 import {
-  companiesDedupConfig,
+  companiesDefaultDedupConfig,
+  companiesDefaultHubspotSourceFields,
   companiesPollUpdater,
   getCompanyColumns,
   updateBulkCompanies,
 } from "@/lib/companies";
 import {
-  contactsDedupConfig,
+  contactsDefaultDedupConfig,
+  contactsDefaultHubspotSourceFields,
   contactsPollUpdater,
   updateBulkContacts,
 } from "@/lib/contacts";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { captureException } from "@/lib/sentry";
 import { URLS } from "@/lib/urls";
+import { ItemTypeDBConfigT, WorkspaceT } from "@/lib/workspace";
 import {
   DupStackItemWithItemT,
   DupStackWithItemsT,
@@ -61,6 +64,8 @@ export type ItemConfig = {
     endFilter: Dayjs,
     after?: string
   ) => Promise<itemPollUpdaterT>;
+  itemNameSources: string[];
+  hubspotSourceFields: ItemFieldSourceT[];
   dedupConfig: DedupConfigT;
   getHubspotURL: (workspaceHubId: string, distantId: string) => string;
   getDistantMergeFn: (hsClient: Client) => any;
@@ -85,7 +90,14 @@ export function getItemTypesList(): ItemTypeT[] {
   return ["COMPANIES", "CONTACTS"];
 }
 
-export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
+export function getItemTypeConfig(
+  workspace: WorkspaceT | Tables<"workspaces">,
+  itemType: ItemTypeT
+): ItemConfig {
+  const workspaceInner = workspace as WorkspaceT;
+
+  const itemTypeConfig = workspaceInner.item_types[itemType];
+
   if (itemType === "COMPANIES") {
     return {
       wordSingular: "company",
@@ -103,7 +115,13 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
 
       pollUpdater: companiesPollUpdater,
 
-      dedupConfig: companiesDedupConfig,
+      itemNameSources: ["name"], // Should use that value instead of func
+
+      hubspotSourceFields:
+        itemTypeConfig?.hubspotSourceFields ||
+        companiesDefaultHubspotSourceFields,
+
+      dedupConfig: itemTypeConfig?.dedupConfig || companiesDefaultDedupConfig,
 
       getHubspotURL: URLS.external.hubspotCompany,
 
@@ -137,7 +155,13 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
 
       pollUpdater: contactsPollUpdater,
 
-      dedupConfig: contactsDedupConfig,
+      itemNameSources: ["firstname", "lastname"],
+
+      hubspotSourceFields:
+        itemTypeConfig?.hubspotSourceFields ||
+        contactsDefaultHubspotSourceFields,
+
+      dedupConfig: itemTypeConfig?.dedupConfig || contactsDefaultDedupConfig,
 
       getHubspotURL: URLS.external.hubspotContact,
 
@@ -157,8 +181,11 @@ export function getItemTypeConfig(itemType: ItemTypeT): ItemConfig {
   }
 }
 
-export function listItemFields(item: Tables<"items">) {
-  const fieldsValues = getItemFieldsValues(item);
+export function listItemFields(
+  workspace: Tables<"workspaces">,
+  item: Tables<"items">
+) {
+  const fieldsValues = getItemFieldsValues(workspace, item);
 
   return Object.keys(fieldsValues)
     .map((fieldId) =>
@@ -172,8 +199,6 @@ export function listItemFields(item: Tables<"items">) {
 }
 
 export type DedupConfigT = {
-  hubspotSourceFields: ItemFieldSourceT[];
-  itemNameSources: string[];
   fields: ItemFieldConfigT[];
   flags: ItemFlagConfigT[];
 };
@@ -336,8 +361,11 @@ export function getItemValueAsNameArray(
     }, [] as (string | null)[]);
 }
 
-export function getItemFieldsValues(item: Tables<"items">) {
-  const itemType = getItemTypeConfig(item.item_type);
+export function getItemFieldsValues(
+  workspace: Tables<"workspaces">,
+  item: Tables<"items">
+) {
+  const itemType = getItemTypeConfig(workspace, item.item_type);
   const config = itemType.dedupConfig;
 
   const itemValue = item.value as any;
@@ -362,8 +390,11 @@ type ItemFlagValueT = {
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
-export function getItemFlagsValues(item: Tables<"items">) {
-  const itemType = getItemTypeConfig(item.item_type);
+export function getItemFlagsValues(
+  workspace: Tables<"workspaces">,
+  item: Tables<"items">
+) {
+  const itemType = getItemTypeConfig(workspace, item.item_type);
   const config = itemType.dedupConfig;
 
   const itemValue = item.value as any;
@@ -494,8 +525,11 @@ export type FlagBestValueT = {
   color: string;
 };
 
-export function getItemStackMetadata(dupstack: DupStackWithItemsT) {
-  const itemType = getItemTypeConfig(dupstack.item_type);
+export function getItemStackMetadata(
+  workspace: Tables<"workspaces">,
+  dupstack: DupStackWithItemsT
+) {
+  const itemType = getItemTypeConfig(workspace, dupstack.item_type);
   const config = itemType.dedupConfig;
 
   let stackFlags: FlagBestValueT[] = [];
@@ -525,7 +559,7 @@ function ensureHttpsProtocol(url: string): string {
 }
 
 export function getRowInfos(
-  workspaceHubId: string,
+  workspace: Tables<"workspaces">,
   dupStackItem: DupStackItemWithItemT,
   stackMetadata: FlagBestValueT[]
 ): DupStackRowInfos {
@@ -534,9 +568,9 @@ export function getRowInfos(
     throw new Error("missing company");
   }
 
-  const itemType = getItemTypeConfig(item.item_type);
+  const itemType = getItemTypeConfig(workspace, item.item_type);
 
-  const fieldsValues = getItemFieldsValues(item);
+  const fieldsValues = getItemFieldsValues(workspace, item);
 
   const fieldColumns: DupStackRowColumnType[] = Object.keys(fieldsValues).map(
     (fieldId): DupStackRowColumnType => {
@@ -565,7 +599,7 @@ export function getRowInfos(
             {fieldValues.map((fieldValue, i) => (
               <HubspotLinkButton
                 key={i}
-                href={itemType.getHubspotURL(workspaceHubId, item.distant_id)}
+                href={itemType.getHubspotURL(workspace.hub_id, item.distant_id)}
               >
                 {fieldValue}
               </HubspotLinkButton>
@@ -624,7 +658,7 @@ export function getRowInfos(
               getCompanyColumns(item).name || "#" + item.distant_id
             }
             linkFn={(item: Tables<"items">) =>
-              URLS.external.hubspotCompany(workspaceHubId, item.distant_id)
+              URLS.external.hubspotCompany(workspace.hub_id, item.distant_id)
             }
           />
         );
@@ -640,7 +674,7 @@ export function getRowInfos(
     }
   );
 
-  const flagsValues = getItemFlagsValues(item);
+  const flagsValues = getItemFlagsValues(workspace, item);
 
   const itemFlags = stackMetadata.filter((flag) => flag.bestId === item.id);
   const flagColumn = {
@@ -924,11 +958,11 @@ export function getById<T extends ObjectWithId>(
 
 export async function bulkUpdateItems(
   supabaseAdmin: SupabaseClient<Database>,
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   itemType: ItemTypeT,
   jobOutput: JobOutputByItemId
 ) {
-  const itemTypeConfig = getItemTypeConfig(itemType);
+  const itemTypeConfig = getItemTypeConfig(workspace, itemType);
 
   const bulkJsonUpdate = Object.keys(jobOutput).map((itemId) => {
     return {
@@ -944,7 +978,7 @@ export async function bulkUpdateItems(
   const { error: errorUpdateItems } = await supabaseAdmin.rpc(
     "items_bulk_edit_properties_json",
     {
-      workspace_id_arg: workspaceId,
+      workspace_id_arg: workspace.id,
       items_updates: bulkJsonUpdate,
     }
   );
@@ -952,4 +986,20 @@ export async function bulkUpdateItems(
   if (errorUpdateItems) {
     throw errorUpdateItems;
   }
+}
+
+export function mergeItemConfig(
+  workspace: WorkspaceT | Tables<"workspaces">,
+  itemType: ItemTypeT,
+  itemConfig: ItemTypeDBConfigT["abcd"]
+) {
+  const workspaceInner = workspace as WorkspaceT;
+
+  return {
+    ...workspaceInner.item_types,
+    [itemType]: {
+      ...workspaceInner.item_types[itemType],
+      ...itemConfig,
+    },
+  };
 }

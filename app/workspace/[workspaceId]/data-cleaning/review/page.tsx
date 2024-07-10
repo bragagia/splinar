@@ -370,14 +370,15 @@ function JobLogCard({
 
           <div className="mt-1 text-xs">
             <HubspotLinkButton
-              href={getItemTypeConfig(jobLog.item_type).getHubspotURL(
-                workspace.hub_id,
-                jobLog.item.distant_id
-              )}
+              href={getItemTypeConfig(
+                workspace,
+                jobLog.item_type
+              ).getHubspotURL(workspace.hub_id, jobLog.item.distant_id)}
             >
-              {getItemTypeConfig(jobLog.item_type).getItemDisplayString(
-                jobLog.item
-              )}
+              {getItemTypeConfig(
+                workspace,
+                jobLog.item_type
+              ).getItemDisplayString(jobLog.item)}
             </HubspotLinkButton>
           </div>
 

@@ -49,7 +49,7 @@ export default inngest.createFunction(
           }
         );
 
-        const config = getItemTypeConfig(itemType);
+        const config = getItemTypeConfig(workspace, itemType);
         const fastFieldConfigs = config.dedupConfig.fields.filter(
           (fieldConfig) => fieldConfig.fastSimilaritiesCompatible
         );

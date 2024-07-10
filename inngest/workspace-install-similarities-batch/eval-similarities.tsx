@@ -16,7 +16,7 @@ function cleanStringSpaces(str: string) {
 }
 
 export function evalSimilarities(
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   itemA: Tables<"items">,
   itemB: Tables<"items">
 ) {
@@ -24,7 +24,7 @@ export function evalSimilarities(
     throw new Error("Comparing different item types");
   }
 
-  const itemType = getItemTypeConfig(itemA.item_type);
+  const itemType = getItemTypeConfig(workspace, itemA.item_type);
   const config = itemType.dedupConfig;
 
   let similarities: TablesInsert<"similarities">[] = [];
@@ -38,7 +38,7 @@ export function evalSimilarities(
     similarities.push({
       id: uuid(),
 
-      workspace_id: workspaceId,
+      workspace_id: workspace.id,
       item_a_id: itemA.id,
       item_b_id: itemB.id,
 

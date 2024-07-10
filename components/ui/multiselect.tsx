@@ -25,7 +25,7 @@ export type OptionType = {
 interface MultiSelectProps {
   options: OptionType[];
   selected: string[];
-  onChange: React.Dispatch<React.SetStateAction<string[]>>;
+  onChange: React.Dispatch<string[]>;
   className?: string;
 }
 
@@ -53,9 +53,14 @@ function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={`w-full justify-between ${
-            selected.length > 1 ? "h-full" : "h-10"
-          }`}
+          className={cn(
+            "w-full justify-between",
+            {
+              "h-10": selected.length <= 1,
+              "h-full": selected.length > 1,
+            },
+            className
+          )}
           onClick={() => setOpen(!open)}
         >
           <div className="flex gap-1 flex-wrap">
@@ -70,7 +75,7 @@ function MultiSelect({
       </PopoverTrigger>
 
       <PopoverContent className="w-full p-0">
-        <Command className={className}>
+        <Command>
           <CommandInput placeholder="Search ..." />
           <CommandEmpty>No item found.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">

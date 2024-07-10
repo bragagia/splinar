@@ -28,6 +28,7 @@ const fakeWorkspace: Tables<"workspaces"> = {
   polling_status: "NONE",
   first_installed_at: "2023-10-17T19:49:45.033466+00:00",
   items_count_on_install: 1,
+  item_types: [],
 };
 
 const fakeDupstack: DupStackWithItemsT = {

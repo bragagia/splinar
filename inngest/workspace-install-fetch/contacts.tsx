@@ -2,7 +2,7 @@ import { inngest } from "@/inngest";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { splitArrayIntoChunks } from "@/lib/arrays";
 import { deleteNullKeys } from "@/lib/companies";
-import { listItemFields } from "@/lib/items_common";
+import { listItemFields, mergeItemConfig } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
@@ -16,7 +16,7 @@ const MAX_PROPERTIES_PER_REQUEST = 250; // Has been tested to work up to 615
 export async function fetchContacts(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   operationId: string,
   after?: string
 ) {
@@ -28,6 +28,27 @@ export async function fetchContacts(
     propertiesList,
     MAX_PROPERTIES_PER_REQUEST
   );
+
+  if (!after) {
+    const updatedItemConfig = mergeItemConfig(workspace, "CONTACTS", {
+      hubspotSourceFields: propertiesRes.results.map((property) => {
+        return {
+          value: property.name,
+          label: property.label,
+        };
+      }),
+    });
+
+    const { error: errorWorkspaceUpdate } = await supabase
+      .from("workspaces")
+      .update({
+        item_types: updatedItemConfig,
+      })
+      .eq("id", workspace.id);
+    if (errorWorkspaceUpdate) {
+      throw errorWorkspaceUpdate;
+    }
+  }
 
   do {
     console.log("Fetching contact page ", after);
@@ -86,7 +107,7 @@ export async function fetchContacts(
 
       let dbContact: TablesInsert<"items"> = {
         id: uuid(),
-        workspace_id: workspaceId,
+        workspace_id: workspace.id,
         distant_id: contact.id,
         item_type: "CONTACTS",
         value: {
@@ -100,6 +121,7 @@ export async function fetchContacts(
       };
 
       dbContact.filled_score = listItemFields(
+        workspace,
         dbContact as Tables<"items">
       ).length;
 
@@ -119,14 +141,14 @@ export async function fetchContacts(
 
     if (after) {
       if (pageId % UPDATE_COUNT_EVERY === 0) {
-        await updateInstallItemsCount(supabase, workspaceId, operationId);
+        await updateInstallItemsCount(supabase, workspace.id, operationId);
       }
 
       if (pageId % WORKER_LIMIT === 0) {
         await inngest.send({
           name: "workspace/install/fetch/contacts.start",
           data: {
-            workspaceId: workspaceId,
+            workspaceId: workspace.id,
             operationId: operationId,
             after: after,
           },
@@ -138,13 +160,13 @@ export async function fetchContacts(
   } while (after);
 
   // Final update
-  await updateInstallItemsCount(supabase, workspaceId, operationId);
+  await updateInstallItemsCount(supabase, workspace.id, operationId);
 
   // End of general fetching
   await inngest.send({
     name: "workspace/install/similarities.start",
     data: {
-      workspaceId: workspaceId,
+      workspaceId: workspace.id,
       operationId: operationId,
     },
   });

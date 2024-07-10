@@ -5,10 +5,10 @@ import {
   workspaceOperationStartStepHelper,
 } from "@/lib/operations";
 import { captureException } from "@/lib/sentry";
+import console from "console";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { inngest } from "./client";
-import console from "console";
 
 dayjs.extend(isSameOrBefore);
 
@@ -44,7 +44,7 @@ export default inngest.createFunction(
           return;
         }
 
-        const itemConfig = getItemTypeConfig(itemType);
+        const itemConfig = getItemTypeConfig(workspace, itemType);
 
         const res = await itemConfig.pollUpdater(
           supabaseAdmin,

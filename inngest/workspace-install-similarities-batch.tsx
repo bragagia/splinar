@@ -76,7 +76,7 @@ export default inngest.createFunction(
         let itemIdsWithSims: string[] = [];
 
         if (!comparedItemsIds) {
-          const res = await compareBatchWithItself(workspace.id, batch);
+          const res = await compareBatchWithItself(workspace, batch);
           similarities = res.similarities;
           itemIdsWithSims = res.itemIdsWithSims;
         } else {
@@ -87,7 +87,7 @@ export default inngest.createFunction(
           );
 
           const res = await compareBatchesPair(
-            workspace.id,
+            workspace,
             batch,
             comparedItems
           );

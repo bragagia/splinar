@@ -2,7 +2,7 @@ import { inngest } from "@/inngest";
 import { updateInstallItemsCount } from "@/inngest/workspace-install-fetch/install";
 import { splitArrayIntoChunks } from "@/lib/arrays";
 import { deleteNullKeys } from "@/lib/companies";
-import { listItemFields } from "@/lib/items_common";
+import { listItemFields, mergeItemConfig } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
 import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
@@ -16,7 +16,7 @@ const MAX_PROPERTIES_PER_REQUEST = 400; // Has been tested to work up to 615
 export async function fetchCompanies(
   hsClient: Client,
   supabase: SupabaseClient<Database>,
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
   operationId: string,
   after?: string
 ) {
@@ -28,6 +28,27 @@ export async function fetchCompanies(
     propertiesList,
     MAX_PROPERTIES_PER_REQUEST
   );
+
+  if (!after) {
+    const updatedItemConfig = mergeItemConfig(workspace, "COMPANIES", {
+      hubspotSourceFields: propertiesRes.results.map((property) => {
+        return {
+          value: property.name,
+          label: property.label,
+        };
+      }),
+    });
+
+    const { error: errorWorkspaceUpdate } = await supabase
+      .from("workspaces")
+      .update({
+        item_types: updatedItemConfig,
+      })
+      .eq("id", workspace.id);
+    if (errorWorkspaceUpdate) {
+      throw errorWorkspaceUpdate;
+    }
+  }
 
   do {
     console.log("Fetching companies page ", after);
@@ -79,7 +100,7 @@ export async function fetchCompanies(
     let dbCompanies = companies.map((company) => {
       let dbCompany: TablesInsert<"items"> = {
         id: uuid(),
-        workspace_id: workspaceId,
+        workspace_id: workspace.id,
         distant_id: company.id,
         item_type: "COMPANIES",
         value: deleteNullKeys(company.properties),
@@ -90,6 +111,7 @@ export async function fetchCompanies(
       };
 
       dbCompany.filled_score = listItemFields(
+        workspace,
         dbCompany as Tables<"items">
       ).length;
 
@@ -108,14 +130,14 @@ export async function fetchCompanies(
     pageId++;
     if (after) {
       if (pageId % UPDATE_COUNT_EVERY === 0) {
-        await updateInstallItemsCount(supabase, workspaceId, operationId);
+        await updateInstallItemsCount(supabase, workspace.id, operationId);
       }
 
       if (pageId % WORKER_LIMIT === 0) {
         await inngest.send({
           name: "workspace/install/fetch/companies.start",
           data: {
-            workspaceId: workspaceId,
+            workspaceId: workspace.id,
             operationId: operationId,
             after: after,
           },
@@ -127,12 +149,12 @@ export async function fetchCompanies(
   } while (after);
 
   // Final update
-  await updateInstallItemsCount(supabase, workspaceId, operationId);
+  await updateInstallItemsCount(supabase, workspace.id, operationId);
 
   await inngest.send({
     name: "workspace/install/fetch/contacts.start",
     data: {
-      workspaceId: workspaceId,
+      workspaceId: workspace.id,
       operationId: operationId,
     },
   });

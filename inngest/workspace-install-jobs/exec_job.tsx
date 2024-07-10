@@ -37,7 +37,10 @@ export async function runDataCleaningJobOnBatch(
     return;
   }
 
-  const itemConfig = getItemTypeConfig(jobValidated.target_item_type);
+  const itemConfig = getItemTypeConfig(
+    workspace,
+    jobValidated.target_item_type
+  );
 
   // Set job as errored (so that event if it timeout of crash, it will be errored correclty)
   const { error: errorJobUpdate } = await supabaseAdmin
@@ -67,7 +70,7 @@ export async function runDataCleaningJobOnBatch(
 
       await bulkUpdateItems(
         supabaseAdmin,
-        workspace.id,
+        workspace,
         jobValidated.target_item_type,
         jobOutput
       );

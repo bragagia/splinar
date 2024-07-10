@@ -18,7 +18,7 @@ export type GenericDupStack = {
 
 export async function resolveNextDuplicatesStack(
   supabase: SupabaseClient<Database>,
-  workspaceId: string,
+  workspace: Tables<"workspaces">,
 
   itemsCacheById: {
     [key: string]: ItemWithSimilaritiesType;
@@ -40,7 +40,7 @@ export async function resolveNextDuplicatesStack(
   } else {
     const { existingDupstackIds, item } = await fetchNextReference(
       supabase,
-      workspaceId
+      workspace.id
     );
 
     if (!item) {
@@ -60,7 +60,7 @@ export async function resolveNextDuplicatesStack(
       if (!isDemo) {
         await deleteExistingDupstacks(
           supabase,
-          workspaceId,
+          workspace.id,
           itemsCacheById,
           [item.id],
           false
@@ -69,7 +69,7 @@ export async function resolveNextDuplicatesStack(
         // Note: It is potentially an other item that will be the next reference
         return await resolveNextDuplicatesStack(
           supabase,
-          workspaceId,
+          workspace,
           itemsCacheById,
           undefined,
           isDemo
@@ -83,6 +83,7 @@ export async function resolveNextDuplicatesStack(
   itemsCacheById[referenceItem.id] = referenceItem;
 
   const getItemDisplayName = getItemTypeConfig(
+    workspace,
     referenceItem.item_type
   ).getItemDisplayString;
 
@@ -111,7 +112,7 @@ export async function resolveNextDuplicatesStack(
     let { parentItem, similarItems } = await fetchSortedSimilar(
       supabase,
       prefix,
-      workspaceId,
+      workspace.id,
       itemsCacheById,
       parentId
     );
@@ -140,9 +141,9 @@ export async function resolveNextDuplicatesStack(
 
       const parentWithCalcSims = {
         ...parentItem,
-        similarities: evalSimilarities(workspaceId, parentItem, similarItem),
+        similarities: evalSimilarities(workspace, parentItem, similarItem),
       };
-      let dupStatus = areItemsDups(parentWithCalcSims, similarItem);
+      let dupStatus = areItemsDups(workspace, parentWithCalcSims, similarItem);
 
       if (dupStatus !== false) {
         console.log(
@@ -183,7 +184,7 @@ export async function resolveNextDuplicatesStack(
           const { data: existingDupstackIds, error } = await supabase
             .from("dup_stack_items")
             .select("dupstack_id")
-            .eq("workspace_id", workspaceId)
+            .eq("workspace_id", workspace.id)
             .eq("item_id", similarItem.id);
           if (error) {
             throw error;
@@ -228,7 +229,7 @@ export async function resolveNextDuplicatesStack(
 
       return await resolveNextDuplicatesStack(
         supabase,
-        workspaceId,
+        workspace,
         itemsCacheById,
         newReferenceItem,
         isDemo
@@ -251,21 +252,21 @@ export async function resolveNextDuplicatesStack(
     if (!dupStackIsEmpty) {
       await deleteExistingDupstacks(
         supabase,
-        workspaceId,
+        workspace.id,
         itemsCacheById,
         dupStack.confident_ids
       );
 
       await createDupstack(
         supabase,
-        workspaceId,
+        workspace.id,
         dupStack,
         referenceItem.item_type
       );
     }
 
     // Mark dupstack elements as dup_checked, at least the contact that was analysed
-    await markDupstackElementsAsDupChecked(supabase, workspaceId, allDupsId);
+    await markDupstackElementsAsDupChecked(supabase, workspace.id, allDupsId);
   }
 
   console.log(

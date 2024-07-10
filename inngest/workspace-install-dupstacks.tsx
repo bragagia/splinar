@@ -53,7 +53,7 @@ export default inngest.createFunction(
         while (hasMore) {
           const hasFoundContact = await resolveNextDuplicatesStack(
             supabaseAdmin,
-            workspace.id
+            workspace
           );
           if (!hasFoundContact) {
             await updateDupStackInstallationDone(

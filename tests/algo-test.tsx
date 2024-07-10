@@ -10,6 +10,25 @@ const VERBOSE = false;
 function AlgoTest() {
   let id = 0;
 
+  const fakeWorkspace: Tables<"workspaces"> = {
+    id: "azerty",
+    created_at: "2023-10-17T19:49:45.033466+00:00",
+    user_id: "",
+    refresh_token: "",
+    domain: "dummy.com",
+    user_mail: "",
+    display_name: "Demo workspace",
+    hub_id: "",
+    installation_status: "DONE",
+    contacts_operation_status: "NONE",
+    companies_operation_status: "NONE",
+    last_poll: null,
+    polling_status: "NONE",
+    first_installed_at: "2023-10-17T19:49:45.033466+00:00",
+    items_count_on_install: 1,
+    item_types: [],
+  };
+
   const baseContact = (): Tables<"items"> => ({
     id: uuid(),
     id_seq: ++id,
@@ -34,6 +53,7 @@ function AlgoTest() {
 
   const tests = [
     testContacts(
+      fakeWorkspace,
       1,
       "Same phone and same first name",
       {
@@ -64,6 +84,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       2,
       "Same name but different email domains",
       {
@@ -94,6 +115,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       3,
       "Same name but clearly different companies and email domain",
       {
@@ -124,6 +146,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       4,
       "Same first name, email and company",
       {
@@ -154,6 +177,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       5,
       "Unlikely emails and same company, but not same person",
       {
@@ -184,6 +208,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       6,
       "Homonyme same company",
       {
@@ -214,6 +239,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       7,
       "Homonyme without other info",
       {
@@ -244,6 +270,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       8,
       "Homonyme and same mail but different company",
       {
@@ -274,6 +301,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       9,
       "Homonyme and same phone and unlikely email and not same company",
       {
@@ -305,6 +333,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       10,
       "Reverse fullname, same company, but unlikely email and no phone",
       {
@@ -335,6 +364,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       11,
       "Same mail except extension, same company",
       {
@@ -365,6 +395,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       12,
       "Same company and phone, but different person",
       {
@@ -395,6 +426,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       13,
       "Same name and company, but unlikely email",
       {
@@ -425,6 +457,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       14,
       "Same company and phone, but different fullname and no email",
       {
@@ -455,6 +488,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       15,
       "Same company, phone and name, but different email",
       {
@@ -485,6 +519,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       16,
       "Same name and company and phone, and empty other columns",
       {
@@ -515,6 +550,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       17,
       "Same phone, but different person without company",
       {
@@ -545,6 +581,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       18,
       "Same name, but different email without phone in same company",
       {
@@ -575,6 +612,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       19,
       "Same phone, but different email",
       {
@@ -605,6 +643,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       20,
       "Same name, but different email",
       {
@@ -635,6 +674,7 @@ function AlgoTest() {
     ),
 
     testContacts(
+      fakeWorkspace,
       21,
       "Same mail and company, but different name and phone",
       {
@@ -676,18 +716,20 @@ function AlgoTest() {
 }
 
 function testContacts(
+  workspace: Tables<"workspaces">,
   nb: number,
   description: string,
   a: Tables<"items">,
   b: Tables<"items">,
   expected: "CONFIDENT" | "POTENTIAL" | false
 ) {
-  a.filled_score = listItemFields(a).length;
-  b.filled_score = listItemFields(b).length;
+  a.filled_score = listItemFields(workspace, a).length;
+  b.filled_score = listItemFields(workspace, b).length;
 
-  const similarities = evalSimilarities("abcd", a, b) || [];
+  const similarities = evalSimilarities(workspace, a, b) || [];
 
   const areDups = areItemsDups(
+    workspace,
     { ...a, similarities: similarities as Tables<"similarities">[] },
     { ...b, similarities: similarities as Tables<"similarities">[] }
   );
@@ -714,6 +756,7 @@ function testContacts(
     console.log("#");
     console.log("# Dup check:");
     areItemsDups(
+      workspace,
       { ...a, similarities: similarities as Tables<"similarities">[] },
       { ...b, similarities: similarities as Tables<"similarities">[] },
       console.log

@@ -167,7 +167,10 @@ export default function DataCleaningPage() {
               {Object.keys(jobsTemplate).map((targetItemType, i) => (
                 <div key={i} className="flex flex-col pt-6">
                   <h4 className="text-md font-medium mb-1">
-                    {getItemTypeConfig(targetItemType as ItemTypeT).word}
+                    {
+                      getItemTypeConfig(workspace, targetItemType as ItemTypeT)
+                        .word
+                    }
                   </h4>
 
                   {jobsTemplate[targetItemType as ItemTypeT].map((job, j) => (
@@ -205,7 +208,7 @@ function DataCleaningJob({ job }: { job: DataCleaningJobWithValidated }) {
 
           <span className="text-gray-500 text-xs font-light">
             {dataCleaningJobRecurrenceToString(job.recurrence)}{" "}
-            {getItemTypeConfig(job.target_item_type).wordSingular}
+            {getItemTypeConfig(workspace, job.target_item_type).wordSingular}
           </span>
         </div>
 

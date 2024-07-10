@@ -406,7 +406,7 @@ export default function DataCleaningJobPage({
                 await enableOrUpdateJob();
               }}
               confirmDescription={`This will enable the job on all future ${
-                getItemTypeConfig(job.target_item_type).word
+                getItemTypeConfig(workspace, job.target_item_type).word
               } changes. You will be able to review the changes before they are applied.`}
             >
               Enable
@@ -418,10 +418,11 @@ export default function DataCleaningJobPage({
             disabled={currentOperationProgress !== undefined}
             onClick={execJobOnAllItems}
             confirmDescription={`This will start the execution of this job on all ${
-              getItemTypeConfig(job.target_item_type).word
+              getItemTypeConfig(workspace, job.target_item_type).word
             } items. You will be able to review the changes before they are applied.`}
           >
-            Execute job on all {getItemTypeConfig(job.target_item_type).word}
+            Execute job on all{" "}
+            {getItemTypeConfig(workspace, job.target_item_type).word}
             {currentOperationProgress !== undefined &&
               ` (${currentOperationProgress}%)`}
           </SpConfirmButton>
