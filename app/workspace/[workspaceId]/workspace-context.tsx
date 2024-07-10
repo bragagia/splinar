@@ -82,7 +82,9 @@ export function WorkspaceProvider({
         .from("workspace_operations")
         .select()
         .eq("workspace_id", workspace.id)
-        .in("ope_status", ["PENDING", "QUEUED", "ERROR"]);
+        .in("ope_status", ["PENDING", "QUEUED", "ERROR"])
+        .order("created_at", { ascending: false })
+        .limit(10);
     if (operationError) {
       throw operationError;
     }
