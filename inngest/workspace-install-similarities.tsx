@@ -64,6 +64,7 @@ export default inngest.createFunction(
           isFreeTier = true;
         }
 
+        let oneHasBeenFastRan = false;
         let hasMore = false;
         let payloads: WorkspaceInstallSimilaritiesBatchStart[] = [];
         for (var itemType of getItemTypesList()) {
@@ -84,6 +85,7 @@ export default inngest.createFunction(
 
             if (count > 100000) {
               hasBeenFastRan = true;
+              oneHasBeenFastRan = true;
 
               if (!secondRun) {
                 await inngest.send({
@@ -116,7 +118,7 @@ export default inngest.createFunction(
           }
         }
 
-        if (payloads.length === 0) {
+        if (payloads.length === 0 && !oneHasBeenFastRan) {
           logger.info("No similarities to launch");
 
           await workspaceOperationUpdateMetadata<OperationWorkspaceInstallOrUpdateMetadata>(
