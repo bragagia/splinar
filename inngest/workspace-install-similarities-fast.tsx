@@ -84,7 +84,7 @@ export default inngest.createFunction(
           }
         );
 
-        inngest.send(payloads);
+        await inngest.send(payloads);
       }
     );
   }
