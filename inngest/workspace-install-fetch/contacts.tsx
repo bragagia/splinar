@@ -4,10 +4,11 @@ import { splitArrayIntoChunks } from "@/lib/arrays";
 import { deleteNullKeys } from "@/lib/companies";
 import { listItemFields, mergeItemConfig } from "@/lib/items_common";
 import { uuid } from "@/lib/uuid";
-import { Database, Tables, TablesInsert } from "@/types/supabase";
+import { Database, Json, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SimplePublicObjectWithAssociations } from "@hubspot/api-client/lib/codegen/crm/companies";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { findAndReplaceIf } from "find-and-replace-anything";
 
 const UPDATE_COUNT_EVERY = 6;
 const WORKER_LIMIT = 4 * UPDATE_COUNT_EVERY;
@@ -110,10 +111,10 @@ export async function fetchContacts(
         workspace_id: workspace.id,
         distant_id: contact.id,
         item_type: "CONTACTS",
-        value: {
+        value: deepClean({
           ...deleteNullKeys(contact.properties),
           companies: contactCompanies,
-        },
+        }),
         similarity_checked: false,
         jobs_creation_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
         jobs_update_executed: true, // True, because it's the first install and we don't want future jobs to execute on them
@@ -170,4 +171,16 @@ export async function fetchContacts(
       operationId: operationId,
     },
   });
+}
+
+function deepClean(obj: Json): Json {
+  return findAndReplaceIf(obj, (value: any) => {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    if (typeof value === "string") {
+      return value.replaceAll("\0", "");
+    }
+    return value;
+  }) as Json;
 }
