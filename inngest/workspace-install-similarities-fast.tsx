@@ -76,8 +76,9 @@ export default inngest.createFunction(
           {
             steps: {
               similarities: {
-                total: payloads.length,
-                batchesStartedAt: dayjs().toISOString(),
+                total:
+                  (operation.metadata.steps.similarities?.total || 0) +
+                  payloads.length,
               },
             },
           }
