@@ -5,7 +5,7 @@ import {
 } from "@/lib/operations";
 import { rawsql } from "@/lib/supabase/raw_sql";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
-import { Tables, TablesUpdate } from "@/types/supabase";
+import { Tables } from "@/types/supabase";
 import { inngest } from "./client";
 
 export default inngest.createFunction(
@@ -121,31 +121,46 @@ export default inngest.createFunction(
           //   .is("merged_in_distant_id", null);
           // if (error7) throw error7;
         } else {
-          let update: TablesUpdate<"items"> = {};
-
-          if (reset === "dup_stacks") {
-            update.dup_checked = false;
-          }
-
-          if (reset === "similarities_and_dup") {
-            update.similarity_checked = false;
-            update.dup_checked = true;
-          }
-
           console.log("-> reset items status");
-          const { error: error9 } = await supabaseAdmin
-            .from("items")
-            .update(update)
-            .is("merged_in_distant_id", null)
-            .eq("workspace_id", workspaceId);
-          if (error9) throw error9;
-
           if (reset === "dup_stacks") {
+            const { error: error9 } = await supabaseAdmin
+              .from("items")
+              .update({
+                dup_checked: false,
+              })
+              .is("merged_in_distant_id", null)
+              .eq("workspace_id", workspaceId)
+              .eq("dup_checked", true);
+            if (error9) throw error9;
+
             console.log("-> Marking item without similarities as dup_checked");
             const { error: error10 } = await supabaseAdmin.rpc(
               "mark_items_without_similarities_as_dup_checked",
               { workspace_id_arg: workspaceId }
             );
+            if (error10) throw error10;
+          }
+
+          if (reset === "similarities_and_dup") {
+            const { error: error9 } = await supabaseAdmin
+              .from("items")
+              .update({
+                similarity_checked: false,
+                dup_checked: true,
+              })
+              .is("merged_in_distant_id", null)
+              .eq("workspace_id", workspaceId)
+              .eq("similarity_checked", true);
+            if (error9) throw error9;
+
+            const { error: error10 } = await supabaseAdmin
+              .from("items")
+              .update({
+                dup_checked: true,
+              })
+              .is("merged_in_distant_id", null)
+              .eq("workspace_id", workspaceId)
+              .eq("dup_checked", false);
             if (error10) throw error10;
           }
         }
