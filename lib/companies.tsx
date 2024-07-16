@@ -109,7 +109,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       ifMatch: "potential",
       ifDifferent: "prevent-confident-reduce-potential",
       linkType: "hubspot",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "aecc092d-cdcf-477e-96ee-8fd8371982ff",
@@ -119,7 +118,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident",
       linkType: "external",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "a01d710d-6c50-43b2-ae37-a306ff22c4ea",
@@ -129,7 +127,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "linkedin",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "c729d617-d4a6-435b-a94d-6f1dbc3e6274",
@@ -138,7 +135,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       matchingMethod: "exact",
       ifMatch: "confident",
       ifDifferent: "reduce-confident",
-      fastSimilaritiesCompatible: true,
     },
     // {
     //   id: "6896b00a-1e71-4919-96ee-dfdc2d32a2f9",
@@ -157,7 +153,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "facebook",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "70655159-9477-422b-8add-9983ec5a6a61",
@@ -167,7 +162,6 @@ export const companiesDefaultDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "twitter",
-      fastSimilaritiesCompatible: true,
     },
   ],
   flags: [

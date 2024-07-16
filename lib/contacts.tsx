@@ -79,7 +79,6 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       ifMatch: "potential",
       ifDifferent: "reduce-confident-reduce-potential",
       linkType: "hubspot",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "e83701e1-c834-4093-b87a-2c928ce1ab1a",
@@ -88,7 +87,6 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       matchingMethod: "email",
       ifMatch: "confident",
       ifDifferent: "reduce-potential",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "f4301d99-295c-4491-91e2-21335110f675",
@@ -98,7 +96,6 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       ifMatch: "confident",
       ifDifferent: "reduce-potential",
       linkType: "linkedin",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "7e290d76-aa92-4c4b-ae22-8236fc73070d",
@@ -107,7 +104,6 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       matchingMethod: "exact",
       ifMatch: "multiplier",
       ifDifferent: "reduce-potential",
-      fastSimilaritiesCompatible: true,
     },
     {
       id: "3982daff-7b19-4b65-914b-d2f02b54f7d9",
@@ -117,7 +113,6 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       ifMatch: "multiplier",
       ifDifferent: "null",
       linkType: "item-reference",
-      fastSimilaritiesCompatible: false,
     },
   ],
   flags: [

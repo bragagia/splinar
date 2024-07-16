@@ -232,7 +232,6 @@ export type ItemFieldConfigT = {
     | "twitter"
     | "facebook"
     | "item-reference";
-  fastSimilaritiesCompatible?: boolean;
 };
 
 export type ItemFlagConfigT = {

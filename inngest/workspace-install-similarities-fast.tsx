@@ -50,8 +50,11 @@ export default inngest.createFunction(
         );
 
         const config = getItemTypeConfig(workspace, itemType);
+        // We ignore those fields as they would generate way too much useless data
         const fastFieldConfigs = config.dedupConfig.fields.filter(
-          (fieldConfig) => fieldConfig.fastSimilaritiesCompatible
+          (fieldConfig) =>
+            fieldConfig.ifMatch !== "multiplier" &&
+            fieldConfig.ifMatch !== "null"
         );
 
         let payloads: WorkspaceInstallSimilaritiesFastFieldStart[] = [];

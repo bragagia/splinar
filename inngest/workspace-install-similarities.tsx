@@ -6,6 +6,7 @@ import { getItemTypesList } from "@/lib/items_common";
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
   workspaceOperationAddStep,
+  workspaceOperationIncrementStepsDone,
   workspaceOperationOnFailureHelper,
   workspaceOperationStartStepHelper,
   workspaceOperationUpdateMetadata,
@@ -160,8 +161,22 @@ export default inngest.createFunction(
           }
         );
 
+        if (secondRun) {
+          // We had incremented the steps done previously in the "has more" clause just below
+          await workspaceOperationIncrementStepsDone(
+            supabaseAdmin,
+            operation.id
+          );
+        }
+
         if (hasMore) {
           logger.info("More similarities to launch");
+
+          await workspaceOperationAddStep<OperationWorkspaceInstallOrUpdateMetadata>(
+            supabaseAdmin,
+            operation.id,
+            1
+          );
 
           await inngest.send({
             name: "workspace/install/similarities.start",

@@ -73,7 +73,6 @@ export default function WorkspaceSettingsPage() {
       matchingMethod: "exact",
       ifMatch: "null",
       ifDifferent: "null",
-      fastSimilaritiesCompatible: true,
       nameMinimumLength: 2,
     });
 
