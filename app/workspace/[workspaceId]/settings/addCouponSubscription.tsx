@@ -69,12 +69,4 @@ export async function addCouponSubscription(
   if (subscriptionCreated.error) {
     throw subscriptionCreated.error;
   }
-
-  const { error: errorWorkspaceUpdate } = await supabaseAdmin
-    .from("workspaces")
-    .update({ installation_status: "PENDING" })
-    .eq("id", workspaceId);
-  if (errorWorkspaceUpdate) {
-    throw errorWorkspaceUpdate;
-  }
 }
