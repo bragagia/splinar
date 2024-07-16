@@ -5,7 +5,7 @@ CREATE INDEX data_cleaning_job_logs_item_id_idx
     USING btree (item_id);
 
 -- Retroadded to that migration because forgotten
-SET statement_timeout = 300000;
+alter role postgres set statement_timeout = '300s';
 
 delete from similarities where id in (select MIN(id::text)::uuid from similarities group by (workspace_id, item_a_id, item_b_id, field_type) having count(id) > 1);
 

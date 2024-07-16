@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAuthForm } from "@/app/user-auth-form";
+import { UserAuthForm } from "@/components/user-auth-form";
 import { newSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { URLS } from "@/lib/urls";
 import { useRouter } from "next/navigation";
