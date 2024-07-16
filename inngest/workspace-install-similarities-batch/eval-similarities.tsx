@@ -50,15 +50,19 @@ export function evalSimilarities(
   };
 
   config.fields
-    .filter((field) => field.ifMatch !== "multiplier")
+    .filter(
+      (field) => field.ifMatch !== "multiplier" && field.ifMatch !== "null"
+    )
     .forEach((fieldConfig) => {
       evalSimilarityField(fieldConfig, itemA, itemB, addSimilarity);
     });
 
-  // We evalute multiplier only if there is at least one similarity
+  // We evaluate multiplier only if there is at least one similarity
   if (similarities.length > 0) {
     config.fields
-      .filter((field) => field.ifMatch === "multiplier")
+      .filter(
+        (field) => field.ifMatch === "multiplier" || field.ifMatch === "null"
+      )
       .forEach((fieldConfig) => {
         evalSimilarityField(fieldConfig, itemA, itemB, addSimilarity);
       });

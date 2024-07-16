@@ -108,6 +108,25 @@ export default function WorkspaceSettingsPage() {
     await workspaceReset(workspace.id, "similarities_and_dup");
   };
 
+  const handleSaveOnly = async () => {
+    const updatedItemConfig = mergeItemConfig(workspace, itemType, {
+      dedupConfig: {
+        fields: fields,
+        flags: itemTypeConfig.dedupConfig.flags,
+      },
+    });
+
+    const { error: errorWorkspaceUpdate } = await supabase
+      .from("workspaces")
+      .update({
+        item_types: updatedItemConfig,
+      })
+      .eq("id", workspace.id);
+    if (errorWorkspaceUpdate) {
+      throw errorWorkspaceUpdate;
+    }
+  };
+
   if (!itemTypeConfig) {
     return (
       <div className="w-full flex items-center justify-center h-52">
@@ -164,14 +183,25 @@ export default function WorkspaceSettingsPage() {
 
             {(user.role === "SUPERADMIN" ||
               process.env.NODE_ENV === "development") && (
-              <SpConfirmButton
-                variant="full"
-                className="w-full"
-                colorClass="red"
-                onClick={handleSave}
-              >
-                Save and reset similarities
-              </SpConfirmButton>
+              <>
+                <SpConfirmButton
+                  variant="full"
+                  className="w-full"
+                  colorClass="red"
+                  onClick={handleSaveOnly}
+                >
+                  Save only
+                </SpConfirmButton>
+
+                <SpConfirmButton
+                  variant="full"
+                  className="w-full"
+                  colorClass="red"
+                  onClick={handleSave}
+                >
+                  Save and reset similarities
+                </SpConfirmButton>
+              </>
             )}
           </div>
         </CardContent>

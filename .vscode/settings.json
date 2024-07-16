@@ -26,5 +26,12 @@
       ]
     }
   ],
-  "cSpell.words": ["dayjs", "hubspot", "inngest", "Splinar", "timeouted"]
+  "cSpell.words": [
+    "dayjs",
+    "dedup",
+    "hubspot",
+    "inngest",
+    "Splinar",
+    "timeouted"
+  ]
 }
