@@ -48,6 +48,8 @@ export default inngest.createFunction(
           sourceNamesSplit = originalSourceNames.map((sourceField) => [
             sourceField,
           ]);
+
+          // TODO: If multiple source name split, relaunch the function with the new sourceNames
         }
 
         for (const sourceNames of sourceNamesSplit) {
