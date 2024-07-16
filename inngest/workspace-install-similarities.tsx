@@ -79,7 +79,7 @@ export default inngest.createFunction(
               .eq("item_type", itemType)
               .is("merged_in_distant_id", null)
               .limit(0);
-            if (error || !count) {
+            if (error || count === null) {
               throw error || new Error("missing count");
             }
 
