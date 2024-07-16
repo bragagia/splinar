@@ -1,7 +1,6 @@
 "use server";
 
 import { getWorkspaceCurrentSubscription } from "@/app/workspace/[workspaceId]/billing/subscription-helpers";
-import { inngest } from "@/inngest";
 import { newSupabaseServerClient } from "@/lib/supabase/server";
 import { Database } from "@/types/supabase";
 import { createClient } from "@supabase/supabase-js";
@@ -78,12 +77,4 @@ export async function addCouponSubscription(
   if (errorWorkspaceUpdate) {
     throw errorWorkspaceUpdate;
   }
-
-  await inngest.send({
-    name: "workspace/install.start",
-    data: {
-      workspaceId: workspaceId,
-      reset: "full",
-    },
-  });
 }

@@ -12,7 +12,7 @@ export default function Home() {
 
   useEffect(() => {
     // Note: This code is important, because supabase is shit and when a user click on the email validation link, the shit validation doesn't work on SSR.
-    // So this page must be on "use client" so that the getSession and redirect will happend on client side. Yay.
+    // So this page must be on "use client" so that the getSession and redirect will happened on client side. Yay.
     // TODO: That may be because i used getSession instead of getUser that would check status on server side
 
     supabase.auth.getSession().then(({ data, error }) => {
