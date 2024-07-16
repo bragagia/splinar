@@ -32,12 +32,19 @@ export async function fetchContacts(
 
   if (!after) {
     const updatedItemConfig = mergeItemConfig(workspace, "CONTACTS", {
-      hubspotSourceFields: propertiesRes.results.map((property) => {
-        return {
-          value: property.name,
-          label: property.label,
-        };
-      }),
+      hubspotSourceFields: propertiesRes.results
+        .map((property) => {
+          return {
+            value: property.name,
+            label: property.label,
+          };
+        })
+        .concat([
+          {
+            value: "companies",
+            label: "Companies",
+          },
+        ]),
     });
 
     const { error: errorWorkspaceUpdate } = await supabase
