@@ -73,12 +73,10 @@ export default inngest.createFunction(
         );
 
         let similarities: TablesInsert<"similarities">[];
-        let itemIdsWithSims: string[] = [];
 
         if (!comparedItemsIds) {
           const res = await compareBatchWithItself(workspace, batch);
           similarities = res.similarities;
-          itemIdsWithSims = res.itemIdsWithSims;
         } else {
           const comparedItems = await fetchBatchItems(
             supabaseAdmin,
@@ -86,22 +84,20 @@ export default inngest.createFunction(
             comparedItemsIds
           );
 
-          const res = await compareBatchesPair(
-            workspace,
-            batch,
-            comparedItems
-          );
+          const res = await compareBatchesPair(workspace, batch, comparedItems);
           similarities = res.similarities;
-          itemIdsWithSims = res.itemIdsWithSims;
         }
 
         console.log("-> Inserting similarities:", similarities.length);
         if (similarities.length > 10000) {
-          console.log("-> similarities:", similarities);
+          throw new Error("Too much similarities");
         }
+
         let { error: errorInsert } = await supabaseAdmin
           .from("similarities")
-          .insert(similarities);
+          .upsert(similarities, {
+            onConflict: "workspace_id,item_a_id,item_b_id,field_type",
+          });
         if (errorInsert) {
           throw errorInsert;
         }
