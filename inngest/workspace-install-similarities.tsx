@@ -84,7 +84,7 @@ export default inngest.createFunction(
               throw error || new Error("missing count");
             }
 
-            if (count > 320000) {
+            if (count > 80000) {
               hasBeenFastRan = true;
               oneHasBeenFastRan = true;
 
