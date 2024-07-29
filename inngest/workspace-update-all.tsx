@@ -10,7 +10,7 @@ import { inngest } from "./client";
 export default inngest.createFunction(
   { id: "workspace-update-all", retries: 0 },
   [
-    { cron: "0-59/30 * * * *" }, // TZ=Europe/Paris
+    { cron: "0 0,12 * * *" }, // Every two hours TZ=Europe/Paris
     { event: "workspace/update/all.start" },
   ],
   async ({ step, logger }) => {

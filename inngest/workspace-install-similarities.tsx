@@ -71,34 +71,34 @@ export default inngest.createFunction(
         for (var itemType of getItemTypesList()) {
           let hasBeenFastRan = false;
           if (!isFreeTier) {
-            console.log("Paying tier, checking if need to fast run");
+            // console.log("Paying tier, checking if need to fast run");
 
-            const { count, error } = await supabaseAdmin
-              .from("items")
-              .select("", { count: "exact", head: true })
-              .eq("workspace_id", workspace.id)
-              .eq("item_type", itemType)
-              .is("merged_in_distant_id", null)
-              .limit(0);
-            if (error || count === null) {
-              throw error || new Error("missing count");
+            // const { count, error } = await supabaseAdmin
+            //   .from("items")
+            //   .select("", { count: "exact", head: true })
+            //   .eq("workspace_id", workspace.id)
+            //   .eq("item_type", itemType)
+            //   .is("merged_in_distant_id", null)
+            //   .limit(0);
+            // if (error || count === null) {
+            //   throw error || new Error("missing count");
+            // }
+
+            //if (count > 80000) {
+            hasBeenFastRan = true;
+            oneHasBeenFastRan = true;
+
+            if (!secondRun) {
+              await inngest.send({
+                name: "workspace/install/similarities-fast.start",
+                data: {
+                  workspaceId: workspace.id,
+                  operationId: operation.id,
+                  itemType: itemType,
+                },
+              });
             }
-
-            if (count > 80000) {
-              hasBeenFastRan = true;
-              oneHasBeenFastRan = true;
-
-              if (!secondRun) {
-                await inngest.send({
-                  name: "workspace/install/similarities-fast.start",
-                  data: {
-                    workspaceId: workspace.id,
-                    operationId: operation.id,
-                    itemType: itemType,
-                  },
-                });
-              }
-            }
+            //}
           }
 
           if (!hasBeenFastRan) {
