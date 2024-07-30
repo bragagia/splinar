@@ -85,6 +85,7 @@ export default inngest.createFunction(
             // }
 
             //if (count > 80000) {
+            // TODO: should do slow run if less than 10k items to reduce costs
             hasBeenFastRan = true;
             oneHasBeenFastRan = true;
 

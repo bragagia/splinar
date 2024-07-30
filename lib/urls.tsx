@@ -46,6 +46,11 @@ export const URLS = {
       workspaceHubId +
       "/record/0-1/" +
       distantId,
+    hubspotDeal: (workspaceHubId: string, distantId: string) =>
+      "https://app.hubspot.com/contacts/" +
+      workspaceHubId +
+      "/record/0-3/" +
+      distantId,
     hubspotCompany: (workspaceHubId: string, distantId: string) =>
       // This condition is for the demo component to link to base hubspot account
       workspaceHubId

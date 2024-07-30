@@ -65,12 +65,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ItemTypeT,
   getItemTypeConfig,
+  getItemTypesList,
   itemFieldValuesAreEqual,
 } from "../../../../../../lib/items_common";
 
 const typeDef = `type HubSpotItem = {
   id: string;
-  itemType: "CONTACTS" | "COMPANIES";
+  itemType: "CONTACTS" | "COMPANIES" | "DEALS";
   fields: {
     [key: string]: string | null;
   };
@@ -519,8 +520,11 @@ export default function DataCleaningJobPage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CONTACTS">Contacts</SelectItem>
-                      <SelectItem value="COMPANIES">Companies</SelectItem>
+                      {getItemTypesList().map((itemType, i) => (
+                        <SelectItem key={i} value={itemType}>
+                          {getItemTypeConfig(workspace, itemType).word}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

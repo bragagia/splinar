@@ -32,6 +32,7 @@ export function ItemsListField({
       .select("*")
       .eq("workspace_id", workspace.id)
       .is("merged_in_distant_id", null)
+      .eq("item_type", "COMPANIES") // TODO: Should be generic
       .in("distant_id", itemsDistantIds)
       .then(({ data, error }) => {
         if (error) {

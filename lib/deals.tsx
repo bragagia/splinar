@@ -10,7 +10,6 @@ import {
   areSimilaritiesSourceFieldsDifferent,
   DedupConfigT,
   getItemTypeConfig,
-  ItemFieldSourceT,
   itemPollUpdaterT,
   JobOutputByItemId,
   listItemFields,
@@ -33,43 +32,12 @@ import utc from "dayjs/plugin/utc";
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
 
-export const contactsDefaultHubspotSourceFields: ItemFieldSourceT[] = [
-  {
-    value: "firstname",
-    label: "First name",
-  },
-  {
-    value: "lastname",
-    label: "Last name",
-  },
-  {
-    value: "email",
-    label: "Email",
-  },
-  {
-    value: "phone",
-    label: "Phone",
-  },
-  {
-    value: "mobilephone",
-    label: "Mobile phone",
-  },
-  {
-    value: "hs_linkedinid",
-    label: "Linkedin",
-  },
-  {
-    value: "companies",
-    label: "Companies",
-  },
-];
-
-export const contactsDefaultDedupConfig: DedupConfigT = {
+export const dealsDefaultDedupConfig: DedupConfigT = {
   fields: [
     {
-      id: "b8ab3013-ddc5-4dec-8f0f-6c42e22064ce",
-      displayName: "Full name",
-      sources: ["firstname", "lastname"],
+      id: "67198cd8-dc26-4117-a13e-c50bf234e66c",
+      displayName: "Deal name",
+      sources: ["dealname"],
       matchingMethod: "name",
       nameMinimumLength: 3,
       ifMatch: "potential",
@@ -77,32 +45,7 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
       linkType: "hubspot",
     },
     {
-      id: "e83701e1-c834-4093-b87a-2c928ce1ab1a",
-      displayName: "Emails",
-      sources: ["email"],
-      matchingMethod: "email",
-      ifMatch: "confident",
-      ifDifferent: "reduce-potential",
-    },
-    {
-      id: "f4301d99-295c-4491-91e2-21335110f675",
-      displayName: "linkedin",
-      sources: ["hs_linkedinid"],
-      matchingMethod: "url",
-      ifMatch: "confident",
-      ifDifferent: "reduce-potential",
-      linkType: "linkedin",
-    },
-    {
-      id: "7e290d76-aa92-4c4b-ae22-8236fc73070d",
-      displayName: "Phones",
-      sources: ["phone", "mobilephone"],
-      matchingMethod: "exact",
-      ifMatch: "multiplier",
-      ifDifferent: "reduce-potential",
-    },
-    {
-      id: "3982daff-7b19-4b65-914b-d2f02b54f7d9",
+      id: "592440cb-22ce-4ff7-a14f-e38de395fb67",
       displayName: "Companies",
       sources: ["companies"],
       matchingMethod: "exact",
@@ -113,56 +56,24 @@ export const contactsDefaultDedupConfig: DedupConfigT = {
   ],
   flags: [
     {
-      id: "c45c9aa0-261f-47d4-b8f8-342ed85a1585",
+      id: "f28f231b-cc62-40dd-bf26-703a968ca9c4",
       flagName: "Best filled",
       displayName: "Fields with values",
       source: "filled_score",
       dataType: "number",
       winner: "highest",
     },
-    {
-      id: "48c8cd9a-d31d-4469-8577-872430b4fca9",
-      flagName: "Last engaged",
-      displayName: "Last engagement date",
-      source: "hs_last_sales_activity_timestamp",
-      dataType: "date",
-      winner: "highest",
-    },
-    {
-      id: "48b0531b-9e74-4e5b-9dbf-326097459a30",
-      flagName: "Last contacted",
-      displayName: "Last contact date",
-      source: "notes_last_contacted",
-      dataType: "date",
-      winner: "highest",
-    },
-    {
-      id: "127f91d3-e88d-418e-8fb4-7362320bec46",
-      flagName: "Last activity",
-      displayName: "Last activity date",
-      source: "notes_last_updated",
-      dataType: "date",
-      winner: "highest",
-    },
-    {
-      id: "4be48025-a482-450c-9700-603d138a5584",
-      flagName: "Most contacted",
-      displayName: "Number of times contacted",
-      source: "num_contacted_notes",
-      dataType: "number",
-      winner: "highest",
-    },
   ],
 };
 
-export async function contactsPollUpdater(
+export async function dealsPollUpdater(
   supabase: SupabaseClient<Database>,
   workspace: Tables<"workspaces">,
   startFilter: Dayjs,
   endFilter: Dayjs,
   after?: string
 ): Promise<itemPollUpdaterT> {
-  const itemTypeConfig = getItemTypeConfig(workspace, "CONTACTS");
+  const itemTypeConfig = getItemTypeConfig(workspace, "DEALS");
 
   const hsClientSearch = await newHubspotClient(
     workspace.refresh_token,
@@ -170,7 +81,7 @@ export async function contactsPollUpdater(
   );
 
   const propertiesRes = await hsClientSearch.crm.properties.coreApi.getAll(
-    "contact"
+    "deal"
   );
   const propertiesList = propertiesRes.results.map((property) => property.name);
 
@@ -197,7 +108,7 @@ export async function contactsPollUpdater(
     after: (after as any) || 0,
   };
 
-  const res = await hsClientSearch.crm.contacts.searchApi.doSearch(
+  const res = await hsClientSearch.crm.deals.searchApi.doSearch(
     objectSearchRequest
   );
 
@@ -211,11 +122,11 @@ export async function contactsPollUpdater(
     };
   }
 
-  const { data: existingDbContacts, error } = await supabase
+  const { data: existingDbItems, error } = await supabase
     .from("items")
     .select()
     .eq("workspace_id", workspace.id)
-    .eq("item_type", "CONTACTS")
+    .eq("item_type", "DEALS")
     .in(
       "distant_id",
       res.results.map((contact) => contact.id)
@@ -224,26 +135,22 @@ export async function contactsPollUpdater(
     throw error;
   }
 
-  const existingContactsByDistantId = existingDbContacts.reduce(
-    (acc, contact) => {
-      acc[contact.distant_id] = contact;
-      return acc;
-    },
-    {} as { [key: string]: Tables<"items"> }
-  );
+  const existingItemsByDistantId = existingDbItems.reduce((acc, contact) => {
+    acc[contact.distant_id] = contact;
+    return acc;
+  }, {} as { [key: string]: Tables<"items"> });
 
-  let dbContacts = res.results.map((contact) => {
-    let contactCompanies: string[] | undefined =
-      (existingContactsByDistantId[contact.id]?.value as any)?.companies ||
-      undefined;
+  let dbItems = res.results.map((item) => {
+    let itemCompanies: string[] | undefined =
+      (existingItemsByDistantId[item.id]?.value as any)?.companies || undefined;
 
-    let dbContact: TablesInsert<"items"> = {
+    let dbItem: TablesInsert<"items"> = {
       workspace_id: workspace.id,
-      distant_id: contact.id,
-      item_type: "CONTACTS",
+      distant_id: item.id,
+      item_type: "DEALS",
       value: {
-        ...deleteNullKeys(contact.properties),
-        companies: contactCompanies,
+        ...deleteNullKeys(item.properties),
+        companies: itemCompanies,
       },
       similarity_checked: false,
       jobs_update_executed: false, // Note: We force update to false, but we let creation to existing value or default (= false)
@@ -252,39 +159,35 @@ export async function contactsPollUpdater(
 
     const hasASimilarityFieldBeenUpdated = areSimilaritiesSourceFieldsDifferent(
       itemTypeConfig,
-      existingContactsByDistantId[contact.id],
-      dbContact
+      existingItemsByDistantId[item.id],
+      dbItem
     );
 
-    if (
-      !hasASimilarityFieldBeenUpdated &&
-      existingContactsByDistantId[contact.id]
-    ) {
+    if (!hasASimilarityFieldBeenUpdated && existingItemsByDistantId[item.id]) {
       // Note: We don't set it to "true" because in some cases in may be currently to false and we don't want to override it
-      dbContact.similarity_checked =
-        existingContactsByDistantId[contact.id].similarity_checked;
+      dbItem.similarity_checked =
+        existingItemsByDistantId[item.id].similarity_checked;
     }
 
-    dbContact.filled_score = listItemFields(
+    dbItem.filled_score = listItemFields(
       workspace,
-      dbContact as Tables<"items">
+      dbItem as Tables<"items">
     ).length;
 
-    (dbContact.value as any).filled_score = dbContact.filled_score.toString();
+    (dbItem.value as any).filled_score = dbItem.filled_score.toString();
 
-    return dbContact;
+    return dbItem;
   });
 
   return {
-    items: dbContacts,
+    items: dbItems,
     after: res.paging?.next?.after || null,
     lastItemModifiedAt:
-      (dbContacts[dbContacts.length - 1]?.value as any)?.lastmodifieddate ||
-      null,
+      (dbItems[dbItems.length - 1]?.value as any)?.lastmodifieddate || null,
   };
 }
 
-export async function updateBulkContacts(
+export async function updateBulkDeals(
   workspace: Tables<"workspaces">,
   jobOutput: JobOutputByItemId
 ) {
@@ -304,7 +207,7 @@ export async function updateBulkContacts(
     console.log("[Hubspot] Updating item", itemId, "with", hubspotFieldUpdates);
 
     // Note: In case of error, we actually don't want to catch it here
-    const res = await hsClient.crm.contacts.basicApi.update(
+    const res = await hsClient.crm.deals.basicApi.update(
       jobOutput[itemId].distantId,
       {
         properties: hubspotFieldUpdates,
@@ -313,22 +216,20 @@ export async function updateBulkContacts(
   }
 }
 
-async function updateContactsItemTypeFields(
+async function updateDealsItemTypeFields(
   supabase: SupabaseClient<Database>,
   hsClient: Client,
   workspace: WorkspaceT,
   op: "GET" | "UPDATE"
 ) {
-  if (op === "GET" && workspace.item_types["CONTACTS"]?.hubspotSourceFields) {
-    return workspace.item_types["CONTACTS"]?.hubspotSourceFields.map(
+  if (op === "GET" && workspace.item_types["DEALS"]?.hubspotSourceFields) {
+    return workspace.item_types["DEALS"]?.hubspotSourceFields.map(
       (field) => field.value
     );
   } else {
-    const propertiesRes = await hsClient.crm.properties.coreApi.getAll(
-      "contact"
-    );
+    const propertiesRes = await hsClient.crm.properties.coreApi.getAll("deal");
 
-    const updatedItemConfig = mergeItemConfig(workspace, "CONTACTS", {
+    const updatedItemConfig = mergeItemConfig(workspace, "DEALS", {
       hubspotSourceFields: propertiesRes.results
         .map((property) => {
           return {
@@ -362,14 +263,14 @@ async function updateContactsItemTypeFields(
   }
 }
 
-export async function fetchContactsPage(
+export async function fetchDealsPage(
   supabase: SupabaseClient<Database>,
   workspace: WorkspaceT,
   after: string | undefined
 ) {
   const hsClient = await newHubspotClient(workspace.refresh_token);
 
-  const propertiesList = await updateContactsItemTypeFields(
+  const propertiesList = await updateDealsItemTypeFields(
     supabase,
     hsClient,
     workspace,
@@ -381,11 +282,11 @@ export async function fetchContactsPage(
     MAX_HUBSPOT_PROPERTIES_PER_REQUEST
   );
 
-  let contacts: SimplePublicObjectWithAssociations[] = [];
+  let items: SimplePublicObjectWithAssociations[] = [];
   let nextAfter: string | undefined = undefined;
 
   for (const propertiesListChunk of propertiesListChunks) {
-    const res = await hsClient.crm.contacts.basicApi.getPage(
+    const res = await hsClient.crm.deals.basicApi.getPage(
       100,
       after,
       propertiesListChunk,
@@ -395,17 +296,17 @@ export async function fetchContactsPage(
 
     nextAfter = res.paging?.next?.after;
 
-    if (contacts.length === 0) {
-      contacts = res.results;
+    if (items.length === 0) {
+      items = res.results;
     } else {
       // Merge the results properties
-      res.results.forEach((contact) => {
-        let existingContact = contacts.find((c) => c.id === contact.id);
+      res.results.forEach((item) => {
+        let existingItem = items.find((c) => c.id === item.id);
 
-        if (existingContact) {
-          existingContact.properties = {
-            ...existingContact.properties,
-            ...contact.properties,
+        if (existingItem) {
+          existingItem.properties = {
+            ...existingItem.properties,
+            ...item.properties,
           };
           // We don't merge associations as we only fetch companies
           // existingContact.associations = {
@@ -414,36 +315,36 @@ export async function fetchContactsPage(
           // };
         } else {
           throw new Error(
-            `Contact ${contact.id} not found in existing contacts while merging chunks.`
+            `Contact ${item.id} not found in existing contacts while merging chunks.`
           );
         }
       });
     }
   }
 
-  if (!contacts || contacts.length === 0) {
+  if (!items || items.length === 0) {
     return {
       after: undefined,
       items: [],
     };
   }
 
-  let dbContacts = contacts.map((contact) => {
+  let dbItems = items.map((item) => {
     let itemCompanies: string[] | undefined =
-      contact.associations?.companies?.results.map((company) => company.id);
+      item.associations?.companies?.results.map((company) => company.id);
 
     if (itemCompanies && itemCompanies.length > 0) {
       // Deduplicate values
       itemCompanies = Array.from(new Set(itemCompanies));
     }
 
-    let dbContact: TablesInsert<"items"> = {
+    let dbItem: TablesInsert<"items"> = {
       id: uuid(),
       workspace_id: workspace.id,
-      distant_id: contact.id,
-      item_type: "CONTACTS",
+      distant_id: item.id,
+      item_type: "DEALS",
       value: deepClean({
-        ...deleteNullKeys(contact.properties),
+        ...deleteNullKeys(item.properties),
         companies: itemCompanies,
       }),
       similarity_checked: false,
@@ -452,18 +353,18 @@ export async function fetchContactsPage(
       filled_score: 0, // Calculated below
     };
 
-    dbContact.filled_score = listItemFields(
+    dbItem.filled_score = listItemFields(
       workspace,
-      dbContact as Tables<"items">
+      dbItem as Tables<"items">
     ).length;
 
-    (dbContact.value as any).filled_score = dbContact.filled_score.toString();
+    (dbItem.value as any).filled_score = dbItem.filled_score.toString();
 
-    return dbContact;
+    return dbItem;
   });
 
   return {
     after: nextAfter,
-    items: dbContacts,
+    items: dbItems,
   };
 }

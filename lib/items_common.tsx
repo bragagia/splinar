@@ -13,15 +13,22 @@ import {
   companiesDefaultDedupConfig,
   companiesDefaultHubspotSourceFields,
   companiesPollUpdater,
-  getCompanyColumns,
+  fetchCompaniesPage,
   updateBulkCompanies,
 } from "@/lib/companies";
 import {
   contactsDefaultDedupConfig,
   contactsDefaultHubspotSourceFields,
   contactsPollUpdater,
+  fetchContactsPage,
   updateBulkContacts,
 } from "@/lib/contacts";
+import {
+  dealsDefaultDedupConfig,
+  dealsPollUpdater,
+  fetchDealsPage,
+  updateBulkDeals,
+} from "@/lib/deals";
 import { dateCmp, getMaxs, nullCmp } from "@/lib/metadata_helpers";
 import { captureException } from "@/lib/sentry";
 import { URLS } from "@/lib/urls";
@@ -32,7 +39,7 @@ import {
   getDupstackConfidentsAndReference,
   getDupstackPotentials,
 } from "@/types/dupstacks";
-import { Database, Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
+import { Database, Tables, TablesInsert } from "@/types/supabase";
 import { Client } from "@hubspot/api-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import dayjs, { Dayjs } from "dayjs";
@@ -51,12 +58,17 @@ export type JobOutputByItemId = {
   };
 };
 
-export type ItemTypeT = "COMPANIES" | "CONTACTS";
+export type ItemTypeT = "COMPANIES" | "CONTACTS" | "DEALS";
 
 export type ItemConfig = {
   wordSingular: string;
   word: string;
   getItemDisplayString: (item: Tables<"items">) => string;
+  fetchPage: (
+    supabase: SupabaseClient<Database>,
+    workspace: WorkspaceT,
+    after: string | undefined
+  ) => Promise<{ after?: string; items?: TablesInsert<"items">[] }>;
   pollUpdater: (
     supabase: SupabaseClient<Database>,
     workspace: Tables<"workspaces">,
@@ -69,11 +81,6 @@ export type ItemConfig = {
   dedupConfig: DedupConfigT;
   getHubspotURL: (workspaceHubId: string, distantId: string) => string;
   getDistantMergeFn: (hsClient: Client) => any;
-  getWorkspaceOperation: (workspace: Tables<"workspaces">) => string;
-  setWorkspaceOperation: (
-    newValue: TablesInsert<"workspaces">["contacts_operation_status"],
-    workspace?: Tables<"workspaces">
-  ) => TablesUpdate<"workspaces">;
   distantUpdateBulk: (
     workspace: Tables<"workspaces">,
     jobOutput: JobOutputByItemId
@@ -87,7 +94,7 @@ export type itemPollUpdaterT = {
 };
 
 export function getItemTypesList(): ItemTypeT[] {
-  return ["COMPANIES", "CONTACTS"];
+  return ["COMPANIES", "CONTACTS", "DEALS"];
 }
 
 export function getItemTypeConfig(
@@ -113,6 +120,8 @@ export function getItemTypeConfig(
         }
       },
 
+      fetchPage: fetchCompaniesPage,
+
       pollUpdater: companiesPollUpdater,
 
       itemNameSources: ["name"], // Should use that value instead of func
@@ -128,17 +137,9 @@ export function getItemTypeConfig(
       getDistantMergeFn: (hsClient: Client) =>
         hsClient?.crm.companies.publicObjectApi.merge,
 
-      getWorkspaceOperation: (workspace: Tables<"workspaces">) =>
-        workspace.companies_operation_status,
-
-      setWorkspaceOperation: (
-        newValue: TablesInsert<"workspaces">["contacts_operation_status"],
-        workspace?: Tables<"workspaces">
-      ) => ({ ...workspace, companies_operation_status: newValue }),
-
       distantUpdateBulk: updateBulkCompanies,
     };
-  } else {
+  } else if (itemType === "CONTACTS") {
     return {
       wordSingular: "contact",
       word: "contacts",
@@ -152,6 +153,8 @@ export function getItemTypeConfig(
           return "#" + item.distant_id;
         }
       },
+
+      fetchPage: fetchContactsPage,
 
       pollUpdater: contactsPollUpdater,
 
@@ -168,15 +171,39 @@ export function getItemTypeConfig(
       getDistantMergeFn: (hsClient: Client) =>
         hsClient?.crm.contacts.publicObjectApi.merge,
 
-      getWorkspaceOperation: (workspace: Tables<"workspaces">) =>
-        workspace.contacts_operation_status,
-
-      setWorkspaceOperation: (
-        newValue: TablesInsert<"workspaces">["contacts_operation_status"],
-        workspace?: Tables<"workspaces">
-      ) => ({ ...workspace, contacts_operation_status: newValue }),
-
       distantUpdateBulk: updateBulkContacts,
+    };
+  } else {
+    return {
+      wordSingular: "deal",
+      word: "deals",
+
+      getItemDisplayString(item: Tables<"items">) {
+        const value = item.value as any;
+
+        if (value.dealname) {
+          return value.dealname;
+        } else {
+          return "#" + item.distant_id;
+        }
+      },
+
+      fetchPage: fetchDealsPage,
+
+      pollUpdater: dealsPollUpdater,
+
+      itemNameSources: ["dealname"],
+
+      hubspotSourceFields: itemTypeConfig?.hubspotSourceFields || [],
+
+      dedupConfig: itemTypeConfig?.dedupConfig || dealsDefaultDedupConfig,
+
+      getHubspotURL: URLS.external.hubspotDeal,
+
+      getDistantMergeFn: (hsClient: Client) =>
+        hsClient?.crm.deals.publicObjectApi.merge,
+
+      distantUpdateBulk: updateBulkDeals,
     };
   }
 }
@@ -567,13 +594,13 @@ export function getRowInfos(
     throw new Error("missing company");
   }
 
-  const itemType = getItemTypeConfig(workspace, item.item_type);
+  const itemConfig = getItemTypeConfig(workspace, item.item_type);
 
   const fieldsValues = getItemFieldsValues(workspace, item);
 
   const fieldColumns: DupStackRowColumnType[] = Object.keys(fieldsValues).map(
     (fieldId): DupStackRowColumnType => {
-      const fieldConfig = itemType.dedupConfig.fields.find(
+      const fieldConfig = itemConfig.dedupConfig.fields.find(
         (fieldConfig) => fieldConfig.id === fieldId
       );
       if (!fieldConfig) {
@@ -598,7 +625,10 @@ export function getRowInfos(
             {fieldValues.map((fieldValue, i) => (
               <HubspotLinkButton
                 key={i}
-                href={itemType.getHubspotURL(workspace.hub_id, item.distant_id)}
+                href={itemConfig.getHubspotURL(
+                  workspace.hub_id,
+                  item.distant_id
+                )}
               >
                 {fieldValue}
               </HubspotLinkButton>
@@ -653,9 +683,10 @@ export function getRowInfos(
         renderedValues = () => (
           <ItemsListField
             itemsDistantIds={fieldValues}
-            nameFn={(item: Tables<"items">) =>
-              getCompanyColumns(item).name || "#" + item.distant_id
-            }
+            nameFn={(item: Tables<"items">) => {
+              const itemConfig = getItemTypeConfig(workspace, item.item_type);
+              return itemConfig.getItemDisplayString(item);
+            }}
             linkFn={(item: Tables<"items">) =>
               URLS.external.hubspotCompany(workspace.hub_id, item.distant_id)
             }
@@ -667,7 +698,7 @@ export function getRowInfos(
         value: renderedValues,
         style: "text-gray-700",
         tips:
-          itemType.dedupConfig.fields.find((field) => field.id === fieldId)
+          itemConfig.dedupConfig.fields.find((field) => field.id === fieldId)
             ?.displayName || "",
       };
     }

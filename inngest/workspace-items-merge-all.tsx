@@ -1,6 +1,5 @@
 import { itemsMerge } from "@/app/workspace/[workspaceId]/duplicates/items-merge";
 import { newHubspotClient } from "@/lib/hubspot";
-import { getItemTypeConfig } from "@/lib/items_common";
 import { newSupabaseRootClient } from "@/lib/supabase/root";
 import { inngest } from "./client";
 
@@ -41,25 +40,23 @@ export default inngest.createFunction(
     }
 
     if (!lastItemCreatedAt) {
-      if (
-        getItemTypeConfig(workspace, itemType).getWorkspaceOperation(
-          workspace
-        ) === "PENDING"
-      ) {
-        throw new Error("Operation running on workspace");
-      }
-
-      const { error: error } = await supabaseAdmin
-        .from("workspaces")
-        .update(
-          getItemTypeConfig(workspace, itemType).setWorkspaceOperation(
-            "PENDING"
-          )
-        )
-        .eq("id", workspaceId);
-      if (error) {
-        throw error;
-      }
+      // TODO: Check if there is no operation running on workspace
+      // if (
+      //   operation is pending
+      // ) {
+      //   throw new Error("Operation running on workspace");
+      // }
+      // const { error: error } = await supabaseAdmin
+      //   .from("workspaces")
+      //   .update(
+      //     getItemTypeConfig(workspace, itemType).setWorkspaceOperation(
+      //       "PENDING"
+      //     )
+      //   )
+      //   .eq("id", workspaceId);
+      // if (error) {
+      //   throw error;
+      // }
     }
 
     let hsClient = await newHubspotClient(workspace.refresh_token);
@@ -109,15 +106,16 @@ export default inngest.createFunction(
     } while (newLastItemCreatedAt && counter < MAX_IT);
 
     if (finished) {
-      const { error: errorWriteDone } = await supabaseAdmin
-        .from("workspaces")
-        .update(
-          getItemTypeConfig(workspace, itemType).setWorkspaceOperation("NONE")
-        )
-        .eq("id", workspaceId);
-      if (errorWriteDone) {
-        throw errorWriteDone;
-      }
+      // TODO: Set workspace operation to NONE
+      // const { error: errorWriteDone } = await supabaseAdmin
+      //   .from("workspaces")
+      //   .update(
+      //     getItemTypeConfig(workspace, itemType).setWorkspaceOperation("NONE")
+      //   )
+      //   .eq("id", workspaceId);
+      // if (errorWriteDone) {
+      //   throw errorWriteDone;
+      // }
 
       logger.info("# Items merge all", workspaceId, "- END");
     } else {

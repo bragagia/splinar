@@ -98,6 +98,10 @@ async function processHubspotEvent(
       itemType = "COMPANIES";
       break;
 
+    case "deal":
+      itemType = "DEALS";
+      break;
+
     default:
       // Unhandled item type for now
       captureException(

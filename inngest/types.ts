@@ -12,20 +12,12 @@ type WorkspaceInstallStart = {
   };
 };
 
-export type WorkspaceInstallFetchCompaniesStart = {
-  name: "workspace/install/fetch/companies.start";
+export type WorkspaceInstallFetchStart = {
+  name: "workspace/install/fetch.start";
   data: {
     workspaceId: string;
     operationId: string;
-    after?: string;
-  };
-};
-
-export type WorkspaceInstallFetchContactsStart = {
-  name: "workspace/install/fetch/contacts.start";
-  data: {
-    workspaceId: string;
-    operationId: string;
+    itemTypes: ItemTypeT[];
     after?: string;
   };
 };
@@ -157,8 +149,7 @@ export type SendMailStart = {
 
 export const schemas = new EventSchemas().fromUnion<
   | WorkspaceInstallStart
-  | WorkspaceInstallFetchCompaniesStart
-  | WorkspaceInstallFetchContactsStart
+  | WorkspaceInstallFetchStart
   | WorkspaceInstallSimilaritiesBatchStart
   | WorkspaceInstallDupStacksStart
   | WorkspaceInstallEndStart

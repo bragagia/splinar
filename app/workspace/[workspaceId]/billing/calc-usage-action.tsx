@@ -24,15 +24,18 @@ export async function calcWorkspaceDistantUsageDetailedAction(
     "search"
   );
 
-  const { companiesTotal, contactsTotal } = await getHubspotStats(
+  const { companiesTotal, contactsTotal, dealsTotal } = await getHubspotStats(
     hsClientSearchLimited
   );
 
-  const roundItemsCount = Math.ceil((companiesTotal + contactsTotal) / 1000);
+  const roundItemsCount = Math.ceil(
+    (companiesTotal + contactsTotal + dealsTotal) / 1000
+  );
 
   return {
     contactsTotal: contactsTotal,
     companiesTotal: companiesTotal,
+    dealsTotal: dealsTotal,
     usage: roundItemsCount,
     usagePrice: roundItemsCount * 1,
     priceTotal: roundItemsCount * 1,

@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest";
 import { newHubspotClient } from "@/lib/hubspot";
+import { getItemTypesList } from "@/lib/items_common";
 import {
   OperationWorkspaceInstallOrUpdateMetadata,
   workspaceOperationUpdateMetadata,
@@ -51,7 +52,8 @@ export async function fullFetch(
       steps: {
         fetch: {
           startedAt: dayjs().toISOString(),
-          itemsTotal: stats.companiesTotal + stats.contactsTotal,
+          itemsTotal:
+            stats.companiesTotal + stats.contactsTotal + stats.dealsTotal,
           itemsDone: 0,
         },
       },
@@ -59,10 +61,11 @@ export async function fullFetch(
   );
 
   await inngest.send({
-    name: "workspace/install/fetch/companies.start",
+    name: "workspace/install/fetch.start",
     data: {
       workspaceId: workspaceId,
       operationId: operationId,
+      itemTypes: getItemTypesList(),
     },
   });
 }
@@ -96,7 +99,20 @@ export async function getHubspotStats(hsClientSearchLimited: Client) {
 
   console.log("companies count: ", companiesTotal);
 
-  return { companiesTotal, contactsTotal };
+  console.log("-> Fetch deals stats");
+  // Legacy documented here: https://legacydocs.hubspot.com/docs/methods/contacts/get-contacts-statistics
+  const { total: dealsTotal } =
+    await hsClientSearchLimited.crm.deals.searchApi.doSearch({
+      filterGroups: [],
+      sorts: [],
+      properties: [],
+      limit: 100,
+      after: "0",
+    });
+
+  console.log("deals count: ", dealsTotal);
+
+  return { companiesTotal, contactsTotal, dealsTotal };
 }
 
 export async function updateInstallItemsCount(

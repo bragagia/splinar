@@ -36,7 +36,20 @@ export async function calcWorkspaceUsageDetailed(
     throw errorCompanies || new Error("Missing companies count");
   }
 
-  const roundItemsCount = Math.ceil((companiesCount + contactsCount) / 1000);
+  const { count: dealsCount, error: errorDeals } = await supabase
+    .from("items")
+    .select(undefined, { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("item_type", "DEALS")
+    .is("merged_in_distant_id", null)
+    .limit(0);
+  if (errorDeals || dealsCount === null) {
+    throw errorDeals || new Error("Missing deals count");
+  }
+
+  const roundItemsCount = Math.ceil(
+    (companiesCount + contactsCount + dealsCount) / 1000
+  );
 
   return {
     contactsTotal: contactsCount,

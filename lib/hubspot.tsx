@@ -1,6 +1,8 @@
 import * as hubspot from "@hubspot/api-client";
 import IConfiguration from "@hubspot/api-client/lib/src/configuration/IConfiguration";
 
+export const MAX_HUBSPOT_PROPERTIES_PER_REQUEST = 250; // Has been tested to work up to 615
+
 export function setHubspotClientSearchLimit(client: hubspot.Client) {
   client.config.limiterOptions = {
     minTime: 550,

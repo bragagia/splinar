@@ -105,6 +105,8 @@ export default function WorkspaceSettingsPage() {
     }
 
     await workspaceReset(workspace.id, "similarities_and_dup");
+
+    window.location.reload();
   };
 
   const handleSaveOnly = async () => {
@@ -149,14 +151,6 @@ export default function WorkspaceSettingsPage() {
         </h2>
       </div>
 
-      <div className="bg-orange-100 px-2 py-6 rounded-md text-sm">
-        <p className="text-center">
-          ⚠️ The settings for duplicate rules are currently read-only. If the
-          default settings do not meet your needs, please contact us for
-          assistance.
-        </p>
-      </div>
-
       <Card>
         <CardContent className="pt-2">
           <FieldsHeader />
@@ -180,28 +174,14 @@ export default function WorkspaceSettingsPage() {
               New
             </SpButton>
 
-            {(user.role === "SUPERADMIN" ||
-              process.env.NODE_ENV === "development") && (
-              <>
-                <SpConfirmButton
-                  variant="full"
-                  className="w-full"
-                  colorClass="red"
-                  onClick={handleSaveOnly}
-                >
-                  Save only
-                </SpConfirmButton>
-
-                <SpConfirmButton
-                  variant="full"
-                  className="w-full"
-                  colorClass="red"
-                  onClick={handleSave}
-                >
-                  Save and reset similarities
-                </SpConfirmButton>
-              </>
-            )}
+            <SpConfirmButton
+              variant="full"
+              className="w-full"
+              colorClass="red"
+              onClick={handleSave}
+            >
+              Save and reset duplicates
+            </SpConfirmButton>
           </div>
         </CardContent>
       </Card>

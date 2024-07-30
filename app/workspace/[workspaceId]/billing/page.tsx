@@ -7,8 +7,6 @@ export default async function StripeBillingPage({
 }: {
   params: { workspaceId: string };
 }) {
-  const supabase = newSupabaseServerClient();
-
   const workspaceUsage = await calcWorkspaceDistantUsageDetailedAction(
     params.workspaceId
   );

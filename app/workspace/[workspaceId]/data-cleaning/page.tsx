@@ -108,13 +108,19 @@ export default function DataCleaningPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {user.role !== "SUPERADMIN" && process.env.NODE_ENV !== "development" && (
-        <div className="absolute top-16 z-30 left-0 w-screen h-screen bg-gray-100/40 backdrop-blur-md">
-          <p className="mt-40 w-full text-center text-4xl font-bold text-gray-400">
-            Coming soon ⏳
+      <div className="bg-orange-100 px-2 py-6 rounded-md text-sm flex flex-row gap-4 items-center">
+        <p className="text-xl ml-3">⚠️</p>
+
+        <div className="flex flex-col gap-1">
+          <p className="">
+            Data cleaning is currently in beta. Please contact us
+            contact@splinar.com if you need help.
+          </p>
+          <p className="underline">
+            No data will be modified until you review every change
           </p>
         </div>
-      )}
+      </div>
 
       <div className="flex flex-col space-y-8">
         <SpButton

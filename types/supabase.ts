@@ -819,7 +819,7 @@ export type Database = {
         | "CONFIDENT"
         | "POTENTIAL"
         | "FALSE_POSITIVE"
-      dup_stack_item_type: "CONTACTS" | "COMPANIES"
+      dup_stack_item_type: "CONTACTS" | "COMPANIES" | "DEALS"
       similarities_similarity_score:
         | "exact"
         | "similar"

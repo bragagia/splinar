@@ -10,6 +10,7 @@ export function SubscriptionOptions({
   workspaceUsage: {
     contactsTotal: number;
     companiesTotal: number;
+    dealsTotal: number;
     usage: number;
     usagePrice: number;
     priceTotal: number;
@@ -17,8 +18,14 @@ export function SubscriptionOptions({
   currentPlan: "free" | "none";
   onSelectFree?: () => void;
 }) {
-  const { contactsTotal, companiesTotal, usage, usagePrice, priceTotal } =
-    workspaceUsage;
+  const {
+    contactsTotal,
+    companiesTotal,
+    dealsTotal,
+    usage,
+    usagePrice,
+    priceTotal,
+  } = workspaceUsage;
 
   return (
     <div className="grid grid-cols-2 max-w-4xl items-center mx-auto">
@@ -150,8 +157,8 @@ export function SubscriptionOptions({
 
             <p>
               Calculated on current usage of :<br />
-              {companiesTotal} companies + {contactsTotal} contacts ~= {usage}k
-              items
+              {companiesTotal} companies + {contactsTotal} contacts +{" "}
+              {dealsTotal} deals ~= {usage}k items
             </p>
           </div>
         </div>

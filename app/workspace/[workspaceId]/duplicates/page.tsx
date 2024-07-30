@@ -136,27 +136,28 @@ export default function DuplicatesPage() {
       return;
     }
 
-    if (workspace.companies_operation_status === "PENDING") {
-      setTypeStates((cur) => {
-        if (!cur) {
-          return {};
-        }
+    // TODO: Use new operation to determine if there is a merge in progress
+    // if (workspace.companies_operation_status === "PENDING") {
+    //   setTypeStates((cur) => {
+    //     if (!cur) {
+    //       return {};
+    //     }
 
-        cur.COMPANIES.isMerging = true;
+    //     cur.COMPANIES.isMerging = true;
 
-        return { ...cur };
-      });
-    } else {
-      setTypeStates((cur) => {
-        if (!cur) {
-          return {};
-        }
+    //     return { ...cur };
+    //   });
+    // } else {
+    //   setTypeStates((cur) => {
+    //     if (!cur) {
+    //       return {};
+    //     }
 
-        cur.COMPANIES.isMerging = false;
+    //     cur.COMPANIES.isMerging = false;
 
-        return { ...cur };
-      });
-    }
+    //     return { ...cur };
+    //   });
+    // }
   }, [typesList, workspace.companies_operation_status]);
 
   useEffect(() => {
@@ -164,27 +165,27 @@ export default function DuplicatesPage() {
       return;
     }
 
-    if (workspace.contacts_operation_status === "PENDING") {
-      setTypeStates((cur) => {
-        if (!cur) {
-          return {};
-        }
+    // if (workspace.contacts_operation_status === "PENDING") {
+    //   setTypeStates((cur) => {
+    //     if (!cur) {
+    //       return {};
+    //     }
 
-        cur.CONTACTS.isMerging = true;
+    //     cur.CONTACTS.isMerging = true;
 
-        return { ...cur };
-      });
-    } else {
-      setTypeStates((cur) => {
-        if (!cur) {
-          return {};
-        }
+    //     return { ...cur };
+    //   });
+    // } else {
+    //   setTypeStates((cur) => {
+    //     if (!cur) {
+    //       return {};
+    //     }
 
-        cur.CONTACTS.isMerging = false;
+    //     cur.CONTACTS.isMerging = false;
 
-        return { ...cur };
-      });
-    }
+    //     return { ...cur };
+    //   });
+    // }
   }, [typesList, workspace.contacts_operation_status]);
 
   // Force update the workspace every 5 seconds if there is a merge in progress
