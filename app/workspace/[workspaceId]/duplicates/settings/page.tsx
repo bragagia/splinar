@@ -274,7 +274,11 @@ function FieldEditor({
         />
 
         <MultiSelect
-          options={config.hubspotSourceFields}
+          options={config.hubspotSourceFields.map((f) => ({
+            value: f.value,
+            label: f.label,
+            sublabel: `(${f.value})`,
+          }))}
           selected={field.sources}
           className={cn({
             "border-red-500": !field.sources.length,

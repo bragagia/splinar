@@ -20,6 +20,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 export type OptionType = {
   label: string;
   value: string;
+  sublabel?: string;
 };
 
 interface MultiSelectProps {
@@ -100,6 +101,12 @@ function MultiSelect({
                   )}
                 />
                 {option.label}
+
+                {option.sublabel && (
+                  <span className="ml-1 text-xs text-neutral-500">
+                    {option.sublabel}
+                  </span>
+                )}
               </CommandItem>
             ))}
           </CommandGroup>
